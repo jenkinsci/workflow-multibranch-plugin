@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2014 Jesse Glick.
+ * Copyright 2016 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,27 +24,47 @@
 
 package org.jenkinsci.plugins.workflow.steps;
 
-import hudson.tasks.Maven;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.jenkinsci.plugins.workflow.actions.LogAction;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.graph.FlowGraphWalker;
+import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.junit.ClassRule;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Test;
+import static org.junit.Assert.*;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.ToolInstallations;
 
-public class ToolStepTest {
+public class EchoStepTest {
 
     @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
     @Rule public JenkinsRule r = new JenkinsRule();
 
-    @Test public void build() throws Exception {
-        Maven.MavenInstallation tool = ToolInstallations.configureMaven3();
-        String name = tool.getName();
+    @Test public void smokes() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
-        p.setDefinition(new CpsFlowDefinition("node {def home = tool '" + name + "'; sh \"M2_HOME=${home} ${home}/bin/mvn -version\"}"));
-        r.assertLogContains("Apache Maven 3", r.assertBuildStatusSuccess(p.scheduleBuild2(0)));
+        p.setDefinition(new CpsFlowDefinition("echo 'hello there'", true));
+        WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+        List<LogAction> logActions = new ArrayList<LogAction>();
+        for (FlowNode n : new FlowGraphWalker(b.getExecution())) {
+            LogAction la = n.getAction(LogAction.class);
+            if (la != null) {
+                logActions.add(la);
+            }
+        }
+        assertEquals(1, logActions.size());
+        StringWriter w = new StringWriter();
+        logActions.get(0).getLogText().writeLogTo(0, w);
+        assertEquals("hello there", w.toString().trim());
+        Matcher m = Pattern.compile("hello there").matcher(JenkinsRule.getLog(b));
+        assertTrue("message printed once", m.find());
+        assertFalse("message not printed twice", m.find());
     }
 
 }
