@@ -31,6 +31,7 @@ import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.scm.SCMDescriptor;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.branch.BranchProjectFactory;
@@ -50,9 +51,17 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
     private static final Logger LOGGER = Logger.getLogger(WorkflowMultiBranchProject.class.getName());
 
     static final String SCRIPT = "Jenkinsfile";
+    private static final String SCRIPT_LOWERCASE = SCRIPT.toLowerCase(Locale.ENGLISH);
     static final SCMSourceCriteria CRITERIA = new SCMSourceCriteria() {
         @Override public boolean isHead(SCMSourceCriteria.Probe probe, TaskListener listener) throws IOException {
-            return probe.exists(SCRIPT);
+            if (probe.exists(SCRIPT)) {
+                return true;
+            } else {
+                if (probe.exists(SCRIPT_LOWERCASE)) {
+                    listener.getLogger().println("Found " + SCRIPT_LOWERCASE + " rather than " + SCRIPT + ", skipping");
+                }
+                return false;
+            }
         }
     };
 
