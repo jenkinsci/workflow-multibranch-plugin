@@ -79,7 +79,7 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
         }
 
         public String getIconFilePathPattern() {
-            return "plugin/workflow-multibranch/:size/pipelinemultibranchproject.png";
+            return "plugin/workflow-multibranch/images/:size/pipelinemultibranchproject.png";
         }
 
         @Override public TopLevelItem newInstance(ItemGroup parent, String name) {
