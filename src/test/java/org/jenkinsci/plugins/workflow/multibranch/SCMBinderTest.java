@@ -96,6 +96,7 @@ public class SCMBinderTest {
         r.assertLogContains("initial content", r.waitForCompletion(b1));
         r.assertLogContains("SUBSEQUENT CONTENT", b2);
         assertRevisionAction(b2);
+        WorkflowMultiBranchProjectTest.showIndexing(mp);
     }
 
     static void assertRevisionAction(WorkflowRun build) {

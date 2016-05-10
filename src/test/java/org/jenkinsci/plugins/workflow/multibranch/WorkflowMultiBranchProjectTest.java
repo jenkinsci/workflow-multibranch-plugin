@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
 import hudson.ExtensionList;
 import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Item;
@@ -112,11 +113,18 @@ public class WorkflowMultiBranchProjectTest {
 
     static @Nonnull WorkflowJob findBranchProject(@Nonnull WorkflowMultiBranchProject mp, @Nonnull String name) throws Exception {
         WorkflowJob p = mp.getItem(name);
+        showIndexing(mp);
         if (p == null) {
-            mp.getIndexing().writeWholeLogTo(System.out);
             fail(name + " project not found");
         }
         return p;
+    }
+
+    static void showIndexing(@Nonnull WorkflowMultiBranchProject mp) throws Exception {
+        FolderComputation<?> indexing = mp.getIndexing();
+        System.out.println("---%<--- " + indexing.getUrl());
+        indexing.writeWholeLogTo(System.out);
+        System.out.println("---%<--- ");
     }
 
     @Issue("JENKINS-32670")
