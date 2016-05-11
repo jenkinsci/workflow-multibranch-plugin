@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import com.cloudbees.hudson.plugins.folder.computed.OrphanedItemStrategy;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.model.ItemGroup;
@@ -58,6 +59,10 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
 
     public WorkflowMultiBranchProject(ItemGroup parent, String name) {
         super(parent, name);
+    }
+
+    public WorkflowMultiBranchProject(ItemGroup parent, String name, OrphanedItemStrategy strategy) {
+        super(parent, name, strategy);
     }
 
     @Override protected BranchProjectFactory<WorkflowJob,WorkflowRun> newProjectFactory() {
