@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import com.cloudbees.hudson.plugins.folder.computed.OrphanedItemStrategy;
 import hudson.Extension;
 import hudson.model.ItemGroup;
 import java.util.Map;
@@ -43,8 +44,10 @@ public class WorkflowMultiBranchProjectFactory extends MultiBranchProjectFactory
         return CRITERIA;
     }
 
-    @Override protected MultiBranchProject<?,?> doCreateProject(ItemGroup<?> parent, String name, Map<String,Object> attributes) {
-        return new WorkflowMultiBranchProject(parent, name);
+    @Override protected MultiBranchProject<?,?> doCreateProject(ItemGroup<?> parent, String name, OrphanedItemStrategy strategy,
+            Map<String,Object> attributes) {
+
+        return new WorkflowMultiBranchProject(parent, name, strategy);
     }
 
     @Extension public static class DescriptorImpl extends MultiBranchProjectFactoryDescriptor {
