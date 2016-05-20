@@ -25,13 +25,19 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.Extension;
+import hudson.model.Action;
 import hudson.model.ItemGroup;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import jenkins.branch.MultiBranchProject;
 import jenkins.branch.MultiBranchProjectFactory;
 import jenkins.branch.MultiBranchProjectFactoryDescriptor;
+import jenkins.branch.OrganizationFolder;
+import jenkins.model.TransientActionFactory;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
+import org.jenkinsci.plugins.workflow.cps.Snippetizer;
 import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject.CRITERIA;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -55,6 +61,22 @@ public class WorkflowMultiBranchProjectFactory extends MultiBranchProjectFactory
 
         @Override public String getDisplayName() {
             return "Pipeline Jenkinsfile";
+        }
+
+    }
+
+    @Extension public static class PerFolderAdder extends TransientActionFactory<OrganizationFolder> {
+
+        @Override public Class<OrganizationFolder> type() {
+            return OrganizationFolder.class;
+        }
+
+        @Override public Collection<? extends Action> createFor(OrganizationFolder target) {
+            if (target.getProjectFactories().get(WorkflowMultiBranchProjectFactory.class) != null) {
+                return Collections.singleton(new Snippetizer.LocalAction());
+            } else {
+                return Collections.emptySet();
+            }
         }
 
     }
