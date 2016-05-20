@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.Extension;
 import hudson.model.Action;
+import hudson.model.Item;
 import hudson.model.ItemGroup;
 import java.util.Collection;
 import java.util.Collections;
@@ -72,7 +73,7 @@ public class WorkflowMultiBranchProjectFactory extends MultiBranchProjectFactory
         }
 
         @Override public Collection<? extends Action> createFor(OrganizationFolder target) {
-            if (target.getProjectFactories().get(WorkflowMultiBranchProjectFactory.class) != null) {
+            if (target.getProjectFactories().get(WorkflowMultiBranchProjectFactory.class) != null && target.hasPermission(Item.EXTENDED_READ)) {
                 return Collections.singleton(new Snippetizer.LocalAction());
             } else {
                 return Collections.emptySet();

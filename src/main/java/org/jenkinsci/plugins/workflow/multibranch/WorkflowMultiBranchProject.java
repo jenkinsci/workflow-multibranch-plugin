@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.workflow.multibranch;
 import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Descriptor;
+import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
@@ -115,7 +116,11 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
         }
 
         @Override public Collection<? extends Action> createFor(WorkflowMultiBranchProject target) {
-            return Collections.singleton(new Snippetizer.LocalAction());
+            if (target.hasPermission(Item.EXTENDED_READ)) {
+                return Collections.singleton(new Snippetizer.LocalAction());
+            } else {
+                return Collections.emptySet();
+            }
         }
 
     }
