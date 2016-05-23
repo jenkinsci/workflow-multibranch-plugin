@@ -33,14 +33,12 @@ import hudson.model.Queue;
 import hudson.model.TaskListener;
 import hudson.scm.SCM;
 import java.util.List;
-import javax.inject.Inject;
 import jenkins.branch.Branch;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
-import org.jenkinsci.plugins.workflow.cps.Snippetizer;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinitionDescriptor;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
@@ -88,8 +86,6 @@ class SCMBinder extends FlowDefinition {
     }
 
     @Extension public static class DescriptorImpl extends FlowDefinitionDescriptor {
-
-        @Inject public Snippetizer snippetizer;
 
         @Override public String getDisplayName() {
             return "Pipeline script from " + WorkflowMultiBranchProject.SCRIPT;

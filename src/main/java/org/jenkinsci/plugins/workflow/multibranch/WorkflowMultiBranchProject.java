@@ -25,19 +25,25 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.Extension;
+import hudson.model.Action;
 import hudson.model.Descriptor;
+import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.scm.SCMDescriptor;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.branch.BranchProjectFactory;
 import jenkins.branch.MultiBranchProject;
 import jenkins.branch.MultiBranchProjectDescriptor;
+import jenkins.model.TransientActionFactory;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
+import org.jenkinsci.plugins.workflow.cps.Snippetizer;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 
@@ -99,6 +105,22 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
                 }
             }
             return super.isApplicable(descriptor);
+        }
+
+    }
+
+    @Extension public static class PerFolderAdder extends TransientActionFactory<WorkflowMultiBranchProject> {
+
+        @Override public Class<WorkflowMultiBranchProject> type() {
+            return WorkflowMultiBranchProject.class;
+        }
+
+        @Override public Collection<? extends Action> createFor(WorkflowMultiBranchProject target) {
+            if (target.hasPermission(Item.EXTENDED_READ)) {
+                return Collections.singleton(new Snippetizer.LocalAction());
+            } else {
+                return Collections.emptySet();
+            }
         }
 
     }

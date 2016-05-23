@@ -24,6 +24,4 @@ THE SOFTWARE.
 -->
 
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler">
-    <st:include it="${descriptor.snippetizer}" page="block.jelly"/>
-</j:jelly>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler"/>
