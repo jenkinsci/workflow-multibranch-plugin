@@ -25,63 +25,38 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.Extension;
-import hudson.model.Item;
+import hudson.model.TaskListener;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import jenkins.branch.Branch;
-import jenkins.branch.BranchProjectFactory;
-import jenkins.branch.BranchProjectFactoryDescriptor;
-import jenkins.branch.MultiBranchProject;
-import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import jenkins.scm.api.SCMSource;
+import jenkins.scm.api.SCMSourceCriteria;
+import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public class WorkflowBranchProjectFactory extends BranchProjectFactory<WorkflowJob,WorkflowRun> {
+/**
+ * Recognizes and builds {@code Jenkinsfile}.
+ */
+public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectFactory {
     
-    private static final Logger LOGGER = Logger.getLogger(WorkflowBranchProjectFactory.class.getName());
+    static final String SCRIPT = "Jenkinsfile";
 
     @DataBoundConstructor public WorkflowBranchProjectFactory() {}
 
-    @Override public WorkflowJob newInstance(Branch branch) {
-        WorkflowJob job = new WorkflowJob((WorkflowMultiBranchProject) getOwner(), branch.getEncodedName());
-        job.setDefinition(new SCMBinder());
-        setBranch(job, branch);
-        return job;
+    @Override protected FlowDefinition createDefinition() {
+        return new SCMBinder();
     }
 
-    @Override public Branch getBranch(WorkflowJob project) {
-        return project.getProperty(BranchJobProperty.class).getBranch();
-    }
-
-    @Override public WorkflowJob setBranch(WorkflowJob project, Branch branch) {
-        BranchJobProperty property = project.getProperty(BranchJobProperty.class);
-        try {
-            if (property == null) {
-                project.addProperty(new BranchJobProperty(branch));
-            } else if (!property.getBranch().equals(branch)) {
-                property.setBranch(branch);
-                project.save();
+    @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
+        return new SCMSourceCriteria() {
+            @Override public boolean isHead(SCMSourceCriteria.Probe probe, TaskListener listener) throws IOException {
+                return probe.exists(SCRIPT);
             }
-        } catch (IOException x) {
-            LOGGER.log(Level.WARNING, null, x);
-        }
-        return project;
+        };
     }
 
-    @Override public boolean isProject(Item item) {
-        return item instanceof WorkflowJob && ((WorkflowJob) item).getProperty(BranchJobProperty.class) != null;
-    }
-
-    @Extension public static class DescriptorImpl extends BranchProjectFactoryDescriptor {
+    @Extension public static class DescriptorImpl extends AbstractWorkflowBranchProjectFactoryDescriptor {
 
         @Override public String getDisplayName() {
-            return "Fixed configuration";
-        }
-
-        @SuppressWarnings("rawtypes") // erasure
-        @Override public boolean isApplicable(Class<? extends MultiBranchProject> clazz) {
-            return WorkflowMultiBranchProject.class.isAssignableFrom(clazz);
+            return "by " + SCRIPT;
         }
 
     }

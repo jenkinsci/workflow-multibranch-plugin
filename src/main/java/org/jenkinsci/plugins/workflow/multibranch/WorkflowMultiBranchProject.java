@@ -29,10 +29,8 @@ import hudson.model.Action;
 import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
-import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.scm.SCMDescriptor;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Level;
@@ -55,13 +53,6 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
 
     private static final Logger LOGGER = Logger.getLogger(WorkflowMultiBranchProject.class.getName());
 
-    static final String SCRIPT = "Jenkinsfile";
-    static final SCMSourceCriteria CRITERIA = new SCMSourceCriteria() {
-        @Override public boolean isHead(SCMSourceCriteria.Probe probe, TaskListener listener) throws IOException {
-            return probe.exists(SCRIPT);
-        }
-    };
-
     public WorkflowMultiBranchProject(ItemGroup parent, String name) {
         super(parent, name);
     }
@@ -71,7 +62,7 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
     }
 
     @Override public SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
-        return CRITERIA;
+        return ((AbstractWorkflowBranchProjectFactory) getProjectFactory()).getSCMSourceCriteria(source);
     }
 
     @Extension public static class DescriptorImpl extends MultiBranchProjectDescriptor {

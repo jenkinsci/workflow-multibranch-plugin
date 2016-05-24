@@ -47,7 +47,7 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 
 /**
- * Checks out the desired version of {@link WorkflowMultiBranchProject#SCRIPT}.
+ * Checks out the desired version of {@link WorkflowBranchProjectFactory#SCRIPT}.
  */
 class SCMBinder extends FlowDefinition {
 
@@ -82,23 +82,23 @@ class SCMBinder extends FlowDefinition {
             // Build might fail later anyway, but reason should become clear: for example, branch was deleted before indexing could run.
             scm = branch.getScm();
         }
-        return new CpsScmFlowDefinition(scm, WorkflowMultiBranchProject.SCRIPT).create(handle, listener, actions);
+        return new CpsScmFlowDefinition(scm, WorkflowBranchProjectFactory.SCRIPT).create(handle, listener, actions);
     }
 
     @Extension public static class DescriptorImpl extends FlowDefinitionDescriptor {
 
         @Override public String getDisplayName() {
-            return "Pipeline script from " + WorkflowMultiBranchProject.SCRIPT;
+            return "Pipeline script from " + WorkflowBranchProjectFactory.SCRIPT;
         }
 
     }
 
-    /** Want to display this in the r/o configuration for a branch project, but not offer it on standalone jobs. */
+    /** Want to display this in the r/o configuration for a branch project, but not offer it on standalone jobs or in any other context. */
     @Extension public static class HideMeElsewhere extends DescriptorVisibilityFilter {
 
         @Override public boolean filter(Object context, Descriptor descriptor) {
-            if (descriptor instanceof DescriptorImpl && context instanceof WorkflowJob && !(((WorkflowJob) context).getParent() instanceof WorkflowMultiBranchProject)) {
-                return false;
+            if (descriptor instanceof DescriptorImpl) {
+                return context instanceof WorkflowJob && ((WorkflowJob) context).getParent() instanceof WorkflowMultiBranchProject;
             }
             return true;
         }
