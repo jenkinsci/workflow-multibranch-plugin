@@ -28,6 +28,8 @@ import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
 import hudson.ExtensionList;
 import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Item;
+import hudson.model.Job;
+import hudson.model.Run;
 import hudson.model.listeners.ItemListener;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.ChangeLogParser;
@@ -43,6 +45,7 @@ import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchPropertyDescriptor;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
+import jenkins.branch.JobDecorator;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
@@ -196,6 +199,38 @@ public class WorkflowMultiBranchProjectTest {
         List<String> names = new ArrayList<>();
         @Override public void onCreated(Item item) {
             names.add(item.getFullName());
+        }
+    }
+
+    @Ignore
+    @Issue("JENKINS-30206")
+    @Test public void branchSourceUpdated() throws Exception {
+        sampleRepo.init();
+        sampleRepo.write("Jenkinsfile", "");
+        sampleRepo.git("add", ".");
+        sampleRepo.git("commit", "--all", "--message=flow");
+
+        WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+
+        GitSCMSource source = new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false);
+        mp.getSourcesList().add(new BranchSource(source, new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        scheduleAndFindBranchProject(mp, "master");
+
+        BranchSourceUpdatedBranchProperty p = new BranchSourceUpdatedBranchProperty();
+        mp.getSourcesList().clear();
+        mp.getSourcesList().add(new BranchSource(source, new DefaultBranchPropertyStrategy(new BranchProperty[] { p })));
+        scheduleAndFindBranchProject(mp, "master");
+        assertTrue("branch property not invoked", p.branchPropertyInvoked[0]);
+    }
+    public static class BranchSourceUpdatedBranchProperty extends BranchProperty {
+        final Boolean[] branchPropertyInvoked = { false };
+        @Override public <P extends Job<P, B>, B extends Run<P, B>> JobDecorator<P, B> jobDecorator(Class<P> clazz) {
+            return new JobDecorator<P, B>() {
+                @Override public P project(P project) {
+                    branchPropertyInvoked[0] = true;
+                    return super.project(project);
+                }
+            };
         }
     }
 
