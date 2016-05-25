@@ -59,7 +59,7 @@ public class WorkflowBranchProjectFactory extends BranchProjectFactory<WorkflowJ
         try {
             if (property == null) {
                 project.addProperty(new BranchJobProperty(branch));
-            } else if (!property.getBranch().equals(branch)) {
+            } else { // TODO may add equality check if https://github.com/jenkinsci/branch-api-plugin/pull/36 or equivalent is implemented
                 property.setBranch(branch);
                 project.save();
             }
