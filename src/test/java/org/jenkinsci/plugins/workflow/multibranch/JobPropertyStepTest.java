@@ -93,7 +93,6 @@ public class JobPropertyStepTest {
         assertEquals(3, lr.getArtifactNumToKeep());
     }
 
-    @Issue("JENKINS-30206")
     @Test public void useParameter() throws Exception {
         sampleRepo.init();
         ScriptApproval.get().approveSignature("method groovy.lang.Binding hasVariable java.lang.String"); // TODO add to generic whitelist
