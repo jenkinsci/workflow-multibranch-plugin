@@ -34,6 +34,7 @@ import hudson.scm.ChangeLogParser;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -41,8 +42,12 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchPropertyDescriptor;
+import jenkins.branch.BranchPropertyStrategy;
+import jenkins.branch.BranchPropertyStrategyDescriptor;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
+import jenkins.branch.NamedExceptionsBranchPropertyStrategy;
+import jenkins.branch.NoTriggerBranchProperty;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
@@ -127,19 +132,21 @@ public class WorkflowMultiBranchProjectTest {
         System.out.println("---%<--- ");
     }
 
-    @Issue("JENKINS-32670")
+    @Issue({"JENKINS-32396", "JENKINS-32670"})
     @Test public void visibleBranchProperties() throws Exception {
         WorkflowMultiBranchProject p = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        Set<Class<? extends BranchProperty>> clazzes = new HashSet<Class<? extends BranchProperty>>();
+        Set<Class<? extends BranchProperty>> propertyTypes = new HashSet<>();
         for (BranchPropertyDescriptor d : DescriptorVisibilityFilter.apply(p, BranchPropertyDescriptor.all())) {
-            clazzes.add(d.clazz);
+            propertyTypes.add(d.clazz);
         }
         // RateLimitBranchProperty & BuildRetentionBranchProperty hidden by JobPropertyStep.HideSuperfluousBranchProperties.
         // UntrustedBranchProperty hidden because it applies only to Project.
-        assertEquals(Collections.<Class<? extends BranchProperty>>emptySet(), clazzes);
-        /* TODO uncomment when branch-api 1.5+:
-        assertEquals(Collections.<BranchPropertyStrategyDescriptor>emptyList(), r.jenkins.getDescriptorByType(BranchSource.DescriptorImpl.class).propertyStrategyDescriptors(p, r.jenkins.getDescriptorByType(SingleSCMSource.DescriptorImpl.class)));
-        */
+        assertEquals(Collections.singleton(NoTriggerBranchProperty.class), propertyTypes);
+        Set<Class<? extends BranchPropertyStrategy>> strategyTypes = new HashSet<>();
+        for (BranchPropertyStrategyDescriptor d : r.jenkins.getDescriptorByType(BranchSource.DescriptorImpl.class).propertyStrategyDescriptors(p, r.jenkins.getDescriptorByType(SingleSCMSource.DescriptorImpl.class))) {
+            strategyTypes.add(d.clazz);
+        }
+        assertEquals(new HashSet<>(Arrays.asList(DefaultBranchPropertyStrategy.class, NamedExceptionsBranchPropertyStrategy.class)), strategyTypes);
     }
 
     @SuppressWarnings("rawtypes")
