@@ -257,7 +257,7 @@ public class SCMBinderTest {
         r.assertLogContains("not trusting", b);
     }
     public static class WarySource extends GitSCMSource {
-        WarySource(String id, String remote, String credentialsId, String includes, String excludes, boolean ignoreOnPushNotifications) {
+        public WarySource(String id, String remote, String credentialsId, String includes, String excludes, boolean ignoreOnPushNotifications) {
             super(id, remote, credentialsId, includes, excludes, ignoreOnPushNotifications);
         }
         @Override public SCMRevision getTrustedRevision(SCMRevision revision, TaskListener listener) throws IOException, InterruptedException {
