@@ -91,7 +91,7 @@ public class JobPropertyStep extends AbstractStepImpl {
             BulkChange bc = new BulkChange(job);
             try {
                 for (JobProperty prop : job.getAllProperties()) {
-                    if (prop instanceof BranchJobProperty) {
+                    if (prop instanceof BranchJobProperty || !isConfiguredProperty(prop)) {
                         // TODO do we need to define an API for other properties which should not be removed?
                         continue;
                     }
@@ -107,9 +107,27 @@ public class JobPropertyStep extends AbstractStepImpl {
             return null;
         }
 
+        /**
+         * Checks to see if the existing {@link JobProperty} is of a type defined in the step. We will only remove
+         * properties that are defined in the step.
+         *
+         * @param existingProperty An existing property on the job.
+         * @return True if the existing property is of a type defined in the step, false otherwise
+         */
+        private boolean isConfiguredProperty(JobProperty existingProperty) {
+            for (JobProperty prop : step.properties) {
+                if (prop.getClass().isInstance(existingProperty)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static final long serialVersionUID = 1L;
 
     }
+
 
     @Extension public static class DescriptorImpl extends AbstractStepDescriptorImpl {
 

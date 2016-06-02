@@ -136,4 +136,29 @@ public class JobPropertyStepTest {
         assertNull(b3.getPreviousBuild());
     }
 
+    @SuppressWarnings("deprecation") // RunList.size
+    @Test public void doNotRemoveUnconfiguredProperties() throws Exception {
+        sampleRepo.init();
+        sampleRepo.write("Jenkinsfile", "keepBuilds(numToKeep: 1)\n"
+                + "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: "
+                + "'BooleanParameterDefinition', defaultValue: false, description: '', name: 'FOO']]]])");
+        sampleRepo.git("add", "Jenkinsfile");
+        sampleRepo.git("commit", "--all", "--message=flow");
+        WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        WorkflowJob p = scheduleAndFindBranchProject(mp, "master");
+        assertEquals(1, mp.getItems().size());
+        r.waitUntilNoActivity(); // #1 built automatically
+        assertEquals(1, p.getBuilds().size());
+        r.assertBuildStatusSuccess(p.scheduleBuild2(0)); // #2
+        assertEquals(1, p.getBuilds().size());
+        r.assertBuildStatusSuccess(p.scheduleBuild2(0)); // #3
+        assertEquals(1, p.getBuilds().size());
+        WorkflowRun b3 = p.getLastBuild();
+        assertEquals(3, b3.getNumber());
+        assertNull(b3.getPreviousBuild());
+    }
+
+
+
 }
