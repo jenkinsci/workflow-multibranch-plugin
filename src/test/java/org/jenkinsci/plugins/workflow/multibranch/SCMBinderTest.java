@@ -25,6 +25,7 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.Util;
+import hudson.model.Descriptor;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.plugins.git.util.BuildData;
@@ -39,11 +40,13 @@ import java.util.Set;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
+import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
+import jenkins.scm.api.SCMSource;
 import jenkins.scm.impl.subversion.SubversionSCMSource;
 import static org.hamcrest.Matchers.*;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
@@ -265,6 +268,9 @@ public class SCMBinderTest {
                 listener.getLogger().println("not trusting " + branch);
                 return fetch(new SCMHead("master"), listener);
             }
+        }
+        @Override public Descriptor<SCMSource> getDescriptor() {
+            return Jenkins.getInstance().getDescriptorByType(GitSCMSource.DescriptorImpl.class);
         }
     }
 
