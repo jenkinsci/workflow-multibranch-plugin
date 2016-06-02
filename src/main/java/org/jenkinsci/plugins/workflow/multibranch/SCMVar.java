@@ -30,10 +30,13 @@ import hudson.Extension;
 import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.scm.SCM;
 import hudson.util.DescribableList;
 import java.io.Serializable;
 import jenkins.branch.Branch;
+import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
@@ -75,20 +78,30 @@ import org.jenkinsci.plugins.workflow.support.pickles.XStreamPickle;
             throw new IllegalStateException("inappropriate context");
         }
         Branch branch = property.getBranch();
+        ItemGroup<?> parent = job.getParent();
+        if (!(parent instanceof WorkflowMultiBranchProject)) {
+            throw new IllegalStateException("inappropriate context");
+        }
+        SCMSource scmSource = ((WorkflowMultiBranchProject) parent).getSCMSource(branch.getSourceId());
+        if (scmSource == null) {
+            throw new IllegalStateException(branch.getSourceId() + " not found");
+        }
+        SCMRevision tip;
         SCMRevisionAction revisionAction = build.getAction(SCMRevisionAction.class);
         if (revisionAction != null) {
-            ItemGroup<?> parent = job.getParent();
-            if (!(parent instanceof WorkflowMultiBranchProject)) {
-                throw new IllegalStateException("inappropriate context");
-            }
-            SCMSource scmSource = ((WorkflowMultiBranchProject) parent).getSCMSource(branch.getSourceId());
-            if (scmSource == null) {
-                throw new IllegalStateException(branch.getSourceId() + " not found");
-            }
-            return scmSource.build(branch.getHead(), revisionAction.getRevision());
+            tip = revisionAction.getRevision();
         } else {
-            return branch.getScm();
+            SCMHead head = branch.getHead();
+            TaskListener listener = TaskListener.NULL; // TODO would like to send to build log, but have no way of doing that here
+            tip = scmSource.fetch(head, listener);
+            if (tip == null) {
+                // TODO would it be better to throw AbortException? Cf. SCMBinder.
+                return branch.getScm();
+            }
+            revisionAction = new SCMRevisionAction(tip);
+            build.addAction(revisionAction);
         }
+        return scmSource.build(branch.getHead(), tip);
     }
 
     /**
