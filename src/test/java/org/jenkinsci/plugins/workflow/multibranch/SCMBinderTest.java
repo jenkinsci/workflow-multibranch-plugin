@@ -102,7 +102,7 @@ public class SCMBinderTest {
         WorkflowMultiBranchProjectTest.showIndexing(mp);
     }
 
-    static void assertRevisionAction(WorkflowRun build) {
+    public static void assertRevisionAction(WorkflowRun build) {
         SCMRevisionAction revisionAction = build.getAction(SCMRevisionAction.class);
         assertNotNull(revisionAction);
         SCMRevision revision = revisionAction.getRevision();
@@ -256,8 +256,8 @@ public class SCMBinderTest {
         r.assertLogContains("subsequent content", b);
         r.assertLogContains("not trusting", b);
     }
-    static class WarySource extends GitSCMSource {
-        WarySource(String id, String remote, String credentialsId, String includes, String excludes, boolean ignoreOnPushNotifications) {
+    public static class WarySource extends GitSCMSource {
+        public WarySource(String id, String remote, String credentialsId, String includes, String excludes, boolean ignoreOnPushNotifications) {
             super(id, remote, credentialsId, includes, excludes, ignoreOnPushNotifications);
         }
         @Override public SCMRevision getTrustedRevision(SCMRevision revision, TaskListener listener) throws IOException, InterruptedException {
