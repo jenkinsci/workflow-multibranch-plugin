@@ -84,7 +84,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>branch-api</artifactId>
-            <version>1.9</version>
+            <version>1.10-SNAPSHOT</version> <!-- TODO https://github.com/jenkinsci/branch-api-plugin/pull/45 -->
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>

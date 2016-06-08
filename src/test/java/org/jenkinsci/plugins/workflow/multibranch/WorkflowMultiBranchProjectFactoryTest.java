@@ -115,6 +115,12 @@ public class WorkflowMultiBranchProjectFactoryTest {
         b1 = p.getLastBuild();
         assertEquals(1, b1.getNumber());
         r.assertLogContains("ran two", b1);
+        // JENKINS-34246: also delete Jenkinsfile
+        sampleRepo2.git("rm", WorkflowBranchProjectFactory.SCRIPT);
+        sampleRepo2.git("commit", "--message=noflow");
+        top.scheduleBuild2(0).getFuture().get();
+        top.getComputation().writeWholeLogTo(System.out);
+        assertEquals(1, top.getItems().size());
     }
 
 }
