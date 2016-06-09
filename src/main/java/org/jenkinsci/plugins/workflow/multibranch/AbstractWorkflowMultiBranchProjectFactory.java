@@ -28,9 +28,12 @@ import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
+import hudson.model.TaskListener;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import jenkins.branch.MultiBranchProject;
 import jenkins.branch.MultiBranchProjectFactory;
 import jenkins.branch.OrganizationFolder;
 import jenkins.model.TransientActionFactory;
@@ -45,6 +48,12 @@ public abstract class AbstractWorkflowMultiBranchProjectFactory extends MultiBra
         WorkflowMultiBranchProject project = new WorkflowMultiBranchProject(parent, name);
         customize(project);
         return project;
+    }
+
+    @Override public final void updateExistingProject(MultiBranchProject<?, ?> project, Map<String, Object> attributes, TaskListener listener) throws IOException, InterruptedException {
+        if (project instanceof WorkflowMultiBranchProject) {
+            customize((WorkflowMultiBranchProject) project);
+        } // otherwise got recognized by something else before, oh well
     }
 
     protected void customize(WorkflowMultiBranchProject project) {}
