@@ -3,4 +3,6 @@
     Unlike the <code>readFile</code> step, no workspace is required.
     If the associated branch is not trusted, yet the file has been modified from its trusted version, an error is thrown.
     Thus this step is useful for loading scripts or other files which might otherwise be used to run malicious commands.
+    Like <code>checkout scm</code>, as a convenience it may also be used from a standalone project configured with <i>Pipeline script from SCM</i>,
+    in which case there is no security aspect.
 </div>

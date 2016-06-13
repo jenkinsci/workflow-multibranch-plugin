@@ -43,7 +43,10 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
+import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.steps.LoadStepExecution;
+import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousStepExecution;
@@ -79,34 +82,7 @@ public class ReadTrustedStep extends AbstractStepImpl {
         @StepContextParameter private transient TaskListener listener;
 
         @Override protected String run() throws Exception {
-            // Adapted from SCMBinder:
-            Job<?,?> job = build.getParent();
-            BranchJobProperty property = job.getProperty(BranchJobProperty.class);
-            if (property == null) {
-                throw new IllegalStateException("inappropriate context");
-            }
-            Branch branch = property.getBranch();
-            ItemGroup<?> parent = job.getParent();
-            if (!(parent instanceof WorkflowMultiBranchProject)) {
-                throw new IllegalStateException("inappropriate context");
-            }
-            SCMSource scmSource = ((WorkflowMultiBranchProject) parent).getSCMSource(branch.getSourceId());
-            if (scmSource == null) {
-                throw new IllegalStateException(branch.getSourceId() + " not found");
-            }
-            SCMHead head = branch.getHead();
-            SCMRevision tip;
-            SCMRevisionAction action = build.getAction(SCMRevisionAction.class);
-            if (action != null) {
-                tip = action.getRevision();
-            } else {
-                tip = scmSource.fetch(head, listener);
-                if (tip == null) {
-                    throw new AbortException("Could not determine exact tip revision of " + branch.getName());
-                }
-                build.addAction(new SCMRevisionAction(tip));
-            }
-            SCMRevision trusted = scmSource.getTrustedRevision(tip, listener);
+            Job<?, ?> job = build.getParent();
             // Adapted from CpsScmFlowDefinition:
             Node node = Jenkins.getActiveInstance();
             FilePath dir;
@@ -129,6 +105,48 @@ public class ReadTrustedStep extends AbstractStepImpl {
             }
             WorkspaceList.Lease lease = computer.getWorkspaceList().acquire(dir);
             try {
+                // Adapted from SCMBinder:
+                BranchJobProperty property = job.getProperty(BranchJobProperty.class);
+                if (property == null) {
+                    // As in SCMVar:
+                    if (job instanceof WorkflowJob) {
+                        FlowDefinition defn = ((WorkflowJob) job).getDefinition();
+                        if (defn instanceof CpsScmFlowDefinition) {
+                            // JENKINS-31386: retrofit to work with standalone projects, without doing any trust checks.
+                            SCMStep delegate = new GenericSCMStep(((CpsScmFlowDefinition) defn).getScm());
+                            delegate.setPoll(true);
+                            delegate.setChangelog(true);
+                            delegate.checkout(build, dir, listener, node.createLauncher(listener));
+                            if (!file.exists()) {
+                                throw new AbortException(file + " not found");
+                            }
+                            return file.readToString();
+                        }
+                    }
+                    throw new IllegalStateException("inappropriate context");
+                }
+                Branch branch = property.getBranch();
+                ItemGroup<?> parent = job.getParent();
+                if (!(parent instanceof WorkflowMultiBranchProject)) {
+                    throw new IllegalStateException("inappropriate context");
+                }
+                SCMSource scmSource = ((WorkflowMultiBranchProject) parent).getSCMSource(branch.getSourceId());
+                if (scmSource == null) {
+                    throw new IllegalStateException(branch.getSourceId() + " not found");
+                }
+                SCMHead head = branch.getHead();
+                SCMRevision tip;
+                SCMRevisionAction action = build.getAction(SCMRevisionAction.class);
+                if (action != null) {
+                    tip = action.getRevision();
+                } else {
+                    tip = scmSource.fetch(head, listener);
+                    if (tip == null) {
+                        throw new AbortException("Could not determine exact tip revision of " + branch.getName());
+                    }
+                    build.addAction(new SCMRevisionAction(tip));
+                }
+                SCMRevision trusted = scmSource.getTrustedRevision(tip, listener);
                 String untrustedFile = null;
                 if (!tip.equals(trusted)) {
                     SCMStep delegate = new GenericSCMStep(scmSource.build(head, tip));
