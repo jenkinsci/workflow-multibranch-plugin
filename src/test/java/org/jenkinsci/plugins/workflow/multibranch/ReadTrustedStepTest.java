@@ -28,15 +28,18 @@ import hudson.model.Result;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
+import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.scm.GitSampleRepoRule;
+import org.jenkinsci.plugins.workflow.steps.scm.GitStep;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.jvnet.hudson.test.BuildWatcher;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class ReadTrustedStepTest {
@@ -151,6 +154,19 @@ public class ReadTrustedStepTest {
         r.assertBuildStatus(Result.FAILURE, b);
         r.assertLogContains(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis("lib.groovy"), b);
         r.assertLogNotContains("not trustworthy", b);
+    }
+
+    @Issue("JENKINS-31386")
+    @Test public void nonMultibranch() throws Exception {
+        sampleRepo.init();
+        sampleRepo.write("Jenkinsfile", "echo \"said ${readTrusted 'message'}\"");
+        sampleRepo.write("message", "how do you do");
+        sampleRepo.git("add", "Jenkinsfile", "message");
+        sampleRepo.git("commit", "--all", "--message=defined");
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsScmFlowDefinition(new GitStep(sampleRepo.toString()).createSCM(), "Jenkinsfile"));
+        WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+        r.assertLogContains("said how do you do", b);
     }
 
 }
