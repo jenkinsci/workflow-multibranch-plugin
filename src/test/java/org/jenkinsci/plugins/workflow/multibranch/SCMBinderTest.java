@@ -215,7 +215,8 @@ public class SCMBinderTest {
         assertEquals(1, b1.getNumber());
         sampleGitRepo.git("checkout", "master");
         sampleGitRepo.git("branch", "-D", "feature");
-        { // TODO AbstractGitSCMSource.retrieve is incorrect: after fetching remote refs into the cache, the origin/feature ref remains locally even though it has been deleted upstream:
+        { // TODO AbstractGitSCMSource.retrieve(SCMHead, TaskListener) is incorrect: after fetching remote refs into the cache,
+          // the origin/feature ref remains locally even though it has been deleted upstream, since only the other overload prunes stale remotes:
             Util.deleteRecursive(new File(r.jenkins.getRootDir(), "caches"));
         }
         WorkflowRun b2 = r.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get());
