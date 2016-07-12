@@ -29,12 +29,8 @@ import hudson.model.Descriptor;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.plugins.git.util.BuildData;
-import hudson.plugins.mercurial.MercurialInstallation;
-import hudson.plugins.mercurial.MercurialSCMSource;
-import hudson.tools.ToolProperty;
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import jenkins.branch.BranchProperty;
@@ -53,7 +49,6 @@ import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.scm.GitSampleRepoRule;
-import org.jenkinsci.plugins.workflow.steps.scm.MercurialSampleRepoRule;
 import org.jenkinsci.plugins.workflow.steps.scm.SubversionSampleRepoRule;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Test;
@@ -69,7 +64,6 @@ public class SCMBinderTest {
     @Rule public JenkinsRule r = new JenkinsRule();
     @Rule public GitSampleRepoRule sampleGitRepo = new GitSampleRepoRule();
     @Rule public SubversionSampleRepoRule sampleSvnRepo = new SubversionSampleRepoRule();
-    @Rule public MercurialSampleRepoRule sampleHgRepo = new MercurialSampleRepoRule();
 
     @Test public void exactRevisionGit() throws Exception {
         sampleGitRepo.init();
@@ -134,42 +128,6 @@ public class SCMBinderTest {
         sa.approveSignature("method java.lang.String toUpperCase");
         sampleSvnRepo.write("file", "subsequent content");
         sampleSvnRepo.svn("commit", "--message=tweaked");
-        SemaphoreStep.success("wait/1", null);
-        WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
-        assertEquals(2, b2.getNumber());
-        r.assertLogContains("initial content", r.waitForCompletion(b1));
-        r.assertLogContains("SUBSEQUENT CONTENT", b2);
-    }
-
-    @Test public void exactRevisionMercurial() throws Exception {
-        sampleHgRepo.init();
-        ScriptApproval sa = ScriptApproval.get();
-        sa.approveSignature("staticField hudson.model.Items XSTREAM2");
-        sa.approveSignature("method com.thoughtworks.xstream.XStream toXML java.lang.Object");
-        sampleHgRepo.write("Jenkinsfile", "echo hudson.model.Items.XSTREAM2.toXML(scm); semaphore 'wait'; node {checkout scm; echo readFile('file')}");
-        sampleHgRepo.write("file", "initial content");
-        sampleHgRepo.hg("commit", "--addremove", "--message=flow");
-        WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        String instName = "caching";
-        r.jenkins.getDescriptorByType(MercurialInstallation.DescriptorImpl.class).setInstallations(
-                new MercurialInstallation(instName, "", "hg", false, true, false, null, Collections.<ToolProperty<?>> emptyList()));
-        /* Does not actually seem to be necessary:
-        { // TODO MercurialSCM.CACHE_LOCAL_REPOS = true;
-            Field CACHE_LOCAL_REPOS = MercurialSCM.class.getDeclaredField("CACHE_LOCAL_REPOS");
-            CACHE_LOCAL_REPOS.setAccessible(true);
-            CACHE_LOCAL_REPOS.set(null, true);
-        }
-        */
-        mp.getSourcesList().add(new BranchSource(new MercurialSCMSource(null, instName, sampleHgRepo.fileUrl(), null, null, null, null, null, true), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
-        WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "default");
-        SemaphoreStep.waitForStart("wait/1", null);
-        WorkflowRun b1 = p.getLastBuild();
-        assertNotNull(b1);
-        assertEquals(1, b1.getNumber());
-        sampleHgRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file').toUpperCase()}");
-        sa.approveSignature("method java.lang.String toUpperCase");
-        sampleHgRepo.write("file", "subsequent content");
-        sampleHgRepo.hg("commit", "--message=tweaked");
         SemaphoreStep.success("wait/1", null);
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
         assertEquals(2, b2.getNumber());
