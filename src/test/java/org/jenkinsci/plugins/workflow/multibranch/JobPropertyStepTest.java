@@ -29,6 +29,7 @@ import hudson.model.JobProperty;
 import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.StringParameterValue;
+import hudson.model.queue.QueueTaskFuture;
 import hudson.tasks.LogRotator;
 import java.util.Collections;
 import java.util.List;
@@ -39,12 +40,17 @@ import jenkins.model.BuildDiscarder;
 import jenkins.model.BuildDiscarderProperty;
 import jenkins.plugins.git.GitSCMSource;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.job.properties.WorkflowConcurrentBuildJobProperty;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.steps.scm.GitSampleRepoRule;
 import static org.junit.Assert.*;
+
+import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
@@ -93,6 +99,19 @@ public class JobPropertyStepTest {
         assertEquals(3, lr.getArtifactNumToKeep());
     }
 
+    @Ignore("StepConfigTester only works with AbstractProjects?")
+    @SuppressWarnings("rawtypes")
+    @Test public void configRoundTripConcurrentBuild() throws Exception {
+        StepConfigTester tester = new StepConfigTester(r);
+        assertEquals(Collections.emptyList(), tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties());
+
+        List<JobProperty> properties = tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>singletonList(new WorkflowConcurrentBuildJobProperty(false)))).getProperties();
+        assertEquals(1, properties.size());
+        assertEquals(WorkflowConcurrentBuildJobProperty.class, properties.get(0).getClass());
+        WorkflowConcurrentBuildJobProperty wcbjp = (WorkflowConcurrentBuildJobProperty) properties.get(0);
+        assertFalse(wcbjp.getAllowConcurrentBuilds());
+    }
+
     @Test public void useParameter() throws Exception {
         sampleRepo.init();
         ScriptApproval.get().approveSignature("method groovy.lang.Binding hasVariable java.lang.String"); // TODO add to generic whitelist
@@ -134,6 +153,31 @@ public class JobPropertyStepTest {
         WorkflowRun b3 = p.getLastBuild();
         assertEquals(3, b3.getNumber());
         assertNull(b3.getPreviousBuild());
+    }
+
+    @Issue("JENKINS-34547")
+    @Test public void concurrentBuildProperty() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition("properties([[$class: 'WorkflowConcurrentBuildJobProperty', "
+                + "  concurrentBuild: false]])\n"
+                + "semaphore 'hang'"));
+
+        assertTrue(p.isConcurrentBuild());
+
+        WorkflowRun b1 = p.scheduleBuild2(0).waitForStart();
+        SemaphoreStep.waitForStart("hang/1", b1);
+        assertFalse(p.isConcurrentBuild());
+
+        QueueTaskFuture<WorkflowRun> futureB2 = p.scheduleBuild2(0);
+        assertFalse(futureB2.getStartCondition().isDone());
+
+        SemaphoreStep.success("hang/1", b1);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b1));
+
+        WorkflowRun b2 = futureB2.waitForStart();
+        SemaphoreStep.waitForStart("hang/2", b2);
+        SemaphoreStep.success("hang/2", b2);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b2));
     }
 
 }
