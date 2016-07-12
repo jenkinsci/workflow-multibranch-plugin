@@ -105,11 +105,9 @@ public class JobPropertyStepTest {
         StepConfigTester tester = new StepConfigTester(r);
         assertEquals(Collections.emptyList(), tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties());
 
-        List<JobProperty> properties = tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>singletonList(new WorkflowConcurrentBuildJobProperty(false)))).getProperties();
+        List<JobProperty> properties = tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>singletonList(new WorkflowConcurrentBuildJobProperty()))).getProperties();
         assertEquals(1, properties.size());
         assertEquals(WorkflowConcurrentBuildJobProperty.class, properties.get(0).getClass());
-        WorkflowConcurrentBuildJobProperty wcbjp = (WorkflowConcurrentBuildJobProperty) properties.get(0);
-        assertFalse(wcbjp.getAllowConcurrentBuilds());
     }
 
     @Test public void useParameter() throws Exception {
