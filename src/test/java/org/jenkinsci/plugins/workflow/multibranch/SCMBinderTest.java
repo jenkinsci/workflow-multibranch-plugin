@@ -29,10 +29,14 @@ import hudson.model.Descriptor;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.plugins.git.util.BuildData;
+import hudson.scm.ChangeLogSet;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
@@ -94,6 +98,17 @@ public class SCMBinderTest {
         r.assertLogContains("SUBSEQUENT CONTENT", b2);
         assertRevisionAction(b2);
         WorkflowMultiBranchProjectTest.showIndexing(mp);
+        List<ChangeLogSet<? extends ChangeLogSet.Entry>> changeSets = b2.getChangeSets();
+        assertEquals(1, changeSets.size());
+        ChangeLogSet<? extends ChangeLogSet.Entry> changeSet = changeSets.get(0);
+        assertEquals(b2, changeSet.getRun());
+        assertEquals("git", changeSet.getKind());
+        Iterator<? extends ChangeLogSet.Entry> iterator = changeSet.iterator();
+        assertTrue(iterator.hasNext());
+        ChangeLogSet.Entry entry = iterator.next();
+        assertEquals("tweaked", entry.getMsg());
+        assertEquals("[Jenkinsfile, file]", new TreeSet<>(entry.getAffectedPaths()).toString());
+        assertFalse(iterator.hasNext());
     }
 
     public static void assertRevisionAction(WorkflowRun build) {
@@ -133,6 +148,19 @@ public class SCMBinderTest {
         assertEquals(2, b2.getNumber());
         r.assertLogContains("initial content", r.waitForCompletion(b1));
         r.assertLogContains("SUBSEQUENT CONTENT", b2);
+        List<ChangeLogSet<? extends ChangeLogSet.Entry>> changeSets = b2.getChangeSets();
+        /* TODO JENKINS-29326 analogue: currently 2 (they are the same):
+        assertEquals(1, changeSets.size());
+        */
+        ChangeLogSet<? extends ChangeLogSet.Entry> changeSet = changeSets.get(0);
+        assertEquals(b2, changeSet.getRun());
+        assertEquals("svn", changeSet.getKind());
+        Iterator<? extends ChangeLogSet.Entry> iterator = changeSet.iterator();
+        assertTrue(iterator.hasNext());
+        ChangeLogSet.Entry entry = iterator.next();
+        assertEquals("tweaked", entry.getMsg());
+        assertEquals("[/prj/trunk/Jenkinsfile, /prj/trunk/file]", new TreeSet<>(entry.getAffectedPaths()).toString());
+        assertFalse(iterator.hasNext());
     }
 
     @Test public void deletedJenkinsfile() throws Exception {
