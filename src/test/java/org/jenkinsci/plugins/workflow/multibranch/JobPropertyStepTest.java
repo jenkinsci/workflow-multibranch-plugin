@@ -153,12 +153,12 @@ public class JobPropertyStepTest {
         assertTrue(p.isConcurrentBuild());
 
         WorkflowRun b2 = p.scheduleBuild2(0).waitForStart();
+        SemaphoreStep.waitForStart("hang/2", b2);
 
-        SemaphoreStep.success("hang/1", b1);
+        SemaphoreStep.success("hang/1", null);
         r.assertBuildStatusSuccess(r.waitForCompletion(b1));
 
-        SemaphoreStep.waitForStart("hang/2", b2);
-        SemaphoreStep.success("hang/2", b2);
+        SemaphoreStep.success("hang/2", null);
         r.assertBuildStatusSuccess(r.waitForCompletion(b2));
 
         // Verify that the property successfully disables concurrent builds.
@@ -176,12 +176,12 @@ public class JobPropertyStepTest {
         Thread.sleep(2000);
         assertFalse(futureB4.getStartCondition().isDone());
 
-        SemaphoreStep.success("hang/3", b3);
+        SemaphoreStep.success("hang/3", null);
         r.assertBuildStatusSuccess(r.waitForCompletion(b3));
 
         WorkflowRun b4 = futureB4.waitForStart();
         SemaphoreStep.waitForStart("hang/4", b4);
-        SemaphoreStep.success("hang/4", b4);
+        SemaphoreStep.success("hang/4", null);
         r.assertBuildStatusSuccess(r.waitForCompletion(b4));
     }
 
