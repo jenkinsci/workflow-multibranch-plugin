@@ -143,25 +143,46 @@ public class JobPropertyStepTest {
     @Issue("JENKINS-34547")
     @Test public void concurrentBuildProperty() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
-        p.setDefinition(new CpsFlowDefinition("properties([[$class: 'DisableConcurrentBuildsJobProperty']])\n"
-                + "semaphore 'hang'"));
+        // Verify the base case behavior.
+        p.setDefinition(new CpsFlowDefinition("semaphore 'hang'"));
 
         assertTrue(p.isConcurrentBuild());
 
         WorkflowRun b1 = p.scheduleBuild2(0).waitForStart();
         SemaphoreStep.waitForStart("hang/1", b1);
-        assertFalse(p.isConcurrentBuild());
+        assertTrue(p.isConcurrentBuild());
 
-        QueueTaskFuture<WorkflowRun> futureB2 = p.scheduleBuild2(0);
-        assertFalse(futureB2.getStartCondition().isDone());
+        WorkflowRun b2 = p.scheduleBuild2(0).waitForStart();
 
         SemaphoreStep.success("hang/1", b1);
         r.assertBuildStatusSuccess(r.waitForCompletion(b1));
 
-        WorkflowRun b2 = futureB2.waitForStart();
         SemaphoreStep.waitForStart("hang/2", b2);
         SemaphoreStep.success("hang/2", b2);
         r.assertBuildStatusSuccess(r.waitForCompletion(b2));
+
+        // Verify that the property successfully disables concurrent builds.
+        p.setDefinition(new CpsFlowDefinition("properties([[$class: 'DisableConcurrentBuildsJobProperty']])\n"
+                + "semaphore 'hang'"));
+
+        assertTrue(p.isConcurrentBuild());
+
+        WorkflowRun b3 = p.scheduleBuild2(0).waitForStart();
+        SemaphoreStep.waitForStart("hang/3", b3);
+        assertFalse(p.isConcurrentBuild());
+
+        QueueTaskFuture<WorkflowRun> futureB4 = p.scheduleBuild2(0);
+        // Sleep 2 seconds to make sure the build gets queued.
+        Thread.sleep(2000);
+        assertFalse(futureB4.getStartCondition().isDone());
+
+        SemaphoreStep.success("hang/3", b3);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b3));
+
+        WorkflowRun b4 = futureB4.waitForStart();
+        SemaphoreStep.waitForStart("hang/4", b4);
+        SemaphoreStep.success("hang/4", b4);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b4));
     }
 
 }
