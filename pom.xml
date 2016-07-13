@@ -98,6 +98,11 @@ THE SOFTWARE.
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>workflow-scm-step</artifactId>
+            <version>2.2</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>workflow-basic-steps</artifactId>
             <version>2.0</version>
             <scope>test</scope>
