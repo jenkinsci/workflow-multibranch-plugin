@@ -43,14 +43,12 @@ import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.jenkinsci.plugins.workflow.job.properties.WorkflowConcurrentBuildJobProperty;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.steps.scm.GitSampleRepoRule;
 import static org.junit.Assert.*;
 
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
@@ -99,17 +97,6 @@ public class JobPropertyStepTest {
         assertEquals(3, lr.getArtifactNumToKeep());
     }
 
-    @Ignore("StepConfigTester only works with AbstractProjects?")
-    @SuppressWarnings("rawtypes")
-    @Test public void configRoundTripConcurrentBuild() throws Exception {
-        StepConfigTester tester = new StepConfigTester(r);
-        assertEquals(Collections.emptyList(), tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties());
-
-        List<JobProperty> properties = tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>singletonList(new WorkflowConcurrentBuildJobProperty()))).getProperties();
-        assertEquals(1, properties.size());
-        assertEquals(WorkflowConcurrentBuildJobProperty.class, properties.get(0).getClass());
-    }
-
     @Test public void useParameter() throws Exception {
         sampleRepo.init();
         ScriptApproval.get().approveSignature("method groovy.lang.Binding hasVariable java.lang.String"); // TODO add to generic whitelist
@@ -156,8 +143,7 @@ public class JobPropertyStepTest {
     @Issue("JENKINS-34547")
     @Test public void concurrentBuildProperty() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
-        p.setDefinition(new CpsFlowDefinition("properties([[$class: 'WorkflowConcurrentBuildJobProperty', "
-                + "  concurrentBuild: false]])\n"
+        p.setDefinition(new CpsFlowDefinition("properties([[$class: 'DisableConcurrentBuildsJobProperty']])\n"
                 + "semaphore 'hang'"));
 
         assertTrue(p.isConcurrentBuild());
