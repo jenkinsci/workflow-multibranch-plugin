@@ -66,11 +66,12 @@ public class JobPropertyStepTest {
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripParameters() throws Exception {
         StepConfigTester tester = new StepConfigTester(r);
-        assertEquals(Collections.emptyList(), tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties());
+        // PipelineTriggersJobProperty is now always going to be present, even if empty.
+        assertEquals(1, tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties().size());
         List<JobProperty> properties = tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>singletonList(new ParametersDefinitionProperty(new BooleanParameterDefinition("flag", true, null))))).getProperties();
-        assertEquals(1, properties.size());
-        assertEquals(ParametersDefinitionProperty.class, properties.get(0).getClass());
-        ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) properties.get(0);
+        assertEquals(2, properties.size());
+        ParametersDefinitionProperty pdp = getPropertyFromList(ParametersDefinitionProperty.class, properties);
+        assertNotNull(pdp);
         assertEquals(1, pdp.getParameterDefinitions().size());
         assertEquals(BooleanParameterDefinition.class, pdp.getParameterDefinitions().get(0).getClass());
         BooleanParameterDefinition bpd = (BooleanParameterDefinition) pdp.getParameterDefinitions().get(0);
@@ -82,11 +83,12 @@ public class JobPropertyStepTest {
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripBuildDiscarder() throws Exception {
         StepConfigTester tester = new StepConfigTester(r);
-        assertEquals(Collections.emptyList(), tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties());
+        // PipelineTriggersJobProperty is now always going to be present, even if empty.
+        assertEquals(1, tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties().size());
         List<JobProperty> properties = tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>singletonList(new BuildDiscarderProperty(new LogRotator(1, 2, -1, 3))))).getProperties();
-        assertEquals(1, properties.size());
-        assertEquals(BuildDiscarderProperty.class, properties.get(0).getClass());
-        BuildDiscarderProperty bdp = (BuildDiscarderProperty) properties.get(0);
+        assertEquals(2, properties.size());
+        BuildDiscarderProperty bdp = getPropertyFromList(BuildDiscarderProperty.class, properties);
+        assertNotNull(bdp);
         BuildDiscarder strategy = bdp.getStrategy();
         assertNotNull(strategy);
         assertEquals(LogRotator.class, strategy.getClass());
@@ -185,4 +187,13 @@ public class JobPropertyStepTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b4));
     }
 
+    private <T extends JobProperty> T getPropertyFromList(Class<T> clazz, List<JobProperty> properties) {
+        for (JobProperty p : properties) {
+            if (clazz.isInstance(p)) {
+                return clazz.cast(p);
+            }
+        }
+
+        return null;
+    }
 }
