@@ -33,6 +33,9 @@ import hudson.model.queue.QueueTaskFuture;
 import hudson.tasks.LogRotator;
 import java.util.Collections;
 import java.util.List;
+
+import hudson.triggers.TimerTrigger;
+import hudson.triggers.Trigger;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
@@ -44,6 +47,7 @@ import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import static org.junit.Assert.*;
 
@@ -185,6 +189,59 @@ public class JobPropertyStepTest {
         SemaphoreStep.waitForStart("hang/4", b4);
         SemaphoreStep.success("hang/4", null);
         r.assertBuildStatusSuccess(r.waitForCompletion(b4));
+    }
+
+    @Issue("JENKINS-34005")
+    @Test public void triggersProperty() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        // Verify the base case behavior.
+        p.setDefinition(new CpsFlowDefinition("echo 'foo'"));
+
+        assertTrue(p.getTriggers().isEmpty());
+
+        r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        // Make sure the triggers are still empty.
+        assertTrue(p.getTriggers().isEmpty());
+
+        // Now add a trigger.
+        p.setDefinition(new CpsFlowDefinition("properties([[$class: 'PipelineTriggersJobProperty',\n"
+                + "  triggers: [[$class: 'TimerTrigger', spec: '@daily']]]])\n"
+                + "echo 'foo'"));
+
+        r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        assertEquals(1, p.getTriggers().size());
+
+        PipelineTriggersJobProperty triggerProp = p.getTriggersJobProperty();
+
+        TimerTrigger timerTrigger = getTriggerFromList(TimerTrigger.class, triggerProp.getTriggers());
+
+        assertNotNull(timerTrigger);
+
+        assertEquals("@daily", timerTrigger.getSpec());
+
+        // Now run a properties step with a different property and verify that we still have a
+        // PipelineTriggersJobProperty, but with no triggers in it.
+        p.setDefinition(new CpsFlowDefinition("properties([[$class: 'DisableConcurrentBuildsJobProperty']])\n"
+                + "echo 'foo'"));
+
+        r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        assertNotNull(p.getTriggersJobProperty());
+
+        assertTrue(p.getTriggers().isEmpty());
+
+    }
+
+    private <T extends Trigger> T getTriggerFromList(Class<T> clazz, List<Trigger<?>> triggers) {
+        for (Trigger t : triggers) {
+            if (clazz.isInstance(t)) {
+                return clazz.cast(t);
+            }
+        }
+
+        return null;
     }
 
     private <T extends JobProperty> T getPropertyFromList(Class<T> clazz, List<JobProperty> properties) {
