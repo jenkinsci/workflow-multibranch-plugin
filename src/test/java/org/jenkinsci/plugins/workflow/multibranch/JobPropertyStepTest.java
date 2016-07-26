@@ -53,6 +53,7 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty;
+import org.jenkinsci.plugins.workflow.properties.MockTrigger;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import static org.junit.Assert.*;
 
@@ -236,7 +237,7 @@ public class JobPropertyStepTest {
 
         assertTrue(mockTrigger.isStarted);
 
-        assertEquals("[false]", mockTrigger.calls.toString());
+        assertEquals("[null, false]", MockTrigger.startsAndStops.toString());
 
         // Now run a properties step with a different property and verify that we still have a
         // PipelineTriggersJobProperty, but with no triggers in it.
@@ -249,6 +250,7 @@ public class JobPropertyStepTest {
 
         assertTrue(p.getTriggers().isEmpty());
 
+        assertEquals("[null, false, null]", MockTrigger.startsAndStops.toString());
     }
 
     private <T extends Trigger> T getTriggerFromList(Class<T> clazz, List<Trigger<?>> triggers) {
@@ -269,39 +271,5 @@ public class JobPropertyStepTest {
         }
 
         return null;
-    }
-
-    public static class MockTrigger extends Trigger<Item> {
-
-        public transient List<Boolean> calls = new ArrayList<Boolean>();
-        public transient boolean isStarted = false;
-
-        @DataBoundConstructor
-        public MockTrigger() {}
-
-        @Override public void start(Item project, boolean newInstance) {
-            super.start(project, newInstance);
-            calls.add(newInstance);
-            isStarted = true;
-        }
-
-        @Override public void stop() {
-            super.stop();
-            isStarted = false;
-        }
-
-        @Override protected Object readResolve() throws ObjectStreamException {
-            calls = new ArrayList<Boolean>();
-            return super.readResolve();
-        }
-
-        @TestExtension
-        public static class DescriptorImpl extends TriggerDescriptor {
-
-            @Override public boolean isApplicable(Item item) {
-                return true;
-            }
-
-        }
     }
 }

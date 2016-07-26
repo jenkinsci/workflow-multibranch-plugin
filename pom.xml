@@ -179,6 +179,13 @@ THE SOFTWARE.
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>workflow-job</artifactId>
+            <version>2.4-SNAPSHOT</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.jenkins-ci.modules</groupId>
             <artifactId>sshd</artifactId>
             <version>1.6</version>
