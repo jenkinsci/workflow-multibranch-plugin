@@ -25,17 +25,22 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.model.BooleanParameterDefinition;
+import hudson.model.Item;
 import hudson.model.JobProperty;
 import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.StringParameterValue;
 import hudson.model.queue.QueueTaskFuture;
 import hudson.tasks.LogRotator;
+
+import java.io.ObjectStreamException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import hudson.triggers.TimerTrigger;
 import hudson.triggers.Trigger;
+import hudson.triggers.TriggerDescriptor;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
@@ -58,6 +63,9 @@ import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.TestExtension;
+import org.kohsuke.stapler.DataBoundConstructor;
+
 import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
 
 @Issue("JENKINS-30519")
@@ -206,12 +214,13 @@ public class JobPropertyStepTest {
 
         // Now add a trigger.
         p.setDefinition(new CpsFlowDefinition("properties([[$class: 'PipelineTriggersJobProperty',\n"
-                + "  triggers: [[$class: 'TimerTrigger', spec: '@daily']]]])\n"
+                + "  triggers: [[$class: 'TimerTrigger', spec: '@daily'],\n"
+                + "    [$class: 'MockTrigger']]]])\n"
                 + "echo 'foo'"));
 
         r.assertBuildStatusSuccess(p.scheduleBuild2(0));
 
-        assertEquals(1, p.getTriggers().size());
+        assertEquals(2, p.getTriggers().size());
 
         PipelineTriggersJobProperty triggerProp = p.getTriggersJobProperty();
 
@@ -220,6 +229,14 @@ public class JobPropertyStepTest {
         assertNotNull(timerTrigger);
 
         assertEquals("@daily", timerTrigger.getSpec());
+
+        MockTrigger mockTrigger = getTriggerFromList(MockTrigger.class, triggerProp.getTriggers());
+
+        assertNotNull(mockTrigger);
+
+        assertTrue(mockTrigger.isStarted);
+
+        assertEquals("[false]", mockTrigger.calls.toString());
 
         // Now run a properties step with a different property and verify that we still have a
         // PipelineTriggersJobProperty, but with no triggers in it.
@@ -252,5 +269,39 @@ public class JobPropertyStepTest {
         }
 
         return null;
+    }
+
+    public static class MockTrigger extends Trigger<Item> {
+
+        public transient List<Boolean> calls = new ArrayList<Boolean>();
+        public transient boolean isStarted = false;
+
+        @DataBoundConstructor
+        public MockTrigger() {}
+
+        @Override public void start(Item project, boolean newInstance) {
+            super.start(project, newInstance);
+            calls.add(newInstance);
+            isStarted = true;
+        }
+
+        @Override public void stop() {
+            super.stop();
+            isStarted = false;
+        }
+
+        @Override protected Object readResolve() throws ObjectStreamException {
+            calls = new ArrayList<Boolean>();
+            return super.readResolve();
+        }
+
+        @TestExtension
+        public static class DescriptorImpl extends TriggerDescriptor {
+
+            @Override public boolean isApplicable(Item item) {
+                return true;
+            }
+
+        }
     }
 }
