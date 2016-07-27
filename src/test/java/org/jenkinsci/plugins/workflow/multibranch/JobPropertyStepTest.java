@@ -28,6 +28,7 @@ import hudson.model.BooleanParameterDefinition;
 import hudson.model.JobProperty;
 import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
+import hudson.model.StringParameterDefinition;
 import hudson.model.StringParameterValue;
 import hudson.tasks.LogRotator;
 import java.util.Collections;
@@ -38,7 +39,9 @@ import jenkins.branch.DefaultBranchPropertyStrategy;
 import jenkins.model.BuildDiscarder;
 import jenkins.model.BuildDiscarderProperty;
 import jenkins.plugins.git.GitSCMSource;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
+import org.jenkinsci.plugins.workflow.cps.SnippetizerTester;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
@@ -59,11 +62,26 @@ public class JobPropertyStepTest {
     @Rule public JenkinsRule r = new JenkinsRule();
     @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
 
+    private static final boolean HAVE_SYMBOL =
+        ParametersDefinitionProperty.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "parameters"
+        BooleanParameterDefinition.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "booleanParam"
+        StringParameterDefinition.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "string"
+        BuildDiscarderProperty.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "buildDiscarder"
+        LogRotator.LRDescriptor.class.isAnnotationPresent(Symbol.class); // "logRotator"
+
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripParameters() throws Exception {
+        List<JobProperty> properties = Collections.<JobProperty>singletonList(new ParametersDefinitionProperty(new BooleanParameterDefinition("flag", true, null)));
+        /* TODO JENKINS-29711 means it omits the parentheses, without which the call is misparsed:
+        if (HAVE_SYMBOL) {
+            // TODO *ParameterDefinition.description ought to be defaulted to null:
+            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([parameters([booleanParam(defaultValue: true, description: '', name: 'flag')])])");
+        } else {
+            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'BooleanParameterDefinition', defaultValue: true, description: '', name: 'flag']]]])");
+        }
+        */
         StepConfigTester tester = new StepConfigTester(r);
-        assertEquals(Collections.emptyList(), tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties());
-        List<JobProperty> properties = tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>singletonList(new ParametersDefinitionProperty(new BooleanParameterDefinition("flag", true, null))))).getProperties();
+        properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
         assertEquals(1, properties.size());
         assertEquals(ParametersDefinitionProperty.class, properties.get(0).getClass());
         ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) properties.get(0);
@@ -72,14 +90,22 @@ public class JobPropertyStepTest {
         BooleanParameterDefinition bpd = (BooleanParameterDefinition) pdp.getParameterDefinitions().get(0);
         assertEquals("flag", bpd.getName());
         assertTrue(bpd.isDefaultValue());
-        // TODO JENKINS-29711 means it seems to omit the required () but we are not currently testing the Snippetizer output anyway
+        assertEquals(Collections.emptyList(), tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties());
     }
 
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripBuildDiscarder() throws Exception {
+        List<JobProperty> properties = Collections.<JobProperty>singletonList(new BuildDiscarderProperty(new LogRotator(1, 2, -1, 3)));
+        /* TODO JENKINS-29711:
+        if (HAVE_SYMBOL) {
+            // TODO structural form of LogRotator is awful; confusion between integer and string types, and failure to handle default values:
+            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '3', daysToKeepStr: '1', numToKeepStr: '2'))])");
+        } else {
+            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '', artifactNumToKeepStr: '3', daysToKeepStr: '1', numToKeepStr: '2']]])");
+        }
+        */
         StepConfigTester tester = new StepConfigTester(r);
-        assertEquals(Collections.emptyList(), tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties());
-        List<JobProperty> properties = tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>singletonList(new BuildDiscarderProperty(new LogRotator(1, 2, -1, 3))))).getProperties();
+        properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
         assertEquals(1, properties.size());
         assertEquals(BuildDiscarderProperty.class, properties.get(0).getClass());
         BuildDiscarderProperty bdp = (BuildDiscarderProperty) properties.get(0);
@@ -97,7 +123,9 @@ public class JobPropertyStepTest {
         sampleRepo.init();
         ScriptApproval.get().approveSignature("method groovy.lang.Binding hasVariable java.lang.String"); // TODO add to generic whitelist
         sampleRepo.write("Jenkinsfile",
-                "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'StringParameterDefinition', name: 'myparam', defaultValue: 'default value']]]])\n" +
+                (HAVE_SYMBOL ?
+                    "properties([parameters([string(name: 'myparam', defaultValue: 'default value')])])\n" :
+                    "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'StringParameterDefinition', name: 'myparam', defaultValue: 'default value']]]])\n") +
                 "echo \"received ${binding.hasVariable('myparam') ? myparam : 'undefined'}\"");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("commit", "--all", "--message=flow");
@@ -118,7 +146,9 @@ public class JobPropertyStepTest {
     @SuppressWarnings("deprecation") // RunList.size
     @Test public void useBuildDiscarder() throws Exception {
         sampleRepo.init();
-        sampleRepo.write("Jenkinsfile", "properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', numToKeepStr: '1']]])");
+        sampleRepo.write("Jenkinsfile", HAVE_SYMBOL ?
+            "properties([buildDiscarder(logRotator(numToKeepStr: '1'))])" :
+            "properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', numToKeepStr: '1']]])");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("commit", "--all", "--message=flow");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
