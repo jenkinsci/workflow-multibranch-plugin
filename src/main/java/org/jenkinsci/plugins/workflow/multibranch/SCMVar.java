@@ -35,6 +35,7 @@ import hudson.scm.SCM;
 import hudson.util.DescribableList;
 import java.io.Serializable;
 import jenkins.branch.Branch;
+import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
@@ -63,7 +64,7 @@ import org.jenkinsci.plugins.workflow.support.pickles.XStreamPickle;
         Run<?,?> build = script.$build();
         // TODO some code overlap with SCMBinder.create, but not obvious how to factor out common parts
         if (!(build instanceof WorkflowRun)) {
-            throw new AbortException("not available outside a Pipeline build");
+            throw new AbortException("‘checkout scm’ is not available outside a Pipeline build");
         }
         Job<?,?> job = build.getParent();
         BranchJobProperty property = job.getProperty(BranchJobProperty.class);
@@ -75,7 +76,9 @@ import org.jenkinsci.plugins.workflow.support.pickles.XStreamPickle;
                     return ((CpsScmFlowDefinition) defn).getScm();
                 }
             }
-            throw new IllegalStateException("inappropriate context");
+            throw new AbortException("‘checkout scm’ is only available when using “" +
+                Jenkins.getActiveInstance().getDescriptorByType(WorkflowMultiBranchProject.DescriptorImpl.class).getDisplayName() +
+                "” or “" + Jenkins.getActiveInstance().getDescriptorByType(CpsScmFlowDefinition.DescriptorImpl.class).getDisplayName() + "”");
         }
         Branch branch = property.getBranch();
         ItemGroup<?> parent = job.getParent();

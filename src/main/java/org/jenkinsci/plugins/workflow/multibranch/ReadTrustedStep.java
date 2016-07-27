@@ -123,7 +123,9 @@ public class ReadTrustedStep extends AbstractStepImpl {
                             return file.readToString();
                         }
                     }
-                    throw new IllegalStateException("inappropriate context");
+                    throw new AbortException("‘readTrusted’ is only available when using “" +
+                        Jenkins.getActiveInstance().getDescriptorByType(WorkflowMultiBranchProject.DescriptorImpl.class).getDisplayName() +
+                        "” or “" + Jenkins.getActiveInstance().getDescriptorByType(CpsScmFlowDefinition.DescriptorImpl.class).getDisplayName() + "”");
                 }
                 Branch branch = property.getBranch();
                 ItemGroup<?> parent = job.getParent();
