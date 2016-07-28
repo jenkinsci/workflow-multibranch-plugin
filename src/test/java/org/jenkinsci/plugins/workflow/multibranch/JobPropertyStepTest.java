@@ -83,8 +83,7 @@ public class JobPropertyStepTest {
         StringParameterDefinition.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "string"
         BuildDiscarderProperty.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "buildDiscarder"
         LogRotator.LRDescriptor.class.isAnnotationPresent(Symbol.class) && // "logRotator"
-        TimerTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "disableConcurrentBuilds"
-        PipelineTriggersJobProperty.DescriptorImpl.class.isAnnotationPresent(Symbol.class); // "pipelineTriggers"
+        TimerTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class); // "cron"
 
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripParameters() throws Exception {
