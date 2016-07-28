@@ -97,7 +97,7 @@ public class JobPropertyStep extends AbstractStepImpl {
             BulkChange bc = new BulkChange(job);
             try {
                 if (!isMultibranch) {
-                    l.getLogger().println(Messages._JobPropertyStep__could_remove_warning());
+                    l.getLogger().println(Messages.JobPropertyStep__could_remove_warning());
                 }
                 for (JobProperty prop : job.getAllProperties()) {
                     if (prop instanceof BranchJobProperty) {
@@ -105,7 +105,7 @@ public class JobPropertyStep extends AbstractStepImpl {
                         continue;
                     }
                     if (!isMultibranch) {
-                        l.getLogger().println(Messages._JobPropertyStep__removed_property_warning(prop.getDescriptor().getDisplayName()));
+                        l.getLogger().println(Messages.JobPropertyStep__removed_property_warning(prop.getDescriptor().getDisplayName()));
                     }
                     job.removeProperty(prop);
                 }

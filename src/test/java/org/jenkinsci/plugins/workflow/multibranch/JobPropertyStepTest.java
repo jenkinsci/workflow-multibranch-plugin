@@ -286,7 +286,8 @@ public class JobPropertyStepTest {
         // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
         r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b2);
         // Verify that we *are* seeing warnings for removing the triggers property.
-        r.assertLogContains(Messages.JobPropertyStep__removed_property_warning("Build triggers"), b2);
+        String propName = r.jenkins.getDescriptorByType(PipelineTriggersJobProperty.DescriptorImpl.class).getDisplayName();
+        r.assertLogContains(Messages.JobPropertyStep__removed_property_warning(propName), b2);
 
         assertNotNull(p.getTriggersJobProperty());
 
@@ -328,7 +329,8 @@ public class JobPropertyStepTest {
 
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
         r.assertLogNotContains(Messages.JobPropertyStep__could_remove_warning(), b2);
-        r.assertLogNotContains(Messages.JobPropertyStep__removed_property_warning("disableConcurrentBuilds"), b2);
+        String propName = r.jenkins.getDescriptorByType(DisableConcurrentBuildsJobProperty.DescriptorImpl.class).getDisplayName();
+        r.assertLogNotContains(Messages.JobPropertyStep__removed_property_warning(propName), b2);
     }
 
     private <T extends Trigger> T getTriggerFromList(Class<T> clazz, List<Trigger<?>> triggers) {
