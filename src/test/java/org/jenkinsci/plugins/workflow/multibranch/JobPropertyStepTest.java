@@ -25,7 +25,6 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.model.BooleanParameterDefinition;
-import hudson.model.Item;
 import hudson.model.JobProperty;
 import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
@@ -34,21 +33,22 @@ import hudson.model.StringParameterValue;
 import hudson.model.queue.QueueTaskFuture;
 import hudson.tasks.LogRotator;
 
-import java.io.ObjectStreamException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import hudson.triggers.TimerTrigger;
 import hudson.triggers.Trigger;
-import hudson.triggers.TriggerDescriptor;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
+import jenkins.branch.DefaultBranchPropertyStrategy;
 import jenkins.model.BuildDiscarder;
 import jenkins.model.BuildDiscarderProperty;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
 import org.jenkinsci.Symbol;
+import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMSource;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -65,8 +65,6 @@ import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.TestExtension;
-import org.kohsuke.stapler.DataBoundConstructor;
 
 import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
 
@@ -255,7 +253,12 @@ public class JobPropertyStepTest {
                                 + "    [$class: 'MockTrigger']])])\n"
                 ) + "echo 'foo'"));
 
-        r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+        WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
+        r.assertLogContains("WARNING: The 'properties' step will remove all 'JobProperty's currently configured in this job, either from the UI or from an earlier 'properties' step.", b);
+        // Verify that we're not seeing warnings for any properties being removed, since there are no pre-existing ones.
+        r.assertLogNotContains("WARNING: Removing existing job property", b);
 
         assertEquals(2, p.getTriggers().size());
 
@@ -280,13 +283,52 @@ public class JobPropertyStepTest {
         p.setDefinition(new CpsFlowDefinition("properties([disableConcurrentBuilds()])\n"
                 + "echo 'foo'"));
 
-        r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+        WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
+        r.assertLogContains("WARNING: The 'properties' step will remove all 'JobProperty's currently configured in this job, either from the UI or from an earlier 'properties' step.", b2);
+        // Verify that we *are* seeing warnings for removing the triggers property.
+        r.assertLogContains("WARNING: Removing existing job property 'Build triggers'", b2);
 
         assertNotNull(p.getTriggersJobProperty());
 
         assertTrue(p.getTriggers().isEmpty());
 
         assertEquals("[null, false, null]", MockTrigger.startsAndStops.toString());
+    }
+
+    @Issue("JENKINS-37005")
+    @Test 
+    public void noPropertiesWarnings() throws Exception {
+        sampleRepo.init();
+        sampleRepo.write("Jenkinsfile", "echo \"branch=${env.BRANCH_NAME}\"\n"
+                + "properties([[$class: 'DisableConcurrentBuildsJobProperty']])");
+        sampleRepo.write("file", "initial content");
+        sampleRepo.git("add", "Jenkinsfile");
+        sampleRepo.git("commit", "--all", "--message=flow");
+        WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        for (SCMSource source : mp.getSCMSources()) {
+            assertEquals(mp, source.getOwner());
+        }
+        WorkflowJob p = scheduleAndFindBranchProject(mp, "master");
+        assertEquals(new SCMHead("master"), SCMHead.HeadByItem.findHead(p));
+        assertEquals(1, mp.getItems().size());
+        r.waitUntilNoActivity();
+        WorkflowRun b1 = p.getLastBuild();
+        assertEquals(1, b1.getNumber());
+        r.assertLogNotContains("WARNING: The 'properties' step will remove all 'JobProperty's currently configured in this job, either from the UI or from an earlier 'properties' step.", b1);
+
+        // Now verify that we don't get any messages about removing properties when a property actually gets removed as
+        // we add a new one.
+        sampleRepo.write("Jenkinsfile", "echo \"branch=${env.BRANCH_NAME}\"\n"
+                + "properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', numToKeepStr: '1']]])");
+        sampleRepo.git("add", "Jenkinsfile");
+        sampleRepo.git("commit", "--all", "--message=flow");
+
+        WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+        r.assertLogNotContains("WARNING: The 'properties' step will remove all 'JobProperty's currently configured in this job, either from the UI or from an earlier 'properties' step.", b2);
+        r.assertLogNotContains("WARNING: Removing existing job property", b2);
     }
 
     private <T extends Trigger> T getTriggerFromList(Class<T> clazz, List<Trigger<?>> triggers) {
