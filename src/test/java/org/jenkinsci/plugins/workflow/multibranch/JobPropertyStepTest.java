@@ -53,6 +53,7 @@ import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty;
 import org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty;
 import org.jenkinsci.plugins.workflow.properties.MockTrigger;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
@@ -81,7 +82,9 @@ public class JobPropertyStepTest {
         BooleanParameterDefinition.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "booleanParam"
         StringParameterDefinition.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "string"
         BuildDiscarderProperty.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "buildDiscarder"
-        LogRotator.LRDescriptor.class.isAnnotationPresent(Symbol.class); // "logRotator"
+        LogRotator.LRDescriptor.class.isAnnotationPresent(Symbol.class) && // "logRotator"
+        TimerTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "disableConcurrentBuilds"
+        PipelineTriggersJobProperty.DescriptorImpl.class.isAnnotationPresent(Symbol.class); // "pipelineTriggers"
 
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripParameters() throws Exception {
@@ -96,15 +99,19 @@ public class JobPropertyStepTest {
         */
         StepConfigTester tester = new StepConfigTester(r);
         properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
-        assertEquals(1, properties.size());
-        assertEquals(ParametersDefinitionProperty.class, properties.get(0).getClass());
-        ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) properties.get(0);
+        assertEquals(2, properties.size());
+        ParametersDefinitionProperty pdp = getPropertyFromList(ParametersDefinitionProperty.class, properties);
+        assertNotNull(pdp);
         assertEquals(1, pdp.getParameterDefinitions().size());
         assertEquals(BooleanParameterDefinition.class, pdp.getParameterDefinitions().get(0).getClass());
         BooleanParameterDefinition bpd = (BooleanParameterDefinition) pdp.getParameterDefinitions().get(0);
         assertEquals("flag", bpd.getName());
         assertTrue(bpd.isDefaultValue());
-        assertEquals(Collections.emptyList(), tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties());
+
+        // TODO The fact that there's *always* a PipelineTriggersJobProperty is a bit weird. Is that the right approach?
+        List<JobProperty> emptyInput = tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties();
+
+        assertEquals(Collections.emptyList(), removeTriggerProperty(emptyInput));
     }
 
     @SuppressWarnings("rawtypes")
@@ -120,9 +127,9 @@ public class JobPropertyStepTest {
         */
         StepConfigTester tester = new StepConfigTester(r);
         properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
-        assertEquals(1, properties.size());
-        assertEquals(BuildDiscarderProperty.class, properties.get(0).getClass());
-        BuildDiscarderProperty bdp = (BuildDiscarderProperty) properties.get(0);
+        assertEquals(2, properties.size());
+        BuildDiscarderProperty bdp = getPropertyFromList(BuildDiscarderProperty.class, properties);
+        assertNotNull(bdp);
         BuildDiscarder strategy = bdp.getStrategy();
         assertNotNull(strategy);
         assertEquals(LogRotator.class, strategy.getClass());
@@ -239,10 +246,14 @@ public class JobPropertyStepTest {
         assertTrue(p.getTriggers().isEmpty());
 
         // Now add a trigger.
-        p.setDefinition(new CpsFlowDefinition("properties([[$class: 'PipelineTriggersJobProperty',\n"
-                + "  triggers: [[$class: 'TimerTrigger', spec: '@daily'],\n"
-                + "    [$class: 'MockTrigger']]]])\n"
-                + "echo 'foo'"));
+        p.setDefinition(new CpsFlowDefinition(
+                (HAVE_SYMBOL ?
+                        "properties([pipelineTriggers([\n"
+                                + "  cron('@daily'), [$class: 'MockTrigger']])])\n" :
+                        "properties([pipelineTriggers(\n"
+                                + "  triggers: [[$class: 'TimerTrigger', spec: '@daily'],\n"
+                                + "    [$class: 'MockTrigger']])])\n"
+                ) + "echo 'foo'"));
 
         r.assertBuildStatusSuccess(p.scheduleBuild2(0));
 
@@ -266,7 +277,7 @@ public class JobPropertyStepTest {
 
         // Now run a properties step with a different property and verify that we still have a
         // PipelineTriggersJobProperty, but with no triggers in it.
-        p.setDefinition(new CpsFlowDefinition("properties([[$class: 'DisableConcurrentBuildsJobProperty']])\n"
+        p.setDefinition(new CpsFlowDefinition("properties([disableConcurrentBuilds()])\n"
                 + "echo 'foo'"));
 
         r.assertBuildStatusSuccess(p.scheduleBuild2(0));
@@ -296,5 +307,16 @@ public class JobPropertyStepTest {
         }
 
         return null;
+    }
+
+    private List<JobProperty> removeTriggerProperty(List<JobProperty> originalProps) {
+        List<JobProperty> returnList = new ArrayList<>();
+        for (JobProperty p : originalProps) {
+            if (!(p instanceof PipelineTriggersJobProperty)) {
+                returnList.add(p);
+            }
+        }
+
+        return returnList;
     }
 }
