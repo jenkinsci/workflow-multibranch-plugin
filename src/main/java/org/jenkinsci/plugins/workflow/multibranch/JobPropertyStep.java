@@ -129,11 +129,7 @@ public class JobPropertyStep extends AbstractStepImpl {
          * @return True if this is a multibranch job, false otherwise.
          */
         private boolean isMultibranch(Job<?,?> job) {
-            ItemGroup<?> parent = job.getParent();
-            if (!(parent instanceof WorkflowMultiBranchProject)) {
-                return false;
-            }
-            return true;
+            return job.getParent() instanceof WorkflowMultiBranchProject;
         }
 
         private static final long serialVersionUID = 1L;
