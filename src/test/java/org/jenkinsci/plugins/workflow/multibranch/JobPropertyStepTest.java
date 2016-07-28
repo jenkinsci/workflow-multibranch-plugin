@@ -30,6 +30,7 @@ import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.StringParameterDefinition;
 import hudson.model.StringParameterValue;
+import hudson.model.queue.QueueTaskFuture;
 import hudson.tasks.LogRotator;
 import java.util.Collections;
 import java.util.List;
@@ -39,13 +40,15 @@ import jenkins.branch.DefaultBranchPropertyStrategy;
 import jenkins.model.BuildDiscarder;
 import jenkins.model.BuildDiscarderProperty;
 import jenkins.plugins.git.GitSCMSource;
+import jenkins.plugins.git.GitSampleRepoRule;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
-import org.jenkinsci.plugins.workflow.cps.SnippetizerTester;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
-import org.jenkinsci.plugins.workflow.steps.scm.GitSampleRepoRule;
+import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import static org.junit.Assert.*;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -53,7 +56,6 @@ import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
 
 @Issue("JENKINS-30519")
 public class JobPropertyStepTest {
@@ -164,6 +166,51 @@ public class JobPropertyStepTest {
         WorkflowRun b3 = p.getLastBuild();
         assertEquals(3, b3.getNumber());
         assertNull(b3.getPreviousBuild());
+    }
+
+    @Issue("JENKINS-34547")
+    @Test public void concurrentBuildProperty() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        // Verify the base case behavior.
+        p.setDefinition(new CpsFlowDefinition("semaphore 'hang'"));
+
+        assertTrue(p.isConcurrentBuild());
+
+        WorkflowRun b1 = p.scheduleBuild2(0).waitForStart();
+        SemaphoreStep.waitForStart("hang/1", b1);
+        assertTrue(p.isConcurrentBuild());
+
+        WorkflowRun b2 = p.scheduleBuild2(0).waitForStart();
+        SemaphoreStep.waitForStart("hang/2", b2);
+
+        SemaphoreStep.success("hang/1", null);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b1));
+
+        SemaphoreStep.success("hang/2", null);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b2));
+
+        // Verify that the property successfully disables concurrent builds.
+        p.setDefinition(new CpsFlowDefinition("properties([[$class: 'DisableConcurrentBuildsJobProperty']])\n"
+                + "semaphore 'hang'"));
+
+        assertTrue(p.isConcurrentBuild());
+
+        WorkflowRun b3 = p.scheduleBuild2(0).waitForStart();
+        SemaphoreStep.waitForStart("hang/3", b3);
+        assertFalse(p.isConcurrentBuild());
+
+        QueueTaskFuture<WorkflowRun> futureB4 = p.scheduleBuild2(0);
+        // Sleep 2 seconds to make sure the build gets queued.
+        Thread.sleep(2000);
+        assertFalse(futureB4.getStartCondition().isDone());
+
+        SemaphoreStep.success("hang/3", null);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b3));
+
+        WorkflowRun b4 = futureB4.waitForStart();
+        SemaphoreStep.waitForStart("hang/4", b4);
+        SemaphoreStep.success("hang/4", null);
+        r.assertBuildStatusSuccess(r.waitForCompletion(b4));
     }
 
 }
