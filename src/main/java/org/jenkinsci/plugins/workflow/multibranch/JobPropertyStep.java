@@ -82,10 +82,10 @@ public class JobPropertyStep extends AbstractStepImpl {
 
         @Inject transient JobPropertyStep step;
         @StepContextParameter transient Run<?,?> build;
+        @StepContextParameter transient TaskListener l;
 
         @SuppressWarnings("unchecked") // untypable
         @Override protected Void run() throws Exception {
-            TaskListener l = getContext().get(TaskListener.class);
             Job<?,?> job = build.getParent();
             boolean isMultibranch = isMultibranch(job);
 
@@ -97,10 +97,7 @@ public class JobPropertyStep extends AbstractStepImpl {
             BulkChange bc = new BulkChange(job);
             try {
                 if (!isMultibranch) {
-                    l.getLogger().println("WARNING: The 'properties' step will remove all 'JobProperty's currently "
-                            + "configured in this job, either from the UI or from an earlier 'properties' step.");
-                    l.getLogger().println("This includes configuration for discarding old builds, parameters, "
-                            + "concurrent builds and build triggers.");
+                    l.getLogger().println(Messages._JobPropertyStep__could_remove_warning());
                 }
                 for (JobProperty prop : job.getAllProperties()) {
                     if (prop instanceof BranchJobProperty) {
@@ -108,7 +105,7 @@ public class JobPropertyStep extends AbstractStepImpl {
                         continue;
                     }
                     if (!isMultibranch) {
-                        l.getLogger().println("WARNING: Removing existing job property '" + prop.getDescriptor().getDisplayName() + "'");
+                        l.getLogger().println(Messages._JobPropertyStep__removed_property_warning(prop.getDescriptor().getDisplayName()));
                     }
                     job.removeProperty(prop);
                 }

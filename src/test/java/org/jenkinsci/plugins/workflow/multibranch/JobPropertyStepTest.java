@@ -106,7 +106,6 @@ public class JobPropertyStepTest {
         assertEquals("flag", bpd.getName());
         assertTrue(bpd.isDefaultValue());
 
-        // TODO The fact that there's *always* a PipelineTriggersJobProperty is a bit weird. Is that the right approach?
         List<JobProperty> emptyInput = tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties();
 
         assertEquals(Collections.emptyList(), removeTriggerProperty(emptyInput));
@@ -248,16 +247,16 @@ public class JobPropertyStepTest {
                 (HAVE_SYMBOL ?
                         "properties([pipelineTriggers([\n"
                                 + "  cron('@daily'), [$class: 'MockTrigger']])])\n" :
-                        "properties([pipelineTriggers(\n"
-                                + "  triggers: [[$class: 'TimerTrigger', spec: '@daily'],\n"
+                        "properties([pipelineTriggers([[$class: 'TimerTrigger', spec: '@daily'],\n"
                                 + "    [$class: 'MockTrigger']])])\n"
                 ) + "echo 'foo'"));
 
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
 
         // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
-        r.assertLogContains("WARNING: The 'properties' step will remove all 'JobProperty's currently configured in this job, either from the UI or from an earlier 'properties' step.", b);
+        r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b);
         // Verify that we're not seeing warnings for any properties being removed, since there are no pre-existing ones.
+        // Note - not using Messages here because we're not actually removing any properties.
         r.assertLogNotContains("WARNING: Removing existing job property", b);
 
         assertEquals(2, p.getTriggers().size());
@@ -286,9 +285,9 @@ public class JobPropertyStepTest {
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
 
         // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
-        r.assertLogContains("WARNING: The 'properties' step will remove all 'JobProperty's currently configured in this job, either from the UI or from an earlier 'properties' step.", b2);
+        r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b2);
         // Verify that we *are* seeing warnings for removing the triggers property.
-        r.assertLogContains("WARNING: Removing existing job property 'Build triggers'", b2);
+        r.assertLogContains(Messages.JobPropertyStep__removed_property_warning("Build triggers"), b2);
 
         assertNotNull(p.getTriggersJobProperty());
 
@@ -302,7 +301,7 @@ public class JobPropertyStepTest {
     public void noPropertiesWarnings() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "echo \"branch=${env.BRANCH_NAME}\"\n"
-                + "properties([[$class: 'DisableConcurrentBuildsJobProperty']])");
+                + "properties([disableConcurrentBuilds()])");
         sampleRepo.write("file", "initial content");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("commit", "--all", "--message=flow");
@@ -317,18 +316,20 @@ public class JobPropertyStepTest {
         r.waitUntilNoActivity();
         WorkflowRun b1 = p.getLastBuild();
         assertEquals(1, b1.getNumber());
-        r.assertLogNotContains("WARNING: The 'properties' step will remove all 'JobProperty's currently configured in this job, either from the UI or from an earlier 'properties' step.", b1);
+        r.assertLogNotContains(Messages.JobPropertyStep__could_remove_warning(), b1);
 
         // Now verify that we don't get any messages about removing properties when a property actually gets removed as
         // we add a new one.
         sampleRepo.write("Jenkinsfile", "echo \"branch=${env.BRANCH_NAME}\"\n"
-                + "properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', numToKeepStr: '1']]])");
-        sampleRepo.git("add", "Jenkinsfile");
+                + (HAVE_SYMBOL ?
+                "properties([buildDiscarder(logRotator(numToKeepStr: '1'))])" :
+                "properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', numToKeepStr: '1']]])"));
+                sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("commit", "--all", "--message=flow");
 
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
-        r.assertLogNotContains("WARNING: The 'properties' step will remove all 'JobProperty's currently configured in this job, either from the UI or from an earlier 'properties' step.", b2);
-        r.assertLogNotContains("WARNING: Removing existing job property", b2);
+        r.assertLogNotContains(Messages.JobPropertyStep__could_remove_warning(), b2);
+        r.assertLogNotContains(Messages.JobPropertyStep__removed_property_warning("disableConcurrentBuilds"), b2);
     }
 
     private <T extends Trigger> T getTriggerFromList(Class<T> clazz, List<Trigger<?>> triggers) {
