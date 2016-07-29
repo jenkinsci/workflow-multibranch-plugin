@@ -25,6 +25,7 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.model.BooleanParameterDefinition;
+import hudson.model.Item;
 import hudson.model.JobProperty;
 import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
@@ -32,8 +33,16 @@ import hudson.model.StringParameterDefinition;
 import hudson.model.StringParameterValue;
 import hudson.model.queue.QueueTaskFuture;
 import hudson.tasks.LogRotator;
+
+import java.io.ObjectStreamException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import hudson.triggers.TimerTrigger;
+import hudson.triggers.Trigger;
+import hudson.triggers.TriggerDescriptor;
+import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
 import jenkins.model.BuildDiscarder;
 import jenkins.model.BuildDiscarderProperty;
@@ -44,7 +53,9 @@ import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
+import org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty;
+import org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty;
+import org.jenkinsci.plugins.workflow.properties.MockTrigger;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import static org.junit.Assert.*;
@@ -54,6 +65,10 @@ import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.TestExtension;
+import org.kohsuke.stapler.DataBoundConstructor;
+
+import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
 
 @Issue("JENKINS-30519")
 public class JobPropertyStepTest {
@@ -67,7 +82,8 @@ public class JobPropertyStepTest {
         BooleanParameterDefinition.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "booleanParam"
         StringParameterDefinition.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "string"
         BuildDiscarderProperty.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "buildDiscarder"
-        LogRotator.LRDescriptor.class.isAnnotationPresent(Symbol.class); // "logRotator"
+        LogRotator.LRDescriptor.class.isAnnotationPresent(Symbol.class) && // "logRotator"
+        TimerTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class); // "cron"
 
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripParameters() throws Exception {
@@ -82,15 +98,19 @@ public class JobPropertyStepTest {
         */
         StepConfigTester tester = new StepConfigTester(r);
         properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
-        assertEquals(1, properties.size());
-        assertEquals(ParametersDefinitionProperty.class, properties.get(0).getClass());
-        ParametersDefinitionProperty pdp = (ParametersDefinitionProperty) properties.get(0);
+        assertEquals(2, properties.size());
+        ParametersDefinitionProperty pdp = getPropertyFromList(ParametersDefinitionProperty.class, properties);
+        assertNotNull(pdp);
         assertEquals(1, pdp.getParameterDefinitions().size());
         assertEquals(BooleanParameterDefinition.class, pdp.getParameterDefinitions().get(0).getClass());
         BooleanParameterDefinition bpd = (BooleanParameterDefinition) pdp.getParameterDefinitions().get(0);
         assertEquals("flag", bpd.getName());
         assertTrue(bpd.isDefaultValue());
-        assertEquals(Collections.emptyList(), tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties());
+
+        // TODO The fact that there's *always* a PipelineTriggersJobProperty is a bit weird. Is that the right approach?
+        List<JobProperty> emptyInput = tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties();
+
+        assertEquals(Collections.emptyList(), removeTriggerProperty(emptyInput));
     }
 
     @SuppressWarnings("rawtypes")
@@ -106,9 +126,9 @@ public class JobPropertyStepTest {
         */
         StepConfigTester tester = new StepConfigTester(r);
         properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
-        assertEquals(1, properties.size());
-        assertEquals(BuildDiscarderProperty.class, properties.get(0).getClass());
-        BuildDiscarderProperty bdp = (BuildDiscarderProperty) properties.get(0);
+        assertEquals(2, properties.size());
+        BuildDiscarderProperty bdp = getPropertyFromList(BuildDiscarderProperty.class, properties);
+        assertNotNull(bdp);
         BuildDiscarder strategy = bdp.getStrategy();
         assertNotNull(strategy);
         assertEquals(LogRotator.class, strategy.getClass());
@@ -211,4 +231,91 @@ public class JobPropertyStepTest {
         r.assertBuildStatusSuccess(r.waitForCompletion(b4));
     }
 
+    @Issue("JENKINS-34005")
+    @Test public void triggersProperty() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        // Verify the base case behavior.
+        p.setDefinition(new CpsFlowDefinition("echo 'foo'"));
+
+        assertTrue(p.getTriggers().isEmpty());
+
+        r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        // Make sure the triggers are still empty.
+        assertTrue(p.getTriggers().isEmpty());
+
+        // Now add a trigger.
+        p.setDefinition(new CpsFlowDefinition(
+                (HAVE_SYMBOL ?
+                        "properties([pipelineTriggers([\n"
+                                + "  cron('@daily'), [$class: 'MockTrigger']])])\n" :
+                        "properties([pipelineTriggers(\n"
+                                + "  triggers: [[$class: 'TimerTrigger', spec: '@daily'],\n"
+                                + "    [$class: 'MockTrigger']])])\n"
+                ) + "echo 'foo'"));
+
+        r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        assertEquals(2, p.getTriggers().size());
+
+        PipelineTriggersJobProperty triggerProp = p.getTriggersJobProperty();
+
+        TimerTrigger timerTrigger = getTriggerFromList(TimerTrigger.class, triggerProp.getTriggers());
+
+        assertNotNull(timerTrigger);
+
+        assertEquals("@daily", timerTrigger.getSpec());
+
+        MockTrigger mockTrigger = getTriggerFromList(MockTrigger.class, triggerProp.getTriggers());
+
+        assertNotNull(mockTrigger);
+
+        assertTrue(mockTrigger.isStarted);
+
+        assertEquals("[null, false]", MockTrigger.startsAndStops.toString());
+
+        // Now run a properties step with a different property and verify that we still have a
+        // PipelineTriggersJobProperty, but with no triggers in it.
+        p.setDefinition(new CpsFlowDefinition("properties([disableConcurrentBuilds()])\n"
+                + "echo 'foo'"));
+
+        r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        assertNotNull(p.getTriggersJobProperty());
+
+        assertTrue(p.getTriggers().isEmpty());
+
+        assertEquals("[null, false, null]", MockTrigger.startsAndStops.toString());
+    }
+
+    private <T extends Trigger> T getTriggerFromList(Class<T> clazz, List<Trigger<?>> triggers) {
+        for (Trigger t : triggers) {
+            if (clazz.isInstance(t)) {
+                return clazz.cast(t);
+            }
+        }
+
+        return null;
+    }
+
+    private <T extends JobProperty> T getPropertyFromList(Class<T> clazz, List<JobProperty> properties) {
+        for (JobProperty p : properties) {
+            if (clazz.isInstance(p)) {
+                return clazz.cast(p);
+            }
+        }
+
+        return null;
+    }
+
+    private List<JobProperty> removeTriggerProperty(List<JobProperty> originalProps) {
+        List<JobProperty> returnList = new ArrayList<>();
+        for (JobProperty p : originalProps) {
+            if (!(p instanceof PipelineTriggersJobProperty)) {
+                returnList.add(p);
+            }
+        }
+
+        return returnList;
+    }
 }
