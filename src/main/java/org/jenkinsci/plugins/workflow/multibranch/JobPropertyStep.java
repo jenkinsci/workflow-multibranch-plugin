@@ -30,6 +30,7 @@ import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
+import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.JobProperty;
 import hudson.model.JobPropertyDescriptor;
@@ -40,6 +41,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.inject.Inject;
+
+import hudson.model.TaskListener;
 import jenkins.branch.BuildRetentionBranchProperty;
 import jenkins.branch.RateLimitBranchProperty;
 import jenkins.model.Jenkins;
@@ -79,10 +82,13 @@ public class JobPropertyStep extends AbstractStepImpl {
 
         @Inject transient JobPropertyStep step;
         @StepContextParameter transient Run<?,?> build;
+        @StepContextParameter transient TaskListener l;
 
         @SuppressWarnings("unchecked") // untypable
         @Override protected Void run() throws Exception {
             Job<?,?> job = build.getParent();
+            boolean isMultibranch = isMultibranch(job);
+
             for (JobProperty prop : step.properties) {
                 if (!prop.getDescriptor().isApplicable(job.getClass())) {
                     throw new AbortException("cannot apply " + prop.getDescriptor().getId() + " to a " + job.getClass().getSimpleName());
@@ -90,10 +96,16 @@ public class JobPropertyStep extends AbstractStepImpl {
             }
             BulkChange bc = new BulkChange(job);
             try {
+                if (!isMultibranch) {
+                    l.getLogger().println(Messages.JobPropertyStep__could_remove_warning());
+                }
                 for (JobProperty prop : job.getAllProperties()) {
                     if (prop instanceof BranchJobProperty) {
                         // TODO do we need to define an API for other properties which should not be removed?
                         continue;
+                    }
+                    if (!isMultibranch) {
+                        l.getLogger().println(Messages.JobPropertyStep__removed_property_warning(prop.getDescriptor().getDisplayName()));
                     }
                     job.removeProperty(prop);
                 }
@@ -105,6 +117,16 @@ public class JobPropertyStep extends AbstractStepImpl {
                 bc.abort();
             }
             return null;
+        }
+
+        /**
+         * Returns true if we're in a multibranch job - behavior may be slightly different when that's not the case.
+         *
+         * @param job The job this build belongs to.
+         * @return True if this is a multibranch job, false otherwise.
+         */
+        private boolean isMultibranch(Job<?,?> job) {
+            return job.getParent() instanceof WorkflowMultiBranchProject;
         }
 
         private static final long serialVersionUID = 1L;
