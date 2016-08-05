@@ -296,6 +296,73 @@ public class JobPropertyStepTest {
         assertEquals("[null, false, null]", MockTrigger.startsAndStops.toString());
     }
 
+    @Test public void emptyTriggersProperty() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        // Verify the base case behavior.
+        p.setDefinition(new CpsFlowDefinition("echo 'foo'"));
+
+        assertTrue(p.getTriggers().isEmpty());
+
+        r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        // Make sure the triggers are still empty.
+        assertTrue(p.getTriggers().isEmpty());
+
+        // Now add a trigger.
+        p.setDefinition(new CpsFlowDefinition(
+                (HAVE_SYMBOL ?
+                        "properties([pipelineTriggers([\n"
+                                + "  cron('@daily'), [$class: 'MockTrigger']])])\n" :
+                        "properties([pipelineTriggers([[$class: 'TimerTrigger', spec: '@daily'],\n"
+                                + "    [$class: 'MockTrigger']])])\n"
+                ) + "echo 'foo'"));
+
+        WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
+        r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b);
+        // Verify that we're not seeing warnings for any properties being removed, since there are no pre-existing ones.
+        // Note - not using Messages here because we're not actually removing any properties.
+        r.assertLogNotContains("WARNING: Removing existing job property", b);
+
+        assertEquals(2, p.getTriggers().size());
+
+        PipelineTriggersJobProperty triggerProp = p.getTriggersJobProperty();
+
+        TimerTrigger timerTrigger = getTriggerFromList(TimerTrigger.class, triggerProp.getTriggers());
+
+        assertNotNull(timerTrigger);
+
+        assertEquals("@daily", timerTrigger.getSpec());
+
+        MockTrigger mockTrigger = getTriggerFromList(MockTrigger.class, triggerProp.getTriggers());
+
+        assertNotNull(mockTrigger);
+
+        assertTrue(mockTrigger.isStarted);
+
+        assertEquals("[null, false]", MockTrigger.startsAndStops.toString());
+
+        // Now run a properties step with an empty triggers property and verify that we still have a
+        // PipelineTriggersJobProperty, but with no triggers in it.
+        p.setDefinition(new CpsFlowDefinition("properties([pipelineTriggers()])\n"
+                + "echo 'foo'"));
+
+        WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
+        r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b2);
+        // Verify that we *are* seeing warnings for removing the triggers property.
+        String propName = r.jenkins.getDescriptorByType(PipelineTriggersJobProperty.DescriptorImpl.class).getDisplayName();
+        r.assertLogContains(Messages.JobPropertyStep__removed_property_warning(propName), b2);
+
+        assertNotNull(p.getTriggersJobProperty());
+
+        assertTrue(p.getTriggers().isEmpty());
+
+        assertEquals("[null, false, null]", MockTrigger.startsAndStops.toString());
+    }
+
     @Issue("JENKINS-37005")
     @Test 
     public void noPropertiesWarnings() throws Exception {
