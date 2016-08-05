@@ -59,6 +59,8 @@ import org.jenkinsci.plugins.workflow.properties.MockTrigger;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import static org.junit.Assert.*;
+
+import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -82,6 +84,15 @@ public class JobPropertyStepTest {
         BuildDiscarderProperty.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "buildDiscarder"
         LogRotator.LRDescriptor.class.isAnnotationPresent(Symbol.class) && // "logRotator"
         TimerTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class); // "cron"
+
+    /**
+     * Needed to ensure that we get a fresh {@code MockTrigger#startsAndStops} with each test run. Has to be *after* rather than
+     * *before* to avoid weird ordering issues with {@code @LocalData}.
+     */
+    @After
+    public void resetStartsAndStops() {
+        MockTrigger.startsAndStops = new ArrayList<>();
+    }
 
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripParameters() throws Exception {
