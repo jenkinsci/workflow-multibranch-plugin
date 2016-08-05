@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import hudson.triggers.SCMTrigger;
 import hudson.triggers.TimerTrigger;
 import hudson.triggers.Trigger;
 import jenkins.branch.BranchProperty;
@@ -307,7 +308,7 @@ public class JobPropertyStepTest {
         assertEquals("[null, false, null]", MockTrigger.startsAndStops.toString());
     }
 
-    @Test public void emptyTriggersProperty() throws Exception {
+    @Test public void scmAndEmptyTriggersProperty() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         // Verify the base case behavior.
         p.setDefinition(new CpsFlowDefinition("echo 'foo'"));
@@ -323,9 +324,10 @@ public class JobPropertyStepTest {
         p.setDefinition(new CpsFlowDefinition(
                 (HAVE_SYMBOL ?
                         "properties([pipelineTriggers([\n"
-                                + "  cron('@daily'), [$class: 'MockTrigger']])])\n" :
-                        "properties([pipelineTriggers([[$class: 'TimerTrigger', spec: '@daily'],\n"
-                                + "    [$class: 'MockTrigger']])])\n"
+                                + "  scm('@daily')])\n" :
+                        // TODO: Make this work with just "spec: '@daily'". Doesn't work for SCMTrigger due to different
+                        // names on DataBoundConstructor...
+                        "properties([pipelineTriggers([[$class: 'SCMTrigger', scmpoll_spec: '@daily']])])\n"
                 ) + "echo 'foo'"));
 
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
@@ -336,23 +338,15 @@ public class JobPropertyStepTest {
         // Note - not using Messages here because we're not actually removing any properties.
         r.assertLogNotContains("WARNING: Removing existing job property", b);
 
-        assertEquals(2, p.getTriggers().size());
+        assertEquals(1, p.getTriggers().size());
 
         PipelineTriggersJobProperty triggerProp = p.getTriggersJobProperty();
 
-        TimerTrigger timerTrigger = getTriggerFromList(TimerTrigger.class, triggerProp.getTriggers());
+        SCMTrigger scmTrigger = getTriggerFromList(SCMTrigger.class, triggerProp.getTriggers());
 
-        assertNotNull(timerTrigger);
+        assertNotNull(scmTrigger);
 
-        assertEquals("@daily", timerTrigger.getSpec());
-
-        MockTrigger mockTrigger = getTriggerFromList(MockTrigger.class, triggerProp.getTriggers());
-
-        assertNotNull(mockTrigger);
-
-        assertTrue(mockTrigger.isStarted);
-
-        assertEquals("[null, false]", MockTrigger.startsAndStops.toString());
+        assertEquals("@daily", scmTrigger.getSpec());
 
         // Now run a properties step with an empty triggers property and verify that we still have a
         // PipelineTriggersJobProperty, but with no triggers in it.
@@ -370,8 +364,6 @@ public class JobPropertyStepTest {
         assertNotNull(p.getTriggersJobProperty());
 
         assertTrue(p.getTriggers().isEmpty());
-
-        assertEquals("[null, false, null]", MockTrigger.startsAndStops.toString());
     }
 
     @Issue("JENKINS-37005")
