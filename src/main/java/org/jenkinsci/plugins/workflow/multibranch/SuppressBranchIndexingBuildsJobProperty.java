@@ -47,7 +47,7 @@ public class SuppressBranchIndexingBuildsJobProperty extends OptionalJobProperty
     public static class DescriptorImpl extends OptionalJobPropertyDescriptor {
 
         @Override public String getDisplayName() {
-            return "Suppress builds trigged by branch indexing";
+            return "Suppress builds triggered by branch indexing";
         }
 
     }
