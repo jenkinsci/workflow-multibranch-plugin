@@ -56,7 +56,7 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty;
 import org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty;
-import org.jenkinsci.plugins.workflow.properties.MockTrigger;
+import org.jenkinsci.plugins.workflow.job.properties.MockTrigger;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import static org.junit.Assert.*;
@@ -301,7 +301,7 @@ public class JobPropertyStepTest {
     @Issue("JENKINS-37477")
     @Test
     public void configRoundTripTrigger() throws Exception {
-        List<JobProperty> properties = Collections.<JobProperty>singletonList(new PipelineTriggersJobProperty(Collections.<Trigger<?>>singletonList(new TimerTrigger("@daily"))));
+        List<JobProperty> properties = Collections.<JobProperty>singletonList(new PipelineTriggersJobProperty(Collections.<Trigger>singletonList(new TimerTrigger("@daily"))));
 
         if (TimerTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class)) {
             new SnippetizerTester(r).assertGenerateSnippet("{'stapler-class':'" + JobPropertyStep.class.getName() + "', 'propertiesMap': {'stapler-class-bag': 'true', 'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'hudson-triggers-TimerTrigger': {'spec': '@daily'}}}}", "properties([pipelineTriggers([cron('@daily')])])", null);
