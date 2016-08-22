@@ -36,6 +36,7 @@ import hudson.tasks.LogRotator;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import hudson.triggers.TimerTrigger;
 import hudson.triggers.Trigger;
@@ -50,6 +51,13 @@ import org.jenkinsci.Symbol;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
+import org.jenkinsci.plugins.structs.describable.ArrayType;
+import org.jenkinsci.plugins.structs.describable.DescribableModel;
+import org.jenkinsci.plugins.structs.describable.DescribableParameter;
+import org.jenkinsci.plugins.structs.describable.ErrorType;
+import org.jenkinsci.plugins.structs.describable.HeterogeneousObjectType;
+import org.jenkinsci.plugins.structs.describable.HomogeneousObjectType;
+import org.jenkinsci.plugins.structs.describable.ParameterType;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.SnippetizerTester;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -67,6 +75,7 @@ import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.kohsuke.stapler.NoStaplerConstructorException;
 
 import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
 
@@ -297,6 +306,46 @@ public class JobPropertyStepTest {
 
         assertEquals("[null, false, null]", MockTrigger.startsAndStops.toString());
     }
+
+    @Issue("JENKINS-37477")
+    @Test
+    public void generateHelpTrigger() throws Exception {
+        DescribableModel<?> model = new DescribableModel(PipelineTriggersJobProperty.class);
+
+        assertNotNull(model);
+
+        recurseOnModel(model);
+    }
+
+    /**
+     * TODO: Move to workflow-cps test classes somewhere.
+     */
+    private void recurseOnTypes(ParameterType type) throws Exception {
+        // For the moment, only care about types with @DataBoundConstructors.
+        if (type instanceof ErrorType && !(((ErrorType)type).getError() instanceof NoStaplerConstructorException)) {
+            throw ((ErrorType)type).getError();
+        }
+
+        if (type instanceof ArrayType) {
+            recurseOnTypes(((ArrayType)type).getElementType());
+        } else if (type instanceof HomogeneousObjectType) {
+            recurseOnModel(((HomogeneousObjectType) type).getSchemaType());
+        } else if (type instanceof HeterogeneousObjectType) {
+            for (Map.Entry<String, DescribableModel<?>> entry : ((HeterogeneousObjectType) type).getTypes().entrySet()) {
+                recurseOnModel(entry.getValue());
+            }
+        }
+    }
+
+    /**
+     * TODO: Move to workflow-cps test classes somewhere.
+     */
+    private void recurseOnModel(DescribableModel<?> model) throws Exception {
+        for (DescribableParameter param : model.getParameters()) {
+            recurseOnTypes(param.getType());
+        }
+    }
+
 
     @Issue("JENKINS-37477")
     @Test
