@@ -52,6 +52,7 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.cps.SnippetizerTester;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty;
@@ -378,6 +379,18 @@ public class JobPropertyStepTest {
         sampleRepo.notifyCommit(r);
         WorkflowMultiBranchProjectTest.showIndexing(p);
         assertEquals(4, master.getNextBuildNumber());
+    }
+
+    @Issue("JENKINS-37219")
+    @Test
+    public void snippetGeneratorOverrideIndexing() throws Exception {
+        String snippetJson = "{'propertiesMap':\n" +
+                "{'stapler-class-bag': 'true', 'jenkins-branch-OverrideIndexTriggersJobProperty': \n" +
+                "{'specified': true, 'enableTriggers': true}},\n" +
+                "'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',\n" +
+                "'$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
+
+        new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties [overrideIndexTriggers(true)]", null);
     }
 
     private <T extends Trigger> T getTriggerFromList(Class<T> clazz, List<Trigger<?>> triggers) {
