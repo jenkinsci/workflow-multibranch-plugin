@@ -49,7 +49,7 @@ import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousStepExecution;
+import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousNonBlockingStepExecution;
 import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import org.jenkinsci.plugins.workflow.steps.scm.GenericSCMStep;
 import org.jenkinsci.plugins.workflow.steps.scm.SCMStep;
@@ -75,7 +75,7 @@ public class ReadTrustedStep extends AbstractStepImpl {
         return path;
     }
 
-    public static class Execution extends AbstractSynchronousStepExecution<String> {
+    public static class Execution extends AbstractSynchronousNonBlockingStepExecution<String> {
 
         @Inject private transient ReadTrustedStep step;
         @StepContextParameter private transient Run<?,?> build;
