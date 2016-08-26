@@ -355,7 +355,6 @@ public class JobPropertyStepTest {
         assertNotNull(master.getProperty(OverrideIndexTriggersJobProperty.class));
         assertFalse(master.getProperty(OverrideIndexTriggersJobProperty.class).getEnableTriggers());
 
-        sampleRepo.git("checkout", "master");
         sampleRepo.write("Jenkinsfile", "properties([])");
         sampleRepo.git("commit", "--all", "--message=master-2");
         sampleRepo.notifyCommit(r);
@@ -373,7 +372,6 @@ public class JobPropertyStepTest {
 
 
         // Now let's see it actually trigger another build from a new commit.
-        sampleRepo.git("checkout", "master");
         sampleRepo.write("Jenkinsfile", "// yet more");
         sampleRepo.git("commit", "--all", "--message=master-3");
         sampleRepo.notifyCommit(r);
