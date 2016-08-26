@@ -59,6 +59,8 @@ import org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty
 import org.jenkinsci.plugins.workflow.properties.MockTrigger;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
+
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.*;
 
 import org.junit.After;
@@ -268,7 +270,9 @@ public class JobPropertyStepTest {
         r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b);
         // Verify that we're not seeing warnings for any properties being removed, since there are no pre-existing ones.
         // Note - not using Messages here because we're not actually removing any properties.
-        r.assertLogNotContains("WARNING: Removing existing job property", b);
+        String warningSubString = "WARNING: Removing existing job property";
+        assertThat(Messages.JobPropertyStep__removed_property_warning(""), containsString(warningSubString));
+        r.assertLogNotContains(warningSubString, b);
 
         assertEquals(2, p.getTriggers().size());
 
