@@ -325,10 +325,8 @@ public class JobPropertyStepTest {
                 (HAVE_SYMBOL ?
                         "properties([pipelineTriggers([\n"
                                 + "  scm('@daily')])\n" :
-                        // TODO: Make this work with just "spec: '@daily'". Doesn't work for SCMTrigger due to different
-                        // names on DataBoundConstructor...
                         "properties([pipelineTriggers([[$class: 'SCMTrigger', scmpoll_spec: '@daily']])])\n"
-                ) + "echo 'foo'"));
+                ) + "echo 'foo'", true));
 
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
 
