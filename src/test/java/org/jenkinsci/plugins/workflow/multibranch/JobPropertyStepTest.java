@@ -36,6 +36,7 @@ import hudson.tasks.LogRotator;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import hudson.triggers.SCMTrigger;
 import hudson.triggers.TimerTrigger;
@@ -43,6 +44,7 @@ import hudson.triggers.Trigger;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
+import jenkins.branch.OverrideIndexTriggersJobProperty;
 import jenkins.model.BuildDiscarder;
 import jenkins.model.BuildDiscarderProperty;
 import jenkins.plugins.git.GitSCMSource;
@@ -51,12 +53,20 @@ import org.jenkinsci.Symbol;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
+import org.jenkinsci.plugins.structs.describable.ArrayType;
+import org.jenkinsci.plugins.structs.describable.DescribableModel;
+import org.jenkinsci.plugins.structs.describable.DescribableParameter;
+import org.jenkinsci.plugins.structs.describable.ErrorType;
+import org.jenkinsci.plugins.structs.describable.HeterogeneousObjectType;
+import org.jenkinsci.plugins.structs.describable.HomogeneousObjectType;
+import org.jenkinsci.plugins.structs.describable.ParameterType;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.cps.SnippetizerTester;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty;
+import org.jenkinsci.plugins.workflow.job.properties.MockTrigger;
 import org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty;
-import org.jenkinsci.plugins.workflow.properties.MockTrigger;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 
@@ -70,6 +80,7 @@ import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.kohsuke.stapler.NoStaplerConstructorException;
 
 import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
 
@@ -368,6 +379,70 @@ public class JobPropertyStepTest {
         assertTrue(p.getTriggers().isEmpty());
     }
 
+    @Issue("JENKINS-37477")
+    @Test
+    public void generateHelpTrigger() throws Exception {
+        DescribableModel<?> model = new DescribableModel(PipelineTriggersJobProperty.class);
+
+        assertNotNull(model);
+
+        recurseOnModel(model);
+    }
+
+    /**
+     * TODO: Move to workflow-cps test classes somewhere.
+     */
+    private void recurseOnTypes(ParameterType type) throws Exception {
+        // For the moment, only care about types with @DataBoundConstructors.
+        if (type instanceof ErrorType && !(((ErrorType)type).getError() instanceof NoStaplerConstructorException)) {
+            throw ((ErrorType)type).getError();
+        }
+
+        if (type instanceof ArrayType) {
+            recurseOnTypes(((ArrayType)type).getElementType());
+        } else if (type instanceof HomogeneousObjectType) {
+            recurseOnModel(((HomogeneousObjectType) type).getSchemaType());
+        } else if (type instanceof HeterogeneousObjectType) {
+            for (Map.Entry<String, DescribableModel<?>> entry : ((HeterogeneousObjectType) type).getTypes().entrySet()) {
+                recurseOnModel(entry.getValue());
+            }
+        }
+    }
+
+    /**
+     * TODO: Move to workflow-cps test classes somewhere.
+     */
+    private void recurseOnModel(DescribableModel<?> model) throws Exception {
+        for (DescribableParameter param : model.getParameters()) {
+            recurseOnTypes(param.getType());
+        }
+    }
+
+
+    @Issue("JENKINS-37477")
+    @Test
+    public void configRoundTripTrigger() throws Exception {
+        List<JobProperty> properties = Collections.<JobProperty>singletonList(new PipelineTriggersJobProperty(Collections.<Trigger>singletonList(new TimerTrigger("@daily"))));
+        String snippetJson = "{'propertiesMap': {\n" +
+                "    'stapler-class-bag': 'true',\n" +
+                "    'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'triggers': {\n" +
+                "      'stapler-class-bag': 'true',\n" +
+                "      'hudson-triggers-TimerTrigger': {'spec': '@daily'}\n" +
+                "    }}},\n" +
+                "  'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',\n" +
+                "  '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
+
+        if (TimerTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class)) {
+            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties [pipelineTriggers([cron('@daily')])]", null);
+            // TODO: JENKINS-29711 like other roundtrip tests here.
+            //new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties [pipelineTriggers([cron('@daily')])]");
+        } else {
+            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties [pipelineTriggers([[$class: 'TimerTrigger', spec: '@daily']])]", null);
+            // TODO: JENKINS-29711 like other roundtrip tests here.
+            //new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties [pipelineTriggers([[$class: 'TimerTrigger', spec: '@daily']])]");
+        }
+    }
+
     @Issue("JENKINS-37005")
     @Test 
     public void noPropertiesWarnings() throws Exception {
@@ -403,6 +478,62 @@ public class JobPropertyStepTest {
         r.assertLogNotContains(Messages.JobPropertyStep__could_remove_warning(), b2);
         String propName = r.jenkins.getDescriptorByType(DisableConcurrentBuildsJobProperty.DescriptorImpl.class).getDisplayName();
         r.assertLogNotContains(Messages.JobPropertyStep__removed_property_warning(propName), b2);
+    }
+
+    @Issue("JENKINS-37219")
+    @Test public void disableTriggers() throws Exception {
+        sampleRepo.init();
+        sampleRepo.write("Jenkinsfile", "properties([overrideIndexTriggers(false)])");
+        sampleRepo.git("add", "Jenkinsfile");
+        sampleRepo.git("commit", "--message=init");
+
+        WorkflowMultiBranchProject p = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+        BranchSource branchSource = new BranchSource(new GitSCMSource("source-id", sampleRepo.toString(), "", "*", "", false));
+        p.getSourcesList().add(branchSource);
+
+        // Should be initial build of master, which sets the job property.
+        WorkflowJob master = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(p, "master");
+        r.waitUntilNoActivity();
+        r.assertBuildStatusSuccess(master.getBuildByNumber(1));
+        assertEquals(2, master.getNextBuildNumber());
+
+        assertNotNull(master.getProperty(OverrideIndexTriggersJobProperty.class));
+        assertFalse(master.getProperty(OverrideIndexTriggersJobProperty.class).getEnableTriggers());
+
+        sampleRepo.write("Jenkinsfile", "properties([])");
+        sampleRepo.git("commit", "--all", "--message=master-2");
+        sampleRepo.notifyCommit(r);
+
+        WorkflowMultiBranchProjectTest.showIndexing(p);
+        // Should not be a new build.
+        assertEquals(2, master.getNextBuildNumber());
+
+        // Should be able to manually build master, which should result in the blocking going away.
+        WorkflowRun secondBuild = r.assertBuildStatusSuccess(master.scheduleBuild2(0));
+        assertNotNull(secondBuild);
+        assertEquals(2, secondBuild.getNumber());
+        assertEquals(3, master.getNextBuildNumber());
+        assertNull(master.getProperty(OverrideIndexTriggersJobProperty.class));
+
+
+        // Now let's see it actually trigger another build from a new commit.
+        sampleRepo.write("Jenkinsfile", "// yet more");
+        sampleRepo.git("commit", "--all", "--message=master-3");
+        sampleRepo.notifyCommit(r);
+        WorkflowMultiBranchProjectTest.showIndexing(p);
+        assertEquals(4, master.getNextBuildNumber());
+    }
+
+    @Issue("JENKINS-37219")
+    @Test
+    public void snippetGeneratorOverrideIndexing() throws Exception {
+        String snippetJson = "{'propertiesMap':\n" +
+                "{'stapler-class-bag': 'true', 'jenkins-branch-OverrideIndexTriggersJobProperty': \n" +
+                "{'specified': true, 'enableTriggers': true}},\n" +
+                "'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',\n" +
+                "'$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
+
+        new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties [overrideIndexTriggers(true)]", null);
     }
 
     private <T extends Trigger> T getTriggerFromList(Class<T> clazz, List<Trigger<?>> triggers) {
