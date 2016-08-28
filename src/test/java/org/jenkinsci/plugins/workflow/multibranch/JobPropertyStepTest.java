@@ -38,6 +38,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import hudson.triggers.SCMTrigger;
 import hudson.triggers.TimerTrigger;
 import hudson.triggers.Trigger;
 import jenkins.branch.BranchProperty;
@@ -64,12 +65,15 @@ import org.jenkinsci.plugins.workflow.cps.SnippetizerTester;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty;
-import org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty;
 import org.jenkinsci.plugins.workflow.job.properties.MockTrigger;
+import org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty;
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
+
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.*;
 
+import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -94,6 +98,15 @@ public class JobPropertyStepTest {
         BuildDiscarderProperty.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "buildDiscarder"
         LogRotator.LRDescriptor.class.isAnnotationPresent(Symbol.class) && // "logRotator"
         TimerTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class); // "cron"
+
+    /**
+     * Needed to ensure that we get a fresh {@code MockTrigger#startsAndStops} with each test run. Has to be *after* rather than
+     * *before* to avoid weird ordering issues with {@code @LocalData}.
+     */
+    @After
+    public void resetStartsAndStops() {
+        MockTrigger.startsAndStops = new ArrayList<>();
+    }
 
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripParameters() throws Exception {
@@ -268,7 +281,9 @@ public class JobPropertyStepTest {
         r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b);
         // Verify that we're not seeing warnings for any properties being removed, since there are no pre-existing ones.
         // Note - not using Messages here because we're not actually removing any properties.
-        r.assertLogNotContains("WARNING: Removing existing job property", b);
+        String warningSubString = "WARNING: Removing existing job property";
+        assertThat(Messages.JobPropertyStep__removed_property_warning(""), containsString(warningSubString));
+        r.assertLogNotContains(warningSubString, b);
 
         assertEquals(2, p.getTriggers().size());
 
@@ -306,6 +321,62 @@ public class JobPropertyStepTest {
         assertTrue(p.getTriggers().isEmpty());
 
         assertEquals("[null, false, null]", MockTrigger.startsAndStops.toString());
+    }
+
+    @Test public void scmAndEmptyTriggersProperty() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        // Verify the base case behavior.
+        p.setDefinition(new CpsFlowDefinition("echo 'foo'"));
+
+        assertTrue(p.getTriggers().isEmpty());
+
+        r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        // Make sure the triggers are still empty.
+        assertTrue(p.getTriggers().isEmpty());
+
+        // Now add a trigger.
+        p.setDefinition(new CpsFlowDefinition(
+                (HAVE_SYMBOL ?
+                        "properties([pipelineTriggers([\n"
+                                + "  scm('@daily')])\n" :
+                        "properties([pipelineTriggers([[$class: 'SCMTrigger', scmpoll_spec: '@daily']])])\n"
+                ) + "echo 'foo'", true));
+
+        WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
+        r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b);
+        // Verify that we're not seeing warnings for any properties being removed, since there are no pre-existing ones.
+        // Note - not using Messages here because we're not actually removing any properties.
+        r.assertLogNotContains("WARNING: Removing existing job property", b);
+
+        assertEquals(1, p.getTriggers().size());
+
+        PipelineTriggersJobProperty triggerProp = p.getTriggersJobProperty();
+
+        SCMTrigger scmTrigger = getTriggerFromList(SCMTrigger.class, triggerProp.getTriggers());
+
+        assertNotNull(scmTrigger);
+
+        assertEquals("@daily", scmTrigger.getSpec());
+
+        // Now run a properties step with an empty triggers property and verify that we still have a
+        // PipelineTriggersJobProperty, but with no triggers in it.
+        p.setDefinition(new CpsFlowDefinition("properties([pipelineTriggers()])\n"
+                + "echo 'foo'"));
+
+        WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
+        r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b2);
+        // Verify that we *are* seeing warnings for removing the triggers property.
+        String propName = r.jenkins.getDescriptorByType(PipelineTriggersJobProperty.DescriptorImpl.class).getDisplayName();
+        r.assertLogContains(Messages.JobPropertyStep__removed_property_warning(propName), b2);
+
+        assertNotNull(p.getTriggersJobProperty());
+
+        assertTrue(p.getTriggers().isEmpty());
     }
 
     @Issue("JENKINS-37477")
