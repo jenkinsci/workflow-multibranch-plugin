@@ -53,6 +53,7 @@ import org.jenkinsci.Symbol;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
+import org.jenkinsci.plugins.structs.SymbolLookup;
 import org.jenkinsci.plugins.structs.describable.ArrayType;
 import org.jenkinsci.plugins.structs.describable.DescribableModel;
 import org.jenkinsci.plugins.structs.describable.DescribableParameter;
@@ -111,14 +112,13 @@ public class JobPropertyStepTest {
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripParameters() throws Exception {
         List<JobProperty> properties = Collections.<JobProperty>singletonList(new ParametersDefinitionProperty(new BooleanParameterDefinition("flag", true, null)));
-        /* TODO JENKINS-29711 means it omits the parentheses, without which the call is misparsed:
         if (HAVE_SYMBOL) {
             // TODO *ParameterDefinition.description ought to be defaulted to null:
             new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([parameters([booleanParam(defaultValue: true, description: '', name: 'flag')])])");
         } else {
-            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'BooleanParameterDefinition', defaultValue: true, description: '', name: 'flag']]]])");
+            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'BooleanParameterDefinition', defaultValue: true, name: 'flag']]]])");
         }
-        */
+
         StepConfigTester tester = new StepConfigTester(r);
         properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
         assertEquals(2, properties.size());
@@ -138,14 +138,14 @@ public class JobPropertyStepTest {
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripBuildDiscarder() throws Exception {
         List<JobProperty> properties = Collections.<JobProperty>singletonList(new BuildDiscarderProperty(new LogRotator(1, 2, -1, 3)));
-        /* TODO JENKINS-29711:
+
         if (HAVE_SYMBOL) {
             // TODO structural form of LogRotator is awful; confusion between integer and string types, and failure to handle default values:
             new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '3', daysToKeepStr: '1', numToKeepStr: '2'))])");
         } else {
             new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '', artifactNumToKeepStr: '3', daysToKeepStr: '1', numToKeepStr: '2']]])");
         }
-        */
+
         StepConfigTester tester = new StepConfigTester(r);
         properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
         assertEquals(2, properties.size());
@@ -323,7 +323,8 @@ public class JobPropertyStepTest {
         assertEquals("[null, false, null]", MockTrigger.startsAndStops.toString());
     }
 
-    @Test public void scmAndEmptyTriggersProperty() throws Exception {
+    @Issue("JENKINS-37731")
+    @Test public void scmTriggerProperty() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         // Verify the base case behavior.
         p.setDefinition(new CpsFlowDefinition("echo 'foo'"));
@@ -336,12 +337,86 @@ public class JobPropertyStepTest {
         assertTrue(p.getTriggers().isEmpty());
 
         // Now add a trigger.
+        // Looking for core versions 2.21 and later for the proper pollScm symbol, rather than the broken scm symbol.
+        if (SCMTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class)
+                && SymbolLookup.getSymbolValue(SCMTrigger.DescriptorImpl.class).iterator().next().equals("pollScm")) {
+
+            p.setDefinition(new CpsFlowDefinition(
+                    "properties([pipelineTriggers([\n"
+                            + "  pollScm(scmpoll_spec: '@daily', ignorePostCommitHooks: true), [$class: 'MockTrigger']])])\n"
+                            + "echo 'foo'", true));
+        } else {
+            p.setDefinition(new CpsFlowDefinition(
+                    "properties([pipelineTriggers([[$class: 'SCMTrigger', scmpoll_spec: '@daily', ignorePostCommitHooks: true],\n"
+                            + "    [$class: 'MockTrigger']])])\n"
+                            + "echo 'foo'", true));
+        }
+
+        WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
+        r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b);
+        // Verify that we're not seeing warnings for any properties being removed, since there are no pre-existing ones.
+        // Note - not using Messages here because we're not actually removing any properties.
+        String warningSubString = "WARNING: Removing existing job property";
+        assertThat(Messages.JobPropertyStep__removed_property_warning(""), containsString(warningSubString));
+        r.assertLogNotContains(warningSubString, b);
+
+        assertEquals(2, p.getTriggers().size());
+
+        PipelineTriggersJobProperty triggerProp = p.getTriggersJobProperty();
+
+        SCMTrigger scmTrigger = getTriggerFromList(SCMTrigger.class, triggerProp.getTriggers());
+
+        assertNotNull(scmTrigger);
+
+        assertEquals("@daily", scmTrigger.getSpec());
+        assertTrue(scmTrigger.isIgnorePostCommitHooks());
+
+        MockTrigger mockTrigger = getTriggerFromList(MockTrigger.class, triggerProp.getTriggers());
+
+        assertNotNull(mockTrigger);
+
+        assertTrue(mockTrigger.isStarted);
+
+        assertEquals("[null, false]", MockTrigger.startsAndStops.toString());
+
+        // Now run a properties step with a different property and verify that we still have a
+        // PipelineTriggersJobProperty, but with no triggers in it.
+        p.setDefinition(new CpsFlowDefinition("properties([disableConcurrentBuilds()])\n"
+                + "echo 'foo'"));
+
+        WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
+        r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b2);
+        // Verify that we *are* seeing warnings for removing the triggers property.
+        String propName = r.jenkins.getDescriptorByType(PipelineTriggersJobProperty.DescriptorImpl.class).getDisplayName();
+        r.assertLogContains(Messages.JobPropertyStep__removed_property_warning(propName), b2);
+
+        assertNotNull(p.getTriggersJobProperty());
+
+        assertTrue(p.getTriggers().isEmpty());
+
+        assertEquals("[null, false, null]", MockTrigger.startsAndStops.toString());
+    }
+
+    @Test public void scmAndEmptyTriggersProperty() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        // Verify the base case behavior.
+        p.setDefinition(new CpsFlowDefinition("echo 'foo'"));
+
+        assertTrue(p.getTriggers().isEmpty());
+
+        r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+
+        // Make sure the triggers are still empty.
+        assertTrue(p.getTriggers().isEmpty());
+
+        // Now add a trigger. Deliberately keeping the old syntax to make sure it still works.
         p.setDefinition(new CpsFlowDefinition(
-                (HAVE_SYMBOL ?
-                        "properties([pipelineTriggers([\n"
-                                + "  scm('@daily')])\n" :
-                        "properties([pipelineTriggers([[$class: 'SCMTrigger', scmpoll_spec: '@daily']])])\n"
-                ) + "echo 'foo'", true));
+                "properties([pipelineTriggers([[$class: 'SCMTrigger', scmpoll_spec: '@daily']])])\n"
+                        + "echo 'foo'", true));
 
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
 
@@ -433,13 +508,37 @@ public class JobPropertyStepTest {
                 "  '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
 
         if (TimerTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class)) {
-            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties [pipelineTriggers([cron('@daily')])]", null);
-            // TODO: JENKINS-29711 like other roundtrip tests here.
-            //new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties [pipelineTriggers([cron('@daily')])]");
+            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([cron('@daily')])])", null);
+            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([cron('@daily')])])");
         } else {
-            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties [pipelineTriggers([[$class: 'TimerTrigger', spec: '@daily']])]", null);
-            // TODO: JENKINS-29711 like other roundtrip tests here.
-            //new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties [pipelineTriggers([[$class: 'TimerTrigger', spec: '@daily']])]");
+            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([[$class: 'TimerTrigger', spec: '@daily']])])", null);
+            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([[$class: 'TimerTrigger', spec: '@daily']])])");
+        }
+    }
+
+    @Issue("JENKINS-37721")
+    @Test
+    public void configRoundTripSCMTrigger() throws Exception {
+        List<JobProperty> properties = Collections.<JobProperty>singletonList(new PipelineTriggersJobProperty(Collections.<Trigger>singletonList(new SCMTrigger("@daily"))));
+        String snippetJson = "{'propertiesMap': {\n" +
+                "    'stapler-class-bag': 'true',\n" +
+                "    'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'triggers': {\n" +
+                "      'stapler-class-bag': 'true',\n" +
+                "      'hudson-triggers-SCMTrigger': {'scmpoll_spec': '@daily', 'ignorePostCommitHooks': false }\n" +
+                "    }}},\n" +
+                "  'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',\n" +
+                "  '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
+
+        // Looking for core versions 2.21 and later for the proper pollScm symbol, rather than the broken scm symbol.
+        if (SCMTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class)
+                && SymbolLookup.getSymbolValue(SCMTrigger.DescriptorImpl.class).iterator().next().equals("pollScm")) {
+            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([pollScm('@daily')])])", null);
+            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([pollScm('@daily')])])");
+        } else {
+            /* Snippet generator won't work with SCMTrigger pre-core-2.21, due to lack of a getter for scmpoll_spec.
+            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([[$class: 'SCMTrigger', scmpoll_spec: '@daily']])])", null);
+            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([[$class: 'SCMTrigger', scmpoll_spec: '@daily']])])");
+            */
         }
     }
 
@@ -533,7 +632,7 @@ public class JobPropertyStepTest {
                 "'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',\n" +
                 "'$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
 
-        new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties [overrideIndexTriggers(true)]", null);
+        new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([overrideIndexTriggers(true)])", null);
     }
 
     private <T extends Trigger> T getTriggerFromList(Class<T> clazz, List<Trigger<?>> triggers) {
