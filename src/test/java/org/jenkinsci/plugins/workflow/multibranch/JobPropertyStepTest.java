@@ -338,12 +338,10 @@ public class JobPropertyStepTest {
 
         // Now add a trigger.
         // Looking for core versions 2.21 and later for the proper pollScm symbol, rather than the broken scm symbol.
-        if (SCMTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class)
-                && SymbolLookup.getSymbolValue(SCMTrigger.DescriptorImpl.class).iterator().next().equals("pollScm")) {
-
+        if (SymbolLookup.getSymbolValue(SCMTrigger.class).contains("pollSCM")) {
             p.setDefinition(new CpsFlowDefinition(
                     "properties([pipelineTriggers([\n"
-                            + "  pollScm(scmpoll_spec: '@daily', ignorePostCommitHooks: true), [$class: 'MockTrigger']])])\n"
+                            + "  pollSCM(scmpoll_spec: '@daily', ignorePostCommitHooks: true), [$class: 'MockTrigger']])])\n"
                             + "echo 'foo'", true));
         } else {
             p.setDefinition(new CpsFlowDefinition(
@@ -530,10 +528,9 @@ public class JobPropertyStepTest {
                 "  '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
 
         // Looking for core versions 2.21 and later for the proper pollScm symbol, rather than the broken scm symbol.
-        if (SCMTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class)
-                && SymbolLookup.getSymbolValue(SCMTrigger.DescriptorImpl.class).iterator().next().equals("pollScm")) {
-            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([pollScm('@daily')])])", null);
-            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([pollScm('@daily')])])");
+        if (SymbolLookup.getSymbolValue(SCMTrigger.class).contains("pollSCM")) {
+            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([pollSCM('@daily')])])", null);
+            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([pollSCM('@daily')])])");
         } else {
             /* Snippet generator won't work with SCMTrigger pre-core-2.21, due to lack of a getter for scmpoll_spec.
             new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([[$class: 'SCMTrigger', scmpoll_spec: '@daily']])])", null);
