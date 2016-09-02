@@ -30,7 +30,8 @@ public class LocalSCMBinder extends SCMBinder {
 
     @Override
     public FlowExecution create(FlowExecutionOwner handle, TaskListener listener, List<? extends Action> actions) throws Exception {
-        if (Jenkins.getInstance().getWorkspaceFor(((WorkflowRun) handle.getExecutable()).getParent()).child(WorkflowBranchLocalProjectFactory.SCRIPT).exists()) {
+        if (Jenkins.getInstance() == null ||
+            Jenkins.getInstance().getWorkspaceFor(((WorkflowRun) handle.getExecutable()).getParent()).child(WorkflowBranchLocalProjectFactory.SCRIPT).exists()) {
             return super.create(handle, listener, actions);
         }
 
