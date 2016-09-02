@@ -1,10 +1,8 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.Extension;
-import hudson.model.Action;
-import hudson.model.Descriptor;
-import hudson.model.DescriptorVisibilityFilter;
-import hudson.model.TaskListener;
+import hudson.FilePath;
+import hudson.model.*;
 import jenkins.model.Jenkins;
 import org.apache.commons.io.FileUtils;
 import org.jenkinsci.lib.configprovider.ConfigProvider;
@@ -30,15 +28,28 @@ public class LocalSCMBinder extends SCMBinder {
 
     @Override
     public FlowExecution create(FlowExecutionOwner handle, TaskListener listener, List<? extends Action> actions) throws Exception {
-        if (Jenkins.getInstance() == null ||
-            Jenkins.getInstance().getWorkspaceFor(((WorkflowRun) handle.getExecutable()).getParent()).child(WorkflowBranchLocalProjectFactory.SCRIPT).exists()) {
+        Jenkins jenkins = Jenkins.getInstance();
+        if (jenkins == null) {
+            return super.create(handle, listener, actions);
+        }
+        FilePath workspacePath = jenkins.getWorkspaceFor(((WorkflowRun) handle.getExecutable()).getParent());
+        if (workspacePath == null || workspacePath.child(WorkflowBranchLocalProjectFactory.SCRIPT).exists()) {
             return super.create(handle, listener, actions);
         }
 
-        File localConfig = new File(((WorkflowJob) handle.getExecutable().getParent()).getParent().getRootDir() + File.separator + WorkflowBranchLocalProjectFactory.SCRIPT);
-        if (localConfig.exists()) {
-            return new CpsFlowDefinition(FileUtils.readFileToString(localConfig, "utf-8"), false).create(handle, listener, actions);
+        Queue.Executable executable = handle.getExecutable();
+        File rootDir = null;
+        if (executable != null) {
+            WorkflowJob workflowJob = ((WorkflowJob) handle.getExecutable().getParent());
+            rootDir = workflowJob.getParent().getRootDir();
+            if (rootDir != null) {
+                File localConfig = new File(rootDir + File.separator + WorkflowBranchLocalProjectFactory.SCRIPT);
+                if (localConfig.exists()) {
+                    return new CpsFlowDefinition(FileUtils.readFileToString(localConfig, "utf-8"), false).create(handle, listener, actions);
+                }
+            }
         }
+
         ConfigProvider configProvider = ConfigProvider.getByIdOrNull(GroovyScript.class.getName());
         if (configProvider != null) {
             Config config = configProvider.getConfigById(WorkflowBranchLocalProjectFactory.SCRIPT);
