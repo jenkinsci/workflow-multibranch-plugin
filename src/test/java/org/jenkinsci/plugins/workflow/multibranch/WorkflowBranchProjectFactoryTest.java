@@ -30,7 +30,6 @@ import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
-import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
@@ -55,7 +54,6 @@ public class WorkflowBranchProjectFactoryTest {
             @Override public void evaluate() throws Throwable {
                 sampleRepo.init();
                 sampleRepo.git("checkout", "-b", "dev/main");
-                ScriptApproval.get().approveSignature("method java.lang.String replaceFirst java.lang.String java.lang.String"); // TODO add to generic-whitelist
                 String script =
                     "echo \"branch=${env.BRANCH_NAME}\"\n" +
                     "node {\n" +

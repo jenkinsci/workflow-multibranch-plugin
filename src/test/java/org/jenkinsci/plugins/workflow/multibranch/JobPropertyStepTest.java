@@ -52,7 +52,6 @@ import jenkins.plugins.git.GitSampleRepoRule;
 import org.jenkinsci.Symbol;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
-import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.structs.SymbolLookup;
 import org.jenkinsci.plugins.structs.describable.ArrayType;
 import org.jenkinsci.plugins.structs.describable.DescribableModel;
@@ -163,7 +162,6 @@ public class JobPropertyStepTest {
 
     @Test public void useParameter() throws Exception {
         sampleRepo.init();
-        ScriptApproval.get().approveSignature("method groovy.lang.Binding hasVariable java.lang.String"); // TODO add to generic whitelist
         sampleRepo.write("Jenkinsfile",
                 (HAVE_SYMBOL ?
                     "properties([parameters([string(name: 'myparam', defaultValue: 'default value')])])\n" :
