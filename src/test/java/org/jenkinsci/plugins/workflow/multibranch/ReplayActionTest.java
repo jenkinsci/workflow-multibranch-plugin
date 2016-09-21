@@ -45,7 +45,6 @@ import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
 import jenkins.security.NotReallyRoleSensitiveCallable;
-import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.replay.ReplayAction;
@@ -105,7 +104,6 @@ public class ReplayActionTest {
         sampleRepo.git("add", "file");
         sampleRepo.git("commit", "--message=next");
         // Replaying main script with some upcasing.
-        ScriptApproval.get().approveSignature("method java.lang.String toUpperCase");
         WorkflowRun b2 = (WorkflowRun) b1.getAction(ReplayAction.class).run("node {checkout scm; echo readFile('file').toUpperCase()}", Collections.<String,String>emptyMap()).get();
         assertEquals(2, b2.number);
         // For a multibranch project, we expect checkout scm to retrieve the same repository revision as the (original) Jenkinsfile.
