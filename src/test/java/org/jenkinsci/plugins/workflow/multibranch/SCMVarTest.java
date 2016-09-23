@@ -34,7 +34,6 @@ import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
 import org.apache.commons.io.FileUtils;
-import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.global.WorkflowLibRepository;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -93,8 +92,6 @@ public class SCMVarTest {
                 WorkflowLibRepository repo = ExtensionList.lookup(RootAction.class).get(WorkflowLibRepository.class);
                 File vars = new File(repo.workspace, /*UserDefinedGlobalVariable.PREFIX*/ "vars");
                 vars.mkdirs();
-                // TODO is this safe to add to generic-whitelist? (Why are global libs even being run through the sandbox to begin with?)
-                ScriptApproval.get().approveSignature("method groovy.lang.Closure getOwner");
                 FileUtils.writeStringToFile(new File(vars, "standardJob.groovy"),
                     "def call(body) {\n" +
                     "  def config = [:]\n" +

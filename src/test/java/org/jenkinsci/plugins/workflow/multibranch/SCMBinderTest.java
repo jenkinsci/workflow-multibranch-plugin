@@ -88,7 +88,6 @@ public class SCMBinderTest {
         assertEquals(1, b1.getNumber());
         assertRevisionAction(b1);
         sampleGitRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file').toUpperCase()}");
-        sa.approveSignature("method java.lang.String toUpperCase");
         sampleGitRepo.write("file", "subsequent content");
         sampleGitRepo.git("commit", "--all", "--message=tweaked");
         SemaphoreStep.success("wait/1", null);
@@ -141,7 +140,6 @@ public class SCMBinderTest {
         assertNotNull(b1);
         assertEquals(1, b1.getNumber());
         sampleSvnRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file').toUpperCase()}");
-        sa.approveSignature("method java.lang.String toUpperCase");
         sampleSvnRepo.write("file", "subsequent content");
         sampleSvnRepo.svn("commit", "--message=tweaked");
         SemaphoreStep.success("wait/1", null);
