@@ -166,7 +166,8 @@ public class JobPropertyStepTest {
                 (HAVE_SYMBOL ?
                     "properties([parameters([string(name: 'myparam', defaultValue: 'default value')])])\n" :
                     "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'StringParameterDefinition', name: 'myparam', defaultValue: 'default value']]]])\n") +
-                "echo \"received ${binding.hasVariable('myparam') ? myparam : 'undefined'}\"");
+                // workflow-job 2.7+ / workflow-cps 2.18+: use simply ${params.myparam ?: 'undefined'}
+                "echo \"received ${env.myparam ?: binding.hasVariable('myparam') ? myparam : 'undefined'}\"");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("commit", "--all", "--message=flow");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
