@@ -49,7 +49,7 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 /**
  * Checks out the desired version of {@link WorkflowBranchProjectFactory#SCRIPT}.
  */
-class SCMBinder extends FlowDefinition {
+public class SCMBinder extends FlowDefinition {
 
     @Override public FlowExecution create(FlowExecutionOwner handle, TaskListener listener, List<? extends Action> actions) throws Exception {
         Queue.Executable exec = handle.getExecutable();
