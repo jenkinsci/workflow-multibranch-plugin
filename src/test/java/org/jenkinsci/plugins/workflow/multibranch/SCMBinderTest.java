@@ -48,6 +48,7 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
+import jenkins.scm.api.SCMSourceDescriptor;
 import jenkins.scm.impl.subversion.SubversionSCMSource;
 import static org.hamcrest.Matchers.*;
 
@@ -255,7 +256,7 @@ public class SCMBinderTest {
                 return fetch(new SCMHead("master"), listener);
             }
         }
-        @Override public Descriptor<SCMSource> getDescriptor() {
+        @Override public SCMSourceDescriptor getDescriptor() {
             return Jenkins.getInstance().getDescriptorByType(GitSCMSource.DescriptorImpl.class);
         }
     }
