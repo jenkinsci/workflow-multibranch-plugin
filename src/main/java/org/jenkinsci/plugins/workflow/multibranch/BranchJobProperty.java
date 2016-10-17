@@ -91,7 +91,7 @@ public class BranchJobProperty extends WorkflowJobProperty {
         @Override
         public <T> String getText(Message<T> text, T context) {
             if (text == AbstractItem.PRONOUN && context instanceof WorkflowJob) {
-                WorkflowJob job = WorkflowJob.class.cast(context);
+                WorkflowJob job = (WorkflowJob) context;
                 BranchJobProperty property = job.getProperty(BranchJobProperty.class);
                 if (property != null) {
                     return property.getBranch().getHead().getPronoun();
