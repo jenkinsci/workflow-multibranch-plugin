@@ -41,6 +41,9 @@ import jenkins.branch.MultiBranchProjectDescriptor;
 import jenkins.model.TransientActionFactory;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
+import org.jenkins.ui.icon.Icon;
+import org.jenkins.ui.icon.IconSet;
+import org.jenkins.ui.icon.IconSpec;
 import org.jenkinsci.plugins.workflow.cps.Snippetizer;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -65,7 +68,7 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
         return ((AbstractWorkflowBranchProjectFactory) getProjectFactory()).getSCMSourceCriteria(source);
     }
 
-    @Extension public static class DescriptorImpl extends MultiBranchProjectDescriptor {
+    @Extension public static class DescriptorImpl extends MultiBranchProjectDescriptor implements IconSpec {
 
         @Override public String getDisplayName() {
             return Messages.WorkflowMultiBranchProject_DisplayName();
@@ -77,6 +80,11 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
 
         public String getIconFilePathPattern() {
             return "plugin/workflow-multibranch/images/:size/pipelinemultibranchproject.png";
+        }
+
+        @Override
+        public String getIconClassName() {
+            return "icon-pipeline-multibranch-project";
         }
 
         @Override public TopLevelItem newInstance(ItemGroup parent, String name) {
@@ -98,6 +106,24 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
             return super.isApplicable(descriptor);
         }
 
+        static {
+            IconSet.icons.addIcon(
+                    new Icon("icon-pipeline-multibranch-project icon-sm",
+                            "plugin/workflow-multibranch/images/16x16/pipelinemultibranchproject.png",
+                            Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(
+                    new Icon("icon-pipeline-multibranch-project icon-md",
+                            "plugin/workflow-multibranch/images/24x24/pipelinemultibranchproject.png",
+                            Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(
+                    new Icon("icon-pipeline-multibranch-project icon-lg",
+                            "plugin/workflow-multibranch/images/32x32/pipelinemultibranchproject.png",
+                            Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(
+                    new Icon("icon-pipeline-multibranch-project icon-xlg",
+                            "plugin/workflow-multibranch/images/48x48/pipelinemultibranchproject.png",
+                            Icon.ICON_XLARGE_STYLE));
+        }
     }
 
     @Extension public static class PerFolderAdder extends TransientActionFactory<WorkflowMultiBranchProject> {
