@@ -25,13 +25,16 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.Extension;
+import hudson.model.AbstractItem;
 import hudson.model.Item;
 import hudson.model.JobPropertyDescriptor;
 import hudson.security.ACL;
 import hudson.security.Permission;
+import hudson.util.AlternativeUiTextProvider;
 import javax.annotation.Nonnull;
 import jenkins.branch.Branch;
 import org.acegisecurity.Authentication;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowJobProperty;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
@@ -80,6 +83,22 @@ public class BranchJobProperty extends WorkflowJobProperty {
             return "Based on branch";
         }
 
+    }
+
+    @Extension
+    public static class AlternativeUiTextProviderImpl extends AlternativeUiTextProvider {
+
+        @Override
+        public <T> String getText(Message<T> text, T context) {
+            if (text == AbstractItem.PRONOUN && context instanceof WorkflowJob) {
+                WorkflowJob job = (WorkflowJob) context;
+                BranchJobProperty property = job.getProperty(BranchJobProperty.class);
+                if (property != null) {
+                    return property.getBranch().getHead().getPronoun();
+                }
+            }
+            return null;
+        }
     }
 
 }
