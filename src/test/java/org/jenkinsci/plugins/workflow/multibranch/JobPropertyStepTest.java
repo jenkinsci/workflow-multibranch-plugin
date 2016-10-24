@@ -25,6 +25,7 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.model.BooleanParameterDefinition;
+import hudson.model.BooleanParameterValue;
 import hudson.model.JobProperty;
 import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
@@ -166,8 +167,7 @@ public class JobPropertyStepTest {
                 (HAVE_SYMBOL ?
                     "properties([parameters([string(name: 'myparam', defaultValue: 'default value')])])\n" :
                     "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'StringParameterDefinition', name: 'myparam', defaultValue: 'default value']]]])\n") +
-                // workflow-job 2.7+ / workflow-cps 2.18+: use simply ${params.myparam ?: 'undefined'}
-                "echo \"received ${env.myparam ?: binding.hasVariable('myparam') ? myparam : 'undefined'}\"");
+                "echo \"received ${params.myparam}\"");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("commit", "--all", "--message=flow");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
@@ -177,11 +177,32 @@ public class JobPropertyStepTest {
         r.waitUntilNoActivity();
         WorkflowRun b1 = p.getLastBuild();
         assertEquals(1, b1.getNumber());
-        // TODO not all that satisfactory since it means you cannot rely on a default value; would be a little easier given JENKINS-27295
-        r.assertLogContains("received undefined", b1);
+        r.assertLogContains("received default value", b1);
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new StringParameterValue("myparam", "special value"))));
         assertEquals(2, b2.getNumber());
         r.assertLogContains("received special value", b2);
+        sampleRepo.write("Jenkinsfile",
+                (HAVE_SYMBOL ?
+                    "properties([parameters([booleanParam(name: 'flag', defaultValue: false)])])\n" :
+                    "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'BooleanParameterDefinition', name: 'flag', defaultValue: false]]]])\n") +
+                "echo \"enabled? ${params.flag}\"");
+        sampleRepo.git("commit", "--all", "--message=flow");
+        sampleRepo.notifyCommit(r);
+        WorkflowRun b3 = p.getLastBuild();
+        assertEquals(3, b3.getNumber());
+        r.assertLogContains("enabled? false", b3);
+        WorkflowRun b4 = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new BooleanParameterValue("flag", true))));
+        assertEquals(4, b4.getNumber());
+        r.assertLogContains("enabled? true", b4);
+        sampleRepo.write("Jenkinsfile",
+                (HAVE_SYMBOL ?
+                    "properties([parameters([booleanParam(name: 'newflag', defaultValue: false)])])\n" :
+                    "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'BooleanParameterDefinition', name: 'newflag', defaultValue: false]]]])\n") +
+                "echo \"enabled again? ${params.newflag}\"");
+        sampleRepo.git("commit", "--all", "--message=flow");
+        WorkflowRun b5 = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new BooleanParameterValue("newflag", true))));
+        assertEquals(5, b5.getNumber());
+        r.assertLogContains("enabled again? true", b5);
     }
 
     @SuppressWarnings("deprecation") // RunList.size
