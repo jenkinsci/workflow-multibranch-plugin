@@ -28,8 +28,8 @@ THE SOFTWARE.
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>2.14</version>
-        <relativePath />
+        <version>2.18</version>
+        <relativePath/>
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
     <artifactId>workflow-multibranch</artifactId>
@@ -64,6 +64,7 @@ THE SOFTWARE.
     </pluginRepositories>
     <properties>
         <jenkins.version>1.642.3</jenkins.version>
+        <no-test-jar>false</no-test-jar>
     </properties>
     <dependencies>
         <dependency>
@@ -232,16 +233,6 @@ THE SOFTWARE.
                         <org.jenkinsci.plugins.workflow.multibranch>FINE</org.jenkinsci.plugins.workflow.multibranch>
                     </loggers>
                 </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
