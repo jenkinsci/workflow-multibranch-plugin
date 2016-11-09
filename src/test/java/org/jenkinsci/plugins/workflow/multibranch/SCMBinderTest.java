@@ -206,7 +206,7 @@ public class SCMBinderTest {
         }
         WorkflowRun b2 = r.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get());
         r.assertLogContains("nondeterministic checkout", b2); // SCMBinder
-        r.assertLogContains("any revision to build", b2); // checkout scm
+        r.assertLogContains("Could not determine exact tip revision of feature", b2); // SCMVar
         mp.scheduleBuild2(0).getFuture().get();
         assertEquals(1, mp.getItems().size());
     }
