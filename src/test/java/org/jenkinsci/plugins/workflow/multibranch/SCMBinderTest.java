@@ -129,8 +129,8 @@ public class SCMBinderTest {
         sa.approveSignature("method com.thoughtworks.xstream.XStream toXML java.lang.Object");
         sampleSvnRepo.write("Jenkinsfile", "echo hudson.model.Items.XSTREAM2.toXML(scm); semaphore 'wait'; node {checkout scm; echo readFile('file')}");
         sampleSvnRepo.write("file", "initial content");
-        sampleSvnRepo.svn("add", "Jenkinsfile");
-        sampleSvnRepo.svn("commit", "--message=flow");
+        sampleSvnRepo.svnkit("add", sampleSvnRepo.wc() + "/Jenkinsfile");
+        sampleSvnRepo.svnkit("commit", "--message=flow", sampleSvnRepo.wc());
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
         mp.getSourcesList().add(new BranchSource(new SubversionSCMSource(null, sampleSvnRepo.prjUrl(), null, null, null), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "trunk");
@@ -140,7 +140,7 @@ public class SCMBinderTest {
         assertEquals(1, b1.getNumber());
         sampleSvnRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file').toUpperCase()}");
         sampleSvnRepo.write("file", "subsequent content");
-        sampleSvnRepo.svn("commit", "--message=tweaked");
+        sampleSvnRepo.svnkit("commit", "--message=tweaked", sampleSvnRepo.wc());
         SemaphoreStep.success("wait/1", null);
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
         assertEquals(2, b2.getNumber());
