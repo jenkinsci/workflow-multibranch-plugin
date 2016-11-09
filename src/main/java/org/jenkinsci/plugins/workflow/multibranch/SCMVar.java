@@ -44,6 +44,7 @@ import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.CpsScript;
 import org.jenkinsci.plugins.workflow.cps.GlobalVariable;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
+import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.pickles.Pickle;
@@ -95,11 +96,11 @@ import org.jenkinsci.plugins.workflow.support.pickles.XStreamPickle;
             tip = revisionAction.getRevision();
         } else {
             SCMHead head = branch.getHead();
-            TaskListener listener = TaskListener.NULL; // TODO would like to send to build log, but have no way of doing that here
+            FlowExecutionOwner owner = ((WorkflowRun) build).asFlowExecutionOwner();
+            TaskListener listener = owner != null ? owner.getListener() : TaskListener.NULL;
             tip = scmSource.fetch(head, listener);
             if (tip == null) {
-                // TODO would it be better to throw AbortException? Cf. SCMBinder.
-                return branch.getScm();
+                throw new AbortException("Could not determine exact tip revision of " + branch.getName());
             }
             revisionAction = new SCMRevisionAction(tip);
             build.addAction(revisionAction);
