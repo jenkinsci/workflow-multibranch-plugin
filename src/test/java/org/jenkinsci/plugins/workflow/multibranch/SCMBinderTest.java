@@ -25,7 +25,6 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.Util;
-import hudson.model.Descriptor;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.plugins.git.util.BuildData;
@@ -47,7 +46,6 @@ import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
-import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceDescriptor;
 import jenkins.scm.impl.subversion.SubversionSCMSource;
 import static org.hamcrest.Matchers.*;
@@ -207,7 +205,7 @@ public class SCMBinderTest {
         }
         WorkflowRun b2 = r.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get());
         r.assertLogContains("nondeterministic checkout", b2); // SCMBinder
-        r.assertLogContains("any revision to build", b2); // checkout scm
+        r.assertLogContains("Could not determine exact tip revision of feature", b2); // SCMVar
         mp.scheduleBuild2(0).getFuture().get();
         assertEquals(1, mp.getItems().size());
     }
