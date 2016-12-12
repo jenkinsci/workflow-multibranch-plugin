@@ -65,6 +65,9 @@ public class GitDirectorySCMNavigator extends SCMNavigator {
             return;
         }
         for (File kid : kids) {
+            if (!observer.isObserving()) {
+                return;
+            }
             if (!new File(kid, ".git").isDirectory()) {
                 listener.getLogger().format("Ignoring %s since it does not look like a Git checkout%n", kid);
                 continue;
