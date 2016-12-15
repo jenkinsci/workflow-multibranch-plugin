@@ -56,12 +56,16 @@ public class WorkflowMultiBranchProjectFactory extends AbstractWorkflowMultiBran
             this.factory = factory;
         }
 
+        public AbstractWorkflowBranchProjectFactory getFactory(){
+            return factory;
+        }
+
         @Override public MultiBranchProjectFactory newInstance() {
-            return new WorkflowMultiBranchProjectFactory(new WorkflowBranchProjectFactory());
+            return new WorkflowMultiBranchProjectFactory(factory != null ? factory : new WorkflowBranchProjectFactory());
         }
 
         @Override public String getDisplayName() {
-            return "Pipeline " + WorkflowBranchProjectFactory.SCRIPT;
+            return "Pipeline script";
         }
 
     }
