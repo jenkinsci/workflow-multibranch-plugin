@@ -25,43 +25,56 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.Extension;
-import jenkins.branch.MultiBranchProjectFactory;
-import jenkins.branch.MultiBranchProjectFactoryDescriptor;
+import hudson.model.TaskListener;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
+import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import java.io.IOException;
+
 /**
- * Defines organization folders by {@link WorkflowBranchProjectFactory}.
+ * Recognizes and builds {@code Jenkinsfile}.
  */
-public class WorkflowMultiBranchProjectFactory extends AbstractWorkflowMultiBranchProjectFactory {
+public class ConfigurableWorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectFactory {
 
-    private AbstractWorkflowBranchProjectFactory factory;
+    private String scriptPath = WorkflowBranchProjectFactory.SCRIPT;
 
-    @DataBoundConstructor public WorkflowMultiBranchProjectFactory(AbstractWorkflowBranchProjectFactory factory) {
-        this.factory = factory;
+    @DataBoundConstructor public ConfigurableWorkflowBranchProjectFactory(String scriptPath) {
+        this.scriptPath = scriptPath;
+    }
+
+    public String getScriptPath(){
+        return scriptPath;
+    }
+
+    @Override protected FlowDefinition createDefinition() {
+        return new SCMBinder(scriptPath);
     }
 
     @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
-        return factory.getSCMSourceCriteria(source);
+        return new SCMSourceCriteria() {
+            @Override public boolean isHead(Probe probe, TaskListener listener) throws IOException {
+                return probe.exists(scriptPath);
+            }
+        };
     }
 
-    @Extension public static class DescriptorImpl extends MultiBranchProjectFactoryDescriptor {
+    @Extension public static class DescriptorImpl extends AbstractWorkflowBranchProjectFactoryDescriptor {
 
-        private AbstractWorkflowBranchProjectFactory factory;
+        private String scriptPath = WorkflowBranchProjectFactory.SCRIPT;
 
         public DescriptorImpl(){}
 
-        @DataBoundConstructor public DescriptorImpl(AbstractWorkflowBranchProjectFactory factory){
-            this.factory = factory;
-        }
+        @DataBoundConstructor
+        public DescriptorImpl(String scriptPath){ this.scriptPath = scriptPath; }
 
-        @Override public MultiBranchProjectFactory newInstance() {
-            return new WorkflowMultiBranchProjectFactory(new WorkflowBranchProjectFactory());
+        public String getScriptPath(){
+            return scriptPath;
         }
 
         @Override public String getDisplayName() {
-            return "Pipeline " + WorkflowBranchProjectFactory.SCRIPT;
+            return Messages.ConfigurableWorkflowBranchProjectFactory_configurableScript();
         }
 
     }

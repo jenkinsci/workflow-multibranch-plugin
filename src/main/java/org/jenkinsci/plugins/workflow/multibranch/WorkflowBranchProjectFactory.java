@@ -42,7 +42,7 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
     @DataBoundConstructor public WorkflowBranchProjectFactory() {}
 
     @Override protected FlowDefinition createDefinition() {
-        return new SCMBinder();
+        return new SCMBinder(SCRIPT);
     }
 
     @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {

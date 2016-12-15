@@ -45,11 +45,18 @@ import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * Checks out the desired version of {@link WorkflowBranchProjectFactory#SCRIPT}.
+ * Checks out the desired version of the script referred to by scriptPath.
  */
 class SCMBinder extends FlowDefinition {
+
+    private String scriptPath;
+
+    public SCMBinder(String scriptPath){
+        this.scriptPath = scriptPath;
+    }
 
     @Override public FlowExecution create(FlowExecutionOwner handle, TaskListener listener, List<? extends Action> actions) throws Exception {
         Queue.Executable exec = handle.getExecutable();
@@ -82,13 +89,24 @@ class SCMBinder extends FlowDefinition {
             // Build might fail later anyway, but reason should become clear: for example, branch was deleted before indexing could run.
             scm = branch.getScm();
         }
-        return new CpsScmFlowDefinition(scm, WorkflowBranchProjectFactory.SCRIPT).create(handle, listener, actions);
+        return new CpsScmFlowDefinition(scm, scriptPath).create(handle, listener, actions);
     }
 
     @Extension public static class DescriptorImpl extends FlowDefinitionDescriptor {
 
+        private String scriptPath = "MISSINGCONFIG";
+
+        public DescriptorImpl(){}
+
+        @DataBoundConstructor
+        public DescriptorImpl(String scriptPath){ this.scriptPath = scriptPath; }
+
+        public String getScriptPath(){
+            return scriptPath;
+        }
+
         @Override public String getDisplayName() {
-            return "Pipeline script from " + WorkflowBranchProjectFactory.SCRIPT;
+            return "Pipeline script from " + scriptPath; //TODO: This needs changing to be meaningful. Maybe with updating the descriptor can
         }
 
     }

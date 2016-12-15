@@ -47,6 +47,7 @@ import org.jenkins.ui.icon.IconSpec;
 import org.jenkinsci.plugins.workflow.cps.Snippetizer;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * Representation of a set of workflows keyed off of source branches.
@@ -56,19 +57,26 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
 
     private static final Logger LOGGER = Logger.getLogger(WorkflowMultiBranchProject.class.getName());
 
-    public WorkflowMultiBranchProject(ItemGroup parent, String name) {
+    @DataBoundConstructor
+    public WorkflowMultiBranchProject(ItemGroup parent, String name, AbstractWorkflowBranchProjectFactory factory) {
         super(parent, name);
+        if(factory != null) {
+            this.setProjectFactory(factory);
+        }
     }
 
     @Override protected BranchProjectFactory<WorkflowJob,WorkflowRun> newProjectFactory() {
-        return new WorkflowBranchProjectFactory();
+        return new WorkflowBranchProjectFactory(); //
     }
 
     @Override public SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
-        return ((AbstractWorkflowBranchProjectFactory) getProjectFactory()).getSCMSourceCriteria(source);
+        return ((AbstractWorkflowBranchProjectFactory)this.getProjectFactory()).getSCMSourceCriteria(source);
     }
 
     @Extension public static class DescriptorImpl extends MultiBranchProjectDescriptor implements IconSpec {
+
+        @DataBoundConstructor public DescriptorImpl(){
+        }
 
         @Override public String getDisplayName() {
             return Messages.WorkflowMultiBranchProject_DisplayName();
@@ -88,7 +96,7 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
         }
 
         @Override public TopLevelItem newInstance(ItemGroup parent, String name) {
-            return new WorkflowMultiBranchProject(parent, name);
+            return new WorkflowMultiBranchProject(parent, name, new WorkflowBranchProjectFactory());
         }
 
         @Override public boolean isApplicable(Descriptor descriptor) {

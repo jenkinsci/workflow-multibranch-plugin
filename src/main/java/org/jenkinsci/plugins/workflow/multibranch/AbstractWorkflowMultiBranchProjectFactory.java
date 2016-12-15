@@ -45,7 +45,8 @@ import org.jenkinsci.plugins.workflow.cps.Snippetizer;
 public abstract class AbstractWorkflowMultiBranchProjectFactory extends MultiBranchProjectFactory.BySCMSourceCriteria {
 
     @Override protected final WorkflowMultiBranchProject doCreateProject(ItemGroup<?> parent, String name, Map<String,Object> attributes) {
-        WorkflowMultiBranchProject project = new WorkflowMultiBranchProject(parent, name);
+        WorkflowMultiBranchProject project = new WorkflowMultiBranchProject(parent, name,
+                (AbstractWorkflowBranchProjectFactory)attributes.get("factory"));
         customize(project);
         return project;
     }
