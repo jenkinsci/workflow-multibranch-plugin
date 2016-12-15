@@ -35,22 +35,12 @@ import org.kohsuke.stapler.DataBoundConstructor;
 /**
  * Recognizes and builds {@code Jenkinsfile}.
  */
-public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectFactory {
+public class WorkflowBranchProjectFactory extends ConfigurableWorkflowBranchProjectFactory {
     
     static final String SCRIPT = "Jenkinsfile";
 
-    @DataBoundConstructor public WorkflowBranchProjectFactory() {}
-
-    @Override protected FlowDefinition createDefinition() {
-        return new SCMBinder(SCRIPT);
-    }
-
-    @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
-        return new SCMSourceCriteria() {
-            @Override public boolean isHead(SCMSourceCriteria.Probe probe, TaskListener listener) throws IOException {
-                return probe.exists(SCRIPT);
-            }
-        };
+    @DataBoundConstructor public WorkflowBranchProjectFactory() {
+        super(SCRIPT);
     }
 
     @Extension public static class DescriptorImpl extends AbstractWorkflowBranchProjectFactoryDescriptor {
