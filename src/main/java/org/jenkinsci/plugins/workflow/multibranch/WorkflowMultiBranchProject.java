@@ -66,7 +66,7 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
     }
 
     @Override protected BranchProjectFactory<WorkflowJob,WorkflowRun> newProjectFactory() {
-        return new WorkflowBranchProjectFactory(); //
+        return new WorkflowBranchProjectFactory();
     }
 
     @Override public SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
