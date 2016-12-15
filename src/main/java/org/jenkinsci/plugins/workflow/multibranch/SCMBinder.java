@@ -94,7 +94,7 @@ class SCMBinder extends FlowDefinition {
 
     @Extension public static class DescriptorImpl extends FlowDefinitionDescriptor {
 
-        private String scriptPath = "MISSINGCONFIG";
+        private String scriptPath;
 
         public DescriptorImpl(){}
 
@@ -106,7 +106,7 @@ class SCMBinder extends FlowDefinition {
         }
 
         @Override public String getDisplayName() {
-            return "Pipeline script from " + scriptPath; //TODO: This needs changing to be meaningful. Maybe with updating the descriptor can
+            return "Pipeline script from multibranch configuration";
         }
 
     }

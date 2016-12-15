@@ -74,7 +74,7 @@ public class ConfigurableWorkflowBranchProjectFactory extends AbstractWorkflowBr
         }
 
         @Override public String getDisplayName() {
-            return Messages.ConfigurableWorkflowBranchProjectFactory_configurableScript();
+            return "by " + Messages.ConfigurableWorkflowBranchProjectFactory_configurableScript();
         }
 
     }
