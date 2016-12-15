@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.Proc;
@@ -54,6 +55,12 @@ public class GitDirectorySCMNavigator extends SCMNavigator {
     }
 
     public String getDirectory() {
+        return directory;
+    }
+
+    @NonNull
+    @Override
+    protected String id() {
         return directory;
     }
 
@@ -90,7 +97,7 @@ public class GitDirectorySCMNavigator extends SCMNavigator {
                 }
             }
             SCMSourceObserver.ProjectObserver projectObserver = observer.observe(kid.getName());
-            projectObserver.addSource(new GitSCMSource(null, origin, "", "*", "", false));
+            projectObserver.addSource(new GitSCMSource(getId() + "::" + kid.getName(), origin, "", "*", "", false));
             projectObserver.complete();
         }
     }
