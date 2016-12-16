@@ -65,7 +65,7 @@ public class BranchJobProperty extends WorkflowJobProperty {
     @Override public ACL decorateACL(final ACL acl) {
         return new ACL() {
             @Override public boolean hasPermission(Authentication a, Permission permission) {
-                // This project is managed by its parent and may not be directly configured or deleted.
+                // This project is managed by its parent and may not be directly configured or deleted by users.
                 // Note that Item.EXTENDED_READ may still be granted, so you can still see Snippet Generator, etc.
                 if (branch instanceof Branch.Dead && (permission == Job.BUILD)) {
                     // if dead, nobody, not even SYSTEM may build this job
@@ -74,9 +74,9 @@ public class BranchJobProperty extends WorkflowJobProperty {
                     return true; // e.g., DefaultDeadBranchStrategy.runDeadBranchCleanup
                 } else if (permission == Item.CONFIGURE) {
                     return false;
-                } else if (permission == Item.DELETE) {
+                } else if (permission == Item.DELETE && !(branch instanceof Branch.Dead)) {
                     // allow early manual clean-up of dead branches
-                    return branch instanceof Branch.Dead && acl.hasPermission(a, permission);
+                    return false;
                 } else  {
                     return acl.hasPermission(a, permission);
                 }
