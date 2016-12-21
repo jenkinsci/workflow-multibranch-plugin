@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.Proc;
@@ -57,6 +58,12 @@ public class GitDirectorySCMNavigator extends SCMNavigator {
         return directory;
     }
 
+    @NonNull
+    @Override
+    protected String id() {
+        return directory;
+    }
+
     @Override public void visitSources(SCMSourceObserver observer) throws IOException, InterruptedException {
         TaskListener listener = observer.getListener();
         File[] kids = new File(directory).listFiles();
@@ -65,6 +72,9 @@ public class GitDirectorySCMNavigator extends SCMNavigator {
             return;
         }
         for (File kid : kids) {
+            if (!observer.isObserving()) {
+                return;
+            }
             if (!new File(kid, ".git").isDirectory()) {
                 listener.getLogger().format("Ignoring %s since it does not look like a Git checkout%n", kid);
                 continue;
@@ -87,7 +97,7 @@ public class GitDirectorySCMNavigator extends SCMNavigator {
                 }
             }
             SCMSourceObserver.ProjectObserver projectObserver = observer.observe(kid.getName());
-            projectObserver.addSource(new GitSCMSource(null, origin, "", "*", "", false));
+            projectObserver.addSource(new GitSCMSource(getId() + "::" + kid.getName(), origin, "", "*", "", false));
             projectObserver.complete();
         }
     }
