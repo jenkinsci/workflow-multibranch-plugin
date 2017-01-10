@@ -226,6 +226,13 @@ public class ResolveScmStep extends Step {
             return source.build(fetch.getHead(), fetch);
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onResume() {
+            // Do not re-inject with Guice
+        }
     }
 
     /**
