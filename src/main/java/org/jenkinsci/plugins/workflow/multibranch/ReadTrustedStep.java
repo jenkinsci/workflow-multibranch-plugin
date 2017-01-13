@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
 import hudson.FilePath;
@@ -84,6 +85,7 @@ public class ReadTrustedStep extends AbstractStepImpl {
         @StepContextParameter private transient Run<?,?> build;
         @StepContextParameter private transient TaskListener listener;
 
+        @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE", justification="FB thinks standaloneSCM is known to be null, but this seems like a FB bug")
         @Override protected String run() throws Exception {
             Job<?, ?> job = build.getParent();
             // Portions adapted from SCMBinder, SCMVar, and CpsScmFlowDefinition:
