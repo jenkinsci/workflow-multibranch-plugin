@@ -83,6 +83,7 @@ public class ReadTrustedStep extends AbstractStepImpl {
 
         @Override protected String run() throws Exception {
             Job<?, ?> job = build.getParent();
+            // TODO try using SCMFileSystem
             // Adapted from CpsScmFlowDefinition:
             Node node = Jenkins.getActiveInstance();
             FilePath dir;

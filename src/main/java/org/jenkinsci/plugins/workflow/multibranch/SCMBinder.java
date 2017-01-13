@@ -25,6 +25,7 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.Extension;
+import hudson.Functions;
 import hudson.model.Action;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
@@ -32,12 +33,15 @@ import hudson.model.ItemGroup;
 import hudson.model.Queue;
 import hudson.model.TaskListener;
 import hudson.scm.SCM;
+import java.io.IOException;
 import java.util.List;
 import jenkins.branch.Branch;
+import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinitionDescriptor;
@@ -75,8 +79,22 @@ class SCMBinder extends FlowDefinition {
         SCMRevision tip = scmSource.fetch(head, listener);
         SCM scm;
         if (tip != null) {
-            scm = scmSource.build(head, scmSource.getTrustedRevision(tip, listener));
             build.addAction(new SCMRevisionAction(tip));
+            SCMRevision rev = scmSource.getTrustedRevision(tip, listener);
+            SCMFileSystem fs = SCMFileSystem.of(scmSource, head, rev);
+            if (fs != null) { // JENKINS-33273; TODO perhaps this should be pushed down into CpsScmFlowDefinition?
+                listener.getLogger().println("Performing lightweight checkout");
+                String script = null;
+                try {
+                    script = fs.child(WorkflowBranchProjectFactory.SCRIPT).contentAsString();
+                } catch (IOException | InterruptedException x) {
+                    listener.error("Could not do lightweight checkout, falling back to heavyweight").println(Functions.printThrowable(x).trim());
+                }
+                if (script != null) {
+                    return new CpsFlowDefinition(script, true).create(handle, listener, actions);
+                }
+            }
+            scm = scmSource.build(head, rev);
         } else {
             listener.error("Could not determine exact tip revision of " + branch.getName() + "; falling back to nondeterministic checkout");
             // Build might fail later anyway, but reason should become clear: for example, branch was deleted before indexing could run.
@@ -96,6 +114,7 @@ class SCMBinder extends FlowDefinition {
     /** Want to display this in the r/o configuration for a branch project, but not offer it on standalone jobs or in any other context. */
     @Extension public static class HideMeElsewhere extends DescriptorVisibilityFilter {
 
+        @SuppressWarnings("rawtypes")
         @Override public boolean filter(Object context, Descriptor descriptor) {
             if (descriptor instanceof DescriptorImpl) {
                 return context instanceof WorkflowJob && ((WorkflowJob) context).getParent() instanceof WorkflowMultiBranchProject;
