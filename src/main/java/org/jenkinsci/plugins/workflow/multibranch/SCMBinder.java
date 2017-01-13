@@ -86,7 +86,7 @@ class SCMBinder extends FlowDefinition {
                 String script = null;
                 try {
                     script = fs.child(WorkflowBranchProjectFactory.SCRIPT).contentAsString();
-                    listener.getLogger().println("Obtained " + WorkflowBranchProjectFactory.SCRIPT + " from " + head.getName());
+                    listener.getLogger().println("Obtained " + WorkflowBranchProjectFactory.SCRIPT + " from " + rev);
                 } catch (IOException | InterruptedException x) {
                     listener.error("Could not do lightweight checkout, falling back to heavyweight").println(Functions.printThrowable(x).trim());
                 }

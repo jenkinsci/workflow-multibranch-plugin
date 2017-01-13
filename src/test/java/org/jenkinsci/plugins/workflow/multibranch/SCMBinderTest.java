@@ -84,7 +84,7 @@ public class SCMBinderTest {
         assertNotNull(b1);
         assertEquals(1, b1.getNumber());
         assertRevisionAction(b1);
-        r.assertLogContains("Obtained Jenkinsfile from master", b1);
+        r.assertLogContains("Obtained Jenkinsfile from ", b1);
         sampleGitRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file').toUpperCase()}");
         sampleGitRepo.write("file", "subsequent content");
         sampleGitRepo.git("commit", "--all", "--message=tweaked");

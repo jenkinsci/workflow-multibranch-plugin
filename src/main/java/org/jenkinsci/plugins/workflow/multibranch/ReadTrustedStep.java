@@ -176,8 +176,9 @@ public class ReadTrustedStep extends AbstractStepImpl {
                     untrustedFile = tipFS.child(step.path).contentAsString();
                 }
                 content = trustedFS.child(step.path).contentAsString();
-                listener.getLogger().println("Obtained " + step.path + " from " + head.getName());
+                listener.getLogger().println("Obtained " + step.path + " from " + trusted);
             } else {
+                listener.getLogger().println("Checking out " + head.getName() + " to read " + step.path);
                 try (WorkspaceList.Lease lease = computer.getWorkspaceList().acquire(dir)) {
                     if (trustCheck) {
                         SCMStep delegate = new GenericSCMStep(scmSource.build(head, tip));

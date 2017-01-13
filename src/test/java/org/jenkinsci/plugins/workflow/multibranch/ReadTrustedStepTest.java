@@ -62,7 +62,7 @@ public class ReadTrustedStepTest {
         SCMBinderTest.assertRevisionAction(b);
         r.assertBuildStatusSuccess(b);
         r.assertLogContains("said how do you do", b);
-        r.assertLogContains("Obtained message from master", b);
+        r.assertLogContains("Obtained message from ", b);
         String branch = "evil";
         sampleRepo.git("checkout", "-b", branch);
         sampleRepo.write("message", "your father smelt of elderberries");
@@ -75,7 +75,7 @@ public class ReadTrustedStepTest {
         SCMBinderTest.assertRevisionAction(b);
         r.assertBuildStatus(Result.FAILURE, b);
         r.assertLogContains(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis("message"), b);
-        r.assertLogContains("Obtained message from evil", b);
+        r.assertLogContains("Obtained message from ", b);
         sampleRepo.write("message", "how do you do");
         sampleRepo.write("ignored-message", "I fart in your general direction");
         sampleRepo.git("add", "ignored-message");
@@ -86,7 +86,7 @@ public class ReadTrustedStepTest {
         SCMBinderTest.assertRevisionAction(b);
         r.assertBuildStatusSuccess(b);
         r.assertLogContains("said how do you do", b);
-        r.assertLogContains("Obtained message from evil", b);
+        r.assertLogContains("Obtained message from ", b);
     }
 
     @Test public void exactRevision() throws Exception {
