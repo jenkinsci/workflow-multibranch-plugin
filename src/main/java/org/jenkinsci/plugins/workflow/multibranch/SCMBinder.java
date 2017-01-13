@@ -82,11 +82,11 @@ class SCMBinder extends FlowDefinition {
             build.addAction(new SCMRevisionAction(tip));
             SCMRevision rev = scmSource.getTrustedRevision(tip, listener);
             SCMFileSystem fs = SCMFileSystem.of(scmSource, head, rev);
-            if (fs != null) { // JENKINS-33273; TODO perhaps this should be pushed down into CpsScmFlowDefinition?
-                listener.getLogger().println("Performing lightweight checkout");
+            if (fs != null) { // JENKINS-33273
                 String script = null;
                 try {
                     script = fs.child(WorkflowBranchProjectFactory.SCRIPT).contentAsString();
+                    listener.getLogger().println("Obtained " + WorkflowBranchProjectFactory.SCRIPT + " from " + head.getName());
                 } catch (IOException | InterruptedException x) {
                     listener.error("Could not do lightweight checkout, falling back to heavyweight").println(Functions.printThrowable(x).trim());
                 }
