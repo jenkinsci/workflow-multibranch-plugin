@@ -97,14 +97,15 @@ public class ReadTrustedStep extends AbstractStepImpl {
                     if (defn instanceof CpsScmFlowDefinition) {
                         // JENKINS-31386: retrofit to work with standalone projects, without doing any trust checks.
                         standaloneSCM = ((CpsScmFlowDefinition) defn).getScm();
-                        SCMFileSystem fs = SCMFileSystem.of(job, standaloneSCM);
-                        if (fs != null) { // JENKINS-33273
-                            try {
-                                String text = fs.child(step.path).contentAsString();
-                                listener.getLogger().println("Obtained " + step.path + " from " + standaloneSCM.getKey());
-                                return text;
-                            } catch (IOException | InterruptedException x) {
-                                listener.error("Could not do lightweight checkout, falling back to heavyweight").println(Functions.printThrowable(x).trim());
+                        try (SCMFileSystem fs = SCMFileSystem.of(job, standaloneSCM)) {
+                            if (fs != null) { // JENKINS-33273
+                                try {
+                                    String text = fs.child(step.path).contentAsString();
+                                    listener.getLogger().println("Obtained " + step.path + " from " + standaloneSCM.getKey());
+                                    return text;
+                                } catch (IOException | InterruptedException x) {
+                                    listener.error("Could not do lightweight checkout, falling back to heavyweight").println(Functions.printThrowable(x).trim());
+                                }
                             }
                         }
                     }
@@ -169,35 +170,36 @@ public class ReadTrustedStep extends AbstractStepImpl {
             boolean trustCheck = !tip.equals(trusted);
             String untrustedFile = null;
             String content;
-            SCMFileSystem tipFS = trustCheck ? SCMFileSystem.of(scmSource, head, tip) : null;
-            SCMFileSystem trustedFS = SCMFileSystem.of(scmSource, head, trusted);
-            if (trustedFS != null && (!trustCheck || tipFS != null)) {
-                if (trustCheck) {
-                    untrustedFile = tipFS.child(step.path).contentAsString();
-                }
-                content = trustedFS.child(step.path).contentAsString();
-                listener.getLogger().println("Obtained " + step.path + " from " + trusted);
-            } else {
-                listener.getLogger().println("Checking out " + head.getName() + " to read " + step.path);
-                try (WorkspaceList.Lease lease = computer.getWorkspaceList().acquire(dir)) {
+            try (SCMFileSystem tipFS = trustCheck ? SCMFileSystem.of(scmSource, head, tip) : null;
+                 SCMFileSystem trustedFS = SCMFileSystem.of(scmSource, head, trusted)) {
+                if (trustedFS != null && (!trustCheck || tipFS != null)) {
                     if (trustCheck) {
-                        SCMStep delegate = new GenericSCMStep(scmSource.build(head, tip));
-                        delegate.setPoll(false);
-                        delegate.setChangelog(false);
+                        untrustedFile = tipFS.child(step.path).contentAsString();
+                    }
+                    content = trustedFS.child(step.path).contentAsString();
+                    listener.getLogger().println("Obtained " + step.path + " from " + trusted);
+                } else {
+                    listener.getLogger().println("Checking out " + head.getName() + " to read " + step.path);
+                    try (WorkspaceList.Lease lease = computer.getWorkspaceList().acquire(dir)) {
+                        if (trustCheck) {
+                            SCMStep delegate = new GenericSCMStep(scmSource.build(head, tip));
+                            delegate.setPoll(false);
+                            delegate.setChangelog(false);
+                            delegate.checkout(build, dir, listener, node.createLauncher(listener));
+                            if (!file.exists()) {
+                                throw new AbortException(file + " not found");
+                            }
+                            untrustedFile = file.readToString();
+                        }
+                        SCMStep delegate = new GenericSCMStep(scmSource.build(head, trusted));
+                        delegate.setPoll(true);
+                        delegate.setChangelog(true);
                         delegate.checkout(build, dir, listener, node.createLauncher(listener));
                         if (!file.exists()) {
                             throw new AbortException(file + " not found");
                         }
-                        untrustedFile = file.readToString();
+                        content = file.readToString();
                     }
-                    SCMStep delegate = new GenericSCMStep(scmSource.build(head, trusted));
-                    delegate.setPoll(true);
-                    delegate.setChangelog(true);
-                    delegate.checkout(build, dir, listener, node.createLauncher(listener));
-                    if (!file.exists()) {
-                        throw new AbortException(file + " not found");
-                    }
-                    content = file.readToString();
                 }
             }
             if (trustCheck && !untrustedFile.equals(content)) {

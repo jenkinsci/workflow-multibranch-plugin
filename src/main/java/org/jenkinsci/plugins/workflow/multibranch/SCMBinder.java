@@ -81,17 +81,18 @@ class SCMBinder extends FlowDefinition {
         if (tip != null) {
             build.addAction(new SCMRevisionAction(tip));
             SCMRevision rev = scmSource.getTrustedRevision(tip, listener);
-            SCMFileSystem fs = SCMFileSystem.of(scmSource, head, rev);
-            if (fs != null) { // JENKINS-33273
-                String script = null;
-                try {
-                    script = fs.child(WorkflowBranchProjectFactory.SCRIPT).contentAsString();
-                    listener.getLogger().println("Obtained " + WorkflowBranchProjectFactory.SCRIPT + " from " + rev);
-                } catch (IOException | InterruptedException x) {
-                    listener.error("Could not do lightweight checkout, falling back to heavyweight").println(Functions.printThrowable(x).trim());
-                }
-                if (script != null) {
-                    return new CpsFlowDefinition(script, true).create(handle, listener, actions);
+            try (SCMFileSystem fs = SCMFileSystem.of(scmSource, head, rev)) {
+                if (fs != null) { // JENKINS-33273
+                    String script = null;
+                    try {
+                        script = fs.child(WorkflowBranchProjectFactory.SCRIPT).contentAsString();
+                        listener.getLogger().println("Obtained " + WorkflowBranchProjectFactory.SCRIPT + " from " + rev);
+                    } catch (IOException | InterruptedException x) {
+                        listener.error("Could not do lightweight checkout, falling back to heavyweight").println(Functions.printThrowable(x).trim());
+                    }
+                    if (script != null) {
+                        return new CpsFlowDefinition(script, true).create(handle, listener, actions);
+                    }
                 }
             }
             scm = scmSource.build(head, rev);
