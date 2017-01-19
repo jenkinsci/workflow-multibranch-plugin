@@ -66,8 +66,14 @@ THE SOFTWARE.
         <jenkins.version>1.642.3</jenkins.version>
         <scm-api.version>2.0.1</scm-api.version>
         <no-test-jar>false</no-test-jar>
+        <workflow-step-api.version>2.7</workflow-step-api.version>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-step-api</artifactId>
+            <version>${workflow-step-api.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-job</artifactId>
@@ -142,7 +148,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-step-api</artifactId>
-            <version>2.5</version>
+            <version>${workflow-step-api.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
