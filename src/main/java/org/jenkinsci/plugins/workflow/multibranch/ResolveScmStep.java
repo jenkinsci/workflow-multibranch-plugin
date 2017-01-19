@@ -32,16 +32,20 @@ import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.model.TaskListener;
 import hudson.scm.SCM;
+import hudson.util.FormValidation;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nonnull;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousStepExecution;
@@ -50,6 +54,8 @@ import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * Resolves an {@link SCM} from a {@link SCMSource} using a priority list of target branch names.
@@ -174,6 +180,39 @@ public class ResolveScmStep extends Step {
         @Override
         public String getDisplayName() {
             return "Resolves an SCM from an SCM Source and a list of candidate target branch names";
+        }
+
+        @Override
+        public Step newInstance(@javax.annotation.CheckForNull StaplerRequest req, @Nonnull JSONObject formData)
+                throws FormException {
+            // roll our own because we want the groovy api to be easier than the jelly form binding would have us
+            JSONObject src = formData.getJSONObject("source");
+            src.put("id", "_");
+            SCMSource source = req.bindJSON(SCMSource.class, src);
+            List<String> targets = new ArrayList<>();
+            Object t = formData.get("targets");
+            if (t instanceof JSONObject) {
+                JSONObject o = (JSONObject) t;
+                targets.add(o.getString("target"));
+            } else if (t instanceof JSONArray) {
+                JSONArray a = (JSONArray) t;
+                for (int i = 0; i < a.size(); i++) {
+                    JSONObject o = a.getJSONObject(i);
+                    targets.add(o.getString("target"));
+                }
+            }
+            ResolveScmStep step = new ResolveScmStep(source, targets);
+            if (formData.optBoolean("ignoreErrors", false)) {
+                step.setIgnoreErrors(true);
+            }
+            return step;
+        }
+
+        public FormValidation doCheckTarget(@QueryParameter String value) {
+            if (StringUtils.isNotBlank(value)) {
+                return FormValidation.ok();
+            }
+            return FormValidation.error("You must supply a target branch name to resolve");
         }
     }
 
