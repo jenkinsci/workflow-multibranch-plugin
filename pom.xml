@@ -68,6 +68,16 @@ THE SOFTWARE.
         <no-test-jar>false</no-test-jar>
         <workflow-step-api.version>2.7</workflow-step-api.version>
     </properties>
+    <dependencyManagement>
+        <!-- TODO figure out why the version is being forced down to 2.5 without this -->
+        <dependencies>
+            <dependency>
+                <groupId>org.jenkins-ci.plugins.workflow</groupId>
+                <artifactId>workflow-step-api</artifactId>
+                <version>${workflow-step-api.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>

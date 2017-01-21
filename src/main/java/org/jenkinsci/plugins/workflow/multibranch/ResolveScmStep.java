@@ -55,6 +55,7 @@ import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
+import org.jenkinsci.plugins.workflow.steps.SynchronousStepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -165,12 +166,6 @@ public class ResolveScmStep extends Step {
     public static class DescriptorImpl extends StepDescriptor {
 
         /**
-         * Default constructor.
-         */
-        public DescriptorImpl() {
-        }
-
-        /**
          * {@inheritDoc}
          */
         @Override
@@ -203,6 +198,7 @@ public class ResolveScmStep extends Step {
             src.put("id", "_");
             SCMSource source = req.bindJSON(SCMSource.class, src);
             List<String> targets = new ArrayList<>();
+            // TODO JENKINS-27901 use standard control when available
             Object t = formData.get("targets");
             if (t instanceof JSONObject) {
                 JSONObject o = (JSONObject) t;
@@ -232,8 +228,7 @@ public class ResolveScmStep extends Step {
     /**
      * Our {@link StepExecution}.
      */
-    @SuppressFBWarnings("SE_BAD_FIELD") // SCMSource being non-serializable is not an issue as we are a sync step.
-    public static class Execution extends StepExecution {
+    public static class Execution extends SynchronousStepExecution<SCM> {
 
         /**
          * Ensure consistent serialization.
@@ -241,15 +236,10 @@ public class ResolveScmStep extends Step {
         private static final long serialVersionUID = 1L;
 
         /**
-         * The current
-         */
-        private transient volatile Thread executing;
-
-        /**
          * The {@link SCMSource}
          */
         @NonNull
-        private final SCMSource source;
+        private transient final SCMSource source;
 
         /**
          * The {@link SCMSource}
@@ -297,34 +287,6 @@ public class ResolveScmStep extends Step {
             return source.build(fetch.getHead(), fetch);
         }
 
-        /** {@inheritDoc} */
-        @Override
-        public final boolean start() throws Exception {
-            executing = Thread.currentThread();
-            try {
-                getContext().onSuccess(run());
-            } catch (Throwable t) {
-                getContext().onFailure(t);
-            } finally {
-                executing = null;
-            }
-            return true;
-        }
-
-        /**
-         * If the computation is going synchronously, try to cancel that.
-         */
-        @Override
-        public void stop(Throwable cause) throws Exception {
-            Thread e = executing;   // capture
-            if (e != null) {
-                if (e instanceof Executor) {
-                    ((Executor) e).interrupt(ABORTED, new ExceptionCause(cause));
-                } else {
-                    e.interrupt();
-                }
-            }
-        }
     }
 
     /**
@@ -384,20 +346,5 @@ public class ResolveScmStep extends Step {
             return revision.values().iterator().next() == null;
         }
 
-    }
-
-    static class ExceptionCause extends CauseOfInterruption implements Serializable {
-        private final Throwable t;
-
-        public ExceptionCause(Throwable t) {
-            this.t = t;
-        }
-
-        @Override
-        public String getShortDescription() {
-            return "Exception: " + t.getMessage();
-        }
-
-        private static final long serialVersionUID = 1L;
     }
 }
