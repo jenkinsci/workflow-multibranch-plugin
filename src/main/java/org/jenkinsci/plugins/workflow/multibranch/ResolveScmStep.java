@@ -27,34 +27,46 @@ package org.jenkinsci.plugins.workflow.multibranch;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
 import hudson.model.Descriptor;
+import hudson.model.Executor;
 import hudson.model.TaskListener;
 import hudson.scm.SCM;
+import hudson.util.FormValidation;
 import java.io.PrintStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import jenkins.model.CauseOfInterruption;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousStepExecution;
 import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
+import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
+import org.jenkinsci.plugins.workflow.steps.SynchronousStepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
+
+import static hudson.model.Result.ABORTED;
 
 /**
  * Resolves an {@link SCM} from a {@link SCMSource} using a priority list of target branch names.
  *
- * @since FIXME
+ * @since 2.10
  */
 public class ResolveScmStep extends Step {
 
@@ -150,14 +162,15 @@ public class ResolveScmStep extends Step {
     /**
      * Our {@link Descriptor}.
      */
-    @Extension(optional = true)
-    public static class DescriptorImpl extends AbstractStepDescriptorImpl {
+    @Extension
+    public static class DescriptorImpl extends StepDescriptor {
 
         /**
-         * Default constructor.
+         * {@inheritDoc}
          */
-        public DescriptorImpl() {
-            super(Execution.class);
+        @Override
+        public Set<Class<?>> getRequiredContext() {
+            return Collections.<Class<?>>singleton(TaskListener.class);
         }
 
         /**
@@ -175,12 +188,47 @@ public class ResolveScmStep extends Step {
         public String getDisplayName() {
             return "Resolves an SCM from an SCM Source and a list of candidate target branch names";
         }
+
+        @Override
+        public Step newInstance(@CheckForNull StaplerRequest req, @NonNull JSONObject formData)
+                throws FormException {
+            assert req != null : "see contract for method, it's never null but has to claim it could be";
+            // roll our own because we want the groovy api to be easier than the jelly form binding would have us
+            JSONObject src = formData.getJSONObject("source");
+            src.put("id", "_");
+            SCMSource source = req.bindJSON(SCMSource.class, src);
+            List<String> targets = new ArrayList<>();
+            // TODO JENKINS-27901 use standard control when available
+            Object t = formData.get("targets");
+            if (t instanceof JSONObject) {
+                JSONObject o = (JSONObject) t;
+                targets.add(o.getString("target"));
+            } else if (t instanceof JSONArray) {
+                JSONArray a = (JSONArray) t;
+                for (int i = 0; i < a.size(); i++) {
+                    JSONObject o = a.getJSONObject(i);
+                    targets.add(o.getString("target"));
+                }
+            }
+            ResolveScmStep step = new ResolveScmStep(source, targets);
+            if (formData.optBoolean("ignoreErrors", false)) {
+                step.setIgnoreErrors(true);
+            }
+            return step;
+        }
+
+        public FormValidation doCheckTarget(@QueryParameter String value) {
+            if (StringUtils.isNotBlank(value)) {
+                return FormValidation.ok();
+            }
+            return FormValidation.error("You must supply a target branch name to resolve");
+        }
     }
 
     /**
      * Our {@link StepExecution}.
      */
-    public static class Execution extends AbstractSynchronousStepExecution<SCM> {
+    public static class Execution extends SynchronousStepExecution<SCM> {
 
         /**
          * Ensure consistent serialization.
@@ -188,36 +236,49 @@ public class ResolveScmStep extends Step {
         private static final long serialVersionUID = 1L;
 
         /**
-         * The step.
+         * The {@link SCMSource}
          */
-        private transient final ResolveScmStep step;
+        @NonNull
+        private transient final SCMSource source;
 
         /**
-         * Our constructor (avoiding Guice injection).
+         * The {@link SCMSource}
+         */
+        @NonNull
+        private final List<String> targets;
+
+        /**
+         * If {@code true} then {@code null} will be returned in the event that none of the target branch names can be
+         * resolved.
+         */
+        private boolean ignoreErrors;
+
+        /**
+         * Our constructor.
          *
          * @param context the context.
          * @param step    the step.
          */
         Execution(StepContext context, ResolveScmStep step) {
             super(context);
-            this.step = step;
+            this.source = step.getSource();
+            this.targets = new ArrayList<>(step.getTargets());
+            this.ignoreErrors = step.isIgnoreErrors();
         }
 
         /**
          * {@inheritDoc}
          */
-        @Override
         protected SCM run() throws Exception {
             StepContext context = getContext();
             TaskListener listener = context.get(TaskListener.class);
             assert listener != null;
             PrintStream out = listener.getLogger();
-            SCMSource source = step.source;
-            out.printf("Checking for first existing branch from %s...%n", step.getTargets());
-            SCMRevision fetch = source.fetch(new ObserverImpl(step.getTargets()), listener).result();
+            out.printf("Checking for first existing branch from %s...%n", targets);
+            SCMRevision fetch = source.fetch(new ObserverImpl(targets), listener).result();
             if (fetch == null) {
                 out.println("Could not find any matching branch%n");
-                if (step.isIgnoreErrors()) {
+                if (ignoreErrors) {
                     return null;
                 }
                 throw new AbortException("Could not find any matching branch");
@@ -226,13 +287,6 @@ public class ResolveScmStep extends Step {
             return source.build(fetch.getHead(), fetch);
         }
 
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void onResume() {
-            // Do not re-inject with Guice
-        }
     }
 
     /**
@@ -293,5 +347,4 @@ public class ResolveScmStep extends Step {
         }
 
     }
-
 }
