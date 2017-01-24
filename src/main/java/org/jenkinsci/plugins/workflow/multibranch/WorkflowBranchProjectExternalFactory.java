@@ -48,8 +48,7 @@ public class WorkflowBranchProjectExternalFactory extends AbstractWorkflowBranch
     }
 
     @Override protected FlowDefinition createDefinition() {
-        return new ScriptBinder(script, sandbox);
-//        return new CpsFlowDefinition(script, sandbox);
+        return new CpsFlowDefinition(script, sandbox);
     }
 
     @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
