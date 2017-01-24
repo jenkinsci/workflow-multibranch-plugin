@@ -38,11 +38,11 @@ import org.kohsuke.stapler.DataBoundConstructor;
 /**
  * Builds all branches unless otherwise filtered.
  */
-public class WorkflowBranchProjectExternalFactory extends AbstractWorkflowBranchProjectFactory {
+public class WorkflowBranchProjectByScriptFactory extends AbstractWorkflowBranchProjectFactory {
     public final String script;
     public final boolean sandbox;
 
-    @DataBoundConstructor public WorkflowBranchProjectExternalFactory(String script, boolean sandbox) {
+    @DataBoundConstructor public WorkflowBranchProjectByScriptFactory(String script, boolean sandbox) {
         this.script = script;
         this.sandbox = sandbox;
     }
@@ -74,7 +74,7 @@ public class WorkflowBranchProjectExternalFactory extends AbstractWorkflowBranch
     @Extension public static class DescriptorImpl extends AbstractWorkflowBranchProjectFactoryDescriptor {
 
         @Override public String getDisplayName() {
-            return "External Script";
+            return "User Provided Script";
         }
 
     }
