@@ -74,7 +74,7 @@ public class WorkflowBranchProjectByScriptFactory extends AbstractWorkflowBranch
     @Extension public static class DescriptorImpl extends AbstractWorkflowBranchProjectFactoryDescriptor {
 
         @Override public String getDisplayName() {
-            return "User Provided Script";
+            return "Pipeline Script";
         }
 
     }

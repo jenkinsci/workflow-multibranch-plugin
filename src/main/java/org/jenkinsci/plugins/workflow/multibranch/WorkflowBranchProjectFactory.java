@@ -37,7 +37,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * Recognizes and builds {@code Jenkinsfile}.
  */
 public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectFactory {
-    
+
     static final String SCRIPT = "Jenkinsfile";
 
     @DataBoundConstructor public WorkflowBranchProjectFactory() {}
@@ -83,7 +83,7 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
     @Extension public static class DescriptorImpl extends AbstractWorkflowBranchProjectFactoryDescriptor {
 
         @Override public String getDisplayName() {
-            return "by " + SCRIPT;
+            return "In SCM " + SCRIPT;
         }
 
     }
