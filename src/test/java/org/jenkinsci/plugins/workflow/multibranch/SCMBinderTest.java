@@ -36,9 +36,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
-import jenkins.branch.DefaultBranchPropertyStrategy;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.GitSCMSource;
@@ -79,13 +77,14 @@ public class SCMBinderTest {
         sampleGitRepo.git("add", "Jenkinsfile");
         sampleGitRepo.git("commit", "--all", "--message=flow");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false)));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
         SemaphoreStep.waitForStart("wait/1", null);
         WorkflowRun b1 = p.getLastBuild();
         assertNotNull(b1);
         assertEquals(1, b1.getNumber());
         assertRevisionAction(b1);
+        r.assertLogContains("Obtained Jenkinsfile from ", b1);
         sampleGitRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file').toUpperCase()}");
         sampleGitRepo.write("file", "subsequent content");
         sampleGitRepo.git("commit", "--all", "--message=tweaked");
@@ -115,11 +114,14 @@ public class SCMBinderTest {
         assertNotNull(revisionAction);
         SCMRevision revision = revisionAction.getRevision();
         assertEquals(AbstractGitSCMSource.SCMRevisionImpl.class, revision.getClass());
-        Set<String> expected = new HashSet<String>();
-        for (BuildData data : build.getActions(BuildData.class)) {
-            expected.add(data.lastBuild.marked.getSha1().getName());
+        Set<String> expected = new HashSet<>();
+        List<BuildData> buildDataActions = build.getActions(BuildData.class);
+        if (!buildDataActions.isEmpty()) { // i.e., we have run at least one checkout step, or done a heavyweight checkout to get a single file
+            for (BuildData data : buildDataActions) {
+                expected.add(data.lastBuild.marked.getSha1().getName());
+            }
+            assertThat(expected, hasItem(((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash()));
         }
-        assertThat(expected, hasItem(((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash()));
     }
 
     @Test public void exactRevisionSubversion() throws Exception {
@@ -132,7 +134,7 @@ public class SCMBinderTest {
         sampleSvnRepo.svnkit("add", sampleSvnRepo.wc() + "/Jenkinsfile");
         sampleSvnRepo.svnkit("commit", "--message=flow", sampleSvnRepo.wc());
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new SubversionSCMSource(null, sampleSvnRepo.prjUrl(), null, null, null), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        mp.getSourcesList().add(new BranchSource(new SubversionSCMSource(null, sampleSvnRepo.prjUrl())));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "trunk");
         SemaphoreStep.waitForStart("wait/1", null);
         WorkflowRun b1 = p.getLastBuild();
@@ -167,7 +169,7 @@ public class SCMBinderTest {
         sampleGitRepo.git("add", "Jenkinsfile");
         sampleGitRepo.git("commit", "--all", "--message=flow");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false)));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
         assertEquals(1, mp.getItems().size());
         r.waitUntilNoActivity();
@@ -191,7 +193,7 @@ public class SCMBinderTest {
         sampleGitRepo.git("add", "somefile");
         sampleGitRepo.git("commit", "--all", "--message=tweaked");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false)));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "feature");
         assertEquals(2, mp.getItems().size());
         r.waitUntilNoActivity();
@@ -217,7 +219,7 @@ public class SCMBinderTest {
         sampleGitRepo.git("add", "Jenkinsfile");
         sampleGitRepo.git("commit", "--all", "--message=flow");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new WarySource(null, sampleGitRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        mp.getSourcesList().add(new BranchSource(new WarySource(null, sampleGitRepo.toString(), "", "*", "", false)));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
         r.waitUntilNoActivity();
         WorkflowRun b = p.getLastBuild();

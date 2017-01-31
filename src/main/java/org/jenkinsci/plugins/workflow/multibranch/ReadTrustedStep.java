@@ -24,9 +24,11 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
 import hudson.FilePath;
+import hudson.Functions;
 import hudson.model.Computer;
 import hudson.model.ItemGroup;
 import hudson.model.Job;
@@ -34,11 +36,13 @@ import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
+import hudson.scm.SCM;
 import hudson.slaves.WorkspaceList;
 import java.io.IOException;
 import javax.inject.Inject;
 import jenkins.branch.Branch;
 import jenkins.model.Jenkins;
+import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
@@ -81,9 +85,35 @@ public class ReadTrustedStep extends AbstractStepImpl {
         @StepContextParameter private transient Run<?,?> build;
         @StepContextParameter private transient TaskListener listener;
 
+        @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE", justification="FB thinks standaloneSCM is known to be null, but this seems like a FB bug")
         @Override protected String run() throws Exception {
             Job<?, ?> job = build.getParent();
-            // Adapted from CpsScmFlowDefinition:
+            // Portions adapted from SCMBinder, SCMVar, and CpsScmFlowDefinition:
+            SCM standaloneSCM = null;
+            BranchJobProperty property = job.getProperty(BranchJobProperty.class);
+            if (property == null) {
+                if (job instanceof WorkflowJob) {
+                    FlowDefinition defn = ((WorkflowJob) job).getDefinition();
+                    if (defn instanceof CpsScmFlowDefinition) {
+                        // JENKINS-31386: retrofit to work with standalone projects, without doing any trust checks.
+                        standaloneSCM = ((CpsScmFlowDefinition) defn).getScm();
+                        try (SCMFileSystem fs = SCMFileSystem.of(job, standaloneSCM)) {
+                            if (fs != null) { // JENKINS-33273
+                                try {
+                                    String text = fs.child(step.path).contentAsString();
+                                    listener.getLogger().println("Obtained " + step.path + " from " + standaloneSCM.getKey());
+                                    return text;
+                                } catch (IOException | InterruptedException x) {
+                                    listener.error("Could not do lightweight checkout, falling back to heavyweight").println(Functions.printThrowable(x).trim());
+                                }
+                            }
+                        }
+                    }
+                }
+                throw new AbortException("‘readTrusted’ is only available when using “" +
+                    Jenkins.getActiveInstance().getDescriptorByType(WorkflowMultiBranchProject.DescriptorImpl.class).getDisplayName() +
+                    "” or “" + Jenkins.getActiveInstance().getDescriptorByType(CpsScmFlowDefinition.DescriptorImpl.class).getDisplayName() + "”");
+            }
             Node node = Jenkins.getActiveInstance();
             FilePath dir;
             if (job instanceof TopLevelItem) {
@@ -103,78 +133,79 @@ public class ReadTrustedStep extends AbstractStepImpl {
             if (computer == null) {
                 throw new IOException(node.getDisplayName() + " may be offline");
             }
-            WorkspaceList.Lease lease = computer.getWorkspaceList().acquire(dir);
-            try {
-                // Adapted from SCMBinder:
-                BranchJobProperty property = job.getProperty(BranchJobProperty.class);
-                if (property == null) {
-                    // As in SCMVar:
-                    if (job instanceof WorkflowJob) {
-                        FlowDefinition defn = ((WorkflowJob) job).getDefinition();
-                        if (defn instanceof CpsScmFlowDefinition) {
-                            // JENKINS-31386: retrofit to work with standalone projects, without doing any trust checks.
-                            SCMStep delegate = new GenericSCMStep(((CpsScmFlowDefinition) defn).getScm());
-                            delegate.setPoll(true);
-                            delegate.setChangelog(true);
-                            delegate.checkout(build, dir, listener, node.createLauncher(listener));
-                            if (!file.exists()) {
-                                throw new AbortException(file + " not found");
-                            }
-                            return file.readToString();
-                        }
-                    }
-                    throw new AbortException("‘readTrusted’ is only available when using “" +
-                        Jenkins.getActiveInstance().getDescriptorByType(WorkflowMultiBranchProject.DescriptorImpl.class).getDisplayName() +
-                        "” or “" + Jenkins.getActiveInstance().getDescriptorByType(CpsScmFlowDefinition.DescriptorImpl.class).getDisplayName() + "”");
-                }
-                Branch branch = property.getBranch();
-                ItemGroup<?> parent = job.getParent();
-                if (!(parent instanceof WorkflowMultiBranchProject)) {
-                    throw new IllegalStateException("inappropriate context");
-                }
-                SCMSource scmSource = ((WorkflowMultiBranchProject) parent).getSCMSource(branch.getSourceId());
-                if (scmSource == null) {
-                    throw new IllegalStateException(branch.getSourceId() + " not found");
-                }
-                SCMHead head = branch.getHead();
-                SCMRevision tip;
-                SCMRevisionAction action = build.getAction(SCMRevisionAction.class);
-                if (action != null) {
-                    tip = action.getRevision();
-                } else {
-                    tip = scmSource.fetch(head, listener);
-                    if (tip == null) {
-                        throw new AbortException("Could not determine exact tip revision of " + branch.getName());
-                    }
-                    build.addAction(new SCMRevisionAction(tip));
-                }
-                SCMRevision trusted = scmSource.getTrustedRevision(tip, listener);
-                String untrustedFile = null;
-                if (!tip.equals(trusted)) {
-                    SCMStep delegate = new GenericSCMStep(scmSource.build(head, tip));
-                    delegate.setPoll(false);
-                    delegate.setChangelog(false);
+            if (standaloneSCM != null) {
+                try (WorkspaceList.Lease lease = computer.getWorkspaceList().acquire(dir)) {
+                    SCMStep delegate = new GenericSCMStep(standaloneSCM);
+                    delegate.setPoll(true);
+                    delegate.setChangelog(true);
                     delegate.checkout(build, dir, listener, node.createLauncher(listener));
                     if (!file.exists()) {
                         throw new AbortException(file + " not found");
                     }
-                    untrustedFile = file.readToString();
+                    return file.readToString();
                 }
-                SCMStep delegate = new GenericSCMStep(scmSource.build(head, trusted));
-                delegate.setPoll(true);
-                delegate.setChangelog(true);
-                delegate.checkout(build, dir, listener, node.createLauncher(listener));
-                if (!file.exists()) {
-                    throw new AbortException(file + " not found");
-                }
-                String content = file.readToString();
-                if (untrustedFile != null && !untrustedFile.equals(content)) {
-                    throw new AbortException(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis(step.path));
-                }
-                return content;
-            } finally {
-                lease.release();
             }
+            Branch branch = property.getBranch();
+            ItemGroup<?> parent = job.getParent();
+            if (!(parent instanceof WorkflowMultiBranchProject)) {
+                throw new IllegalStateException("inappropriate context");
+            }
+            SCMSource scmSource = ((WorkflowMultiBranchProject) parent).getSCMSource(branch.getSourceId());
+            if (scmSource == null) {
+                throw new IllegalStateException(branch.getSourceId() + " not found");
+            }
+            SCMHead head = branch.getHead();
+            SCMRevision tip;
+            SCMRevisionAction action = build.getAction(SCMRevisionAction.class);
+            if (action != null) {
+                tip = action.getRevision();
+            } else {
+                tip = scmSource.fetch(head, listener);
+                if (tip == null) {
+                    throw new AbortException("Could not determine exact tip revision of " + branch.getName());
+                }
+                build.addAction(new SCMRevisionAction(tip));
+            }
+            SCMRevision trusted = scmSource.getTrustedRevision(tip, listener);
+            boolean trustCheck = !tip.equals(trusted);
+            String untrustedFile = null;
+            String content;
+            try (SCMFileSystem tipFS = trustCheck ? SCMFileSystem.of(scmSource, head, tip) : null;
+                 SCMFileSystem trustedFS = SCMFileSystem.of(scmSource, head, trusted)) {
+                if (trustedFS != null && (!trustCheck || tipFS != null)) {
+                    if (trustCheck) {
+                        untrustedFile = tipFS.child(step.path).contentAsString();
+                    }
+                    content = trustedFS.child(step.path).contentAsString();
+                    listener.getLogger().println("Obtained " + step.path + " from " + trusted);
+                } else {
+                    listener.getLogger().println("Checking out " + head.getName() + " to read " + step.path);
+                    try (WorkspaceList.Lease lease = computer.getWorkspaceList().acquire(dir)) {
+                        if (trustCheck) {
+                            SCMStep delegate = new GenericSCMStep(scmSource.build(head, tip));
+                            delegate.setPoll(false);
+                            delegate.setChangelog(false);
+                            delegate.checkout(build, dir, listener, node.createLauncher(listener));
+                            if (!file.exists()) {
+                                throw new AbortException(file + " not found");
+                            }
+                            untrustedFile = file.readToString();
+                        }
+                        SCMStep delegate = new GenericSCMStep(scmSource.build(head, trusted));
+                        delegate.setPoll(true);
+                        delegate.setChangelog(true);
+                        delegate.checkout(build, dir, listener, node.createLauncher(listener));
+                        if (!file.exists()) {
+                            throw new AbortException(file + " not found");
+                        }
+                        content = file.readToString();
+                    }
+                }
+            }
+            if (trustCheck && !untrustedFile.equals(content)) {
+                throw new AbortException(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis(step.path));
+            }
+            return content;
         }
 
         private FilePath getFilePathWithSuffix(FilePath baseWorkspace) {
