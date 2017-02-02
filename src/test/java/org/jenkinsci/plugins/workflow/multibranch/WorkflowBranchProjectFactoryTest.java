@@ -69,7 +69,7 @@ public class WorkflowBranchProjectFactoryTest {
                 WorkflowRun b1 = p.getLastBuild();
                 assertEquals(1, b1.getNumber());
                 story.j.assertLogContains("branch=dev/main", b1);
-                story.j.assertLogContains("workspace=dev-main.k31kdj-SSCMGUHJVTXVXG4UVE57QP7GHWI4I6ARRVP24ZFTXCEC4LQN2AFQ", b1);
+                story.j.assertLogContains("workspace=dev_main-ZFNHWJSHKH4HUVOQUPOQV6WFX7XUPIKIAQAQ3DV7CCAGIXQW7YSA", b1);
                 verifyProject(p);
                 sampleRepo.write("Jenkinsfile", script.replace("branch=", "Branch="));
             }
@@ -83,15 +83,15 @@ public class WorkflowBranchProjectFactoryTest {
                 WorkflowRun b2 = p.getLastBuild();
                 assertEquals(2, b2.getNumber());
                 story.j.assertLogContains("Branch=dev/main", b2);
-                story.j.assertLogContains("workspace=dev-main.k31kdj-SSCMGUHJVTXVXG4UVE57QP7GHWI4I6ARRVP24ZFTXCEC4LQN2AFQ", b2);
+                story.j.assertLogContains("workspace=dev_main-ZFNHWJSHKH4HUVOQUPOQV6WFX7XUPIKIAQAQ3DV7CCAGIXQW7YSA", b2);
                 verifyProject(p);
             }
         });
     }
     private void verifyProject(WorkflowJob p) throws Exception {
-        assertEquals("dev-main.k31kdj", p.getName());
+        assertEquals("dev%2Fmain", p.getName());
         assertEquals("dev/main", p.getDisplayName());
-        assertEquals("p/dev-main.k31kdj", p.getFullName());
+        assertEquals("p/dev%2Fmain", p.getFullName());
         assertEquals("p » dev/main", p.getFullDisplayName());
         story.j.createWebClient().getPage(p);
         assertEquals(new File(new File(p.getParent().getRootDir(), "branches"), "dev-main.k31kdj"), p.getRootDir());

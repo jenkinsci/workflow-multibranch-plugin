@@ -64,7 +64,7 @@ THE SOFTWARE.
     </pluginRepositories>
     <properties>
         <jenkins.version>1.642.3</jenkins.version>
-        <scm-api.version>2.0.1</scm-api.version>
+        <scm-api.version>2.0.2</scm-api.version>
         <no-test-jar>false</no-test-jar>
         <workflow-step-api.version>2.7</workflow-step-api.version>
     </properties>
@@ -102,12 +102,12 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>branch-api</artifactId>
-            <version>2.0.0</version>
+            <version>2.0.2</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>cloudbees-folder</artifactId>
-            <version>5.16</version>
+            <version>5.17</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -186,7 +186,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
-            <version>3.0.2</version>
+            <version>3.0.4</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -204,7 +204,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
-            <version>3.0.2</version>
+            <version>3.0.4</version>
             <classifier>tests</classifier>
             <scope>test</scope>
             <exclusions>
