@@ -28,7 +28,7 @@ THE SOFTWARE.
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>2.19</version>
+        <version>2.21</version>
         <relativePath />
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -87,7 +87,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-job</artifactId>
-            <version>2.7</version>
+            <version>2.10-20170206.194854-4</version> <!-- https://github.com/jenkinsci/workflow-job-plugin/pull/37 -->
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -230,7 +230,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-job</artifactId>
-            <version>2.7</version>
+            <version>2.10-20170206.194854-4</version> <!-- https://github.com/jenkinsci/workflow-job-plugin/pull/37 -->
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
