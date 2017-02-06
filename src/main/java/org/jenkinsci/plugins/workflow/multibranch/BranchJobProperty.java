@@ -71,7 +71,7 @@ public class BranchJobProperty extends WorkflowJobProperty {
                 } else if (permission == Item.DELETE && !(branch instanceof Branch.Dead)) {
                     // allow early manual clean-up of dead branches
                     return false;
-                } else  {
+                } else {
                     return acl.hasPermission(a, permission);
                 }
             }
