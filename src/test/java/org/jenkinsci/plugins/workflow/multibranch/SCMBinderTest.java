@@ -29,6 +29,7 @@ import hudson.Util;
 import hudson.model.Item;
 import hudson.model.Result;
 import hudson.model.TaskListener;
+import hudson.model.User;
 import hudson.plugins.git.util.BuildData;
 import hudson.scm.ChangeLogSet;
 import java.io.File;
@@ -51,6 +52,7 @@ import jenkins.scm.impl.subversion.SubversionSCMSource;
 import static org.hamcrest.Matchers.*;
 
 import jenkins.scm.impl.subversion.SubversionSampleRepoRule;
+import org.acegisecurity.Authentication;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -186,6 +188,7 @@ public class SCMBinderTest {
 
     @Issue("JENKINS-40521")
     @Test public void deletedBranch() throws Exception {
+        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
         sampleGitRepo.init();
         // TODO GitSCMSource offers no way to set a GitSCMExtension such as CleanBeforeCheckout; work around with deleteDir
         // (without cleaning, b2 will succeed since the workspace will still have a cached origin/feature ref)
@@ -204,7 +207,8 @@ public class SCMBinderTest {
         r.waitUntilNoActivity();
         WorkflowRun b1 = p.getLastBuild();
         assertEquals(1, b1.getNumber());
-        assertFalse(p.hasPermission(Item.DELETE));
+        Authentication auth = User.get("dev").impersonate();
+        assertFalse(p.getACL().hasPermission(auth, Item.DELETE));
         assertTrue(p.isBuildable());
         sampleGitRepo.git("checkout", "master");
         sampleGitRepo.git("branch", "-D", "feature");
@@ -218,7 +222,7 @@ public class SCMBinderTest {
         mp.scheduleBuild2(0).getFuture().get();
         WorkflowMultiBranchProjectTest.showIndexing(mp);
         assertEquals(2, mp.getItems().size());
-        assertTrue(p.hasPermission(Item.DELETE));
+        assertTrue(p.getACL().hasPermission(auth, Item.DELETE));
         assertFalse(p.isBuildable());
         mp.setOrphanedItemStrategy(new DefaultOrphanedItemStrategy(true, "", "0"));
         mp.scheduleBuild2(0).getFuture().get();
