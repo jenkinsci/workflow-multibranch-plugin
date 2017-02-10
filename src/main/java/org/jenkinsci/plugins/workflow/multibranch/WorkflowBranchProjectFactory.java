@@ -27,7 +27,6 @@ package org.jenkinsci.plugins.workflow.multibranch;
 import hudson.Extension;
 import hudson.model.TaskListener;
 import java.io.IOException;
-import jenkins.scm.api.SCMProbeStat;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
@@ -36,48 +35,12 @@ import org.kohsuke.stapler.DataBoundConstructor;
 /**
  * Recognizes and builds {@code Jenkinsfile}.
  */
-public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectFactory {
+public class WorkflowBranchProjectFactory extends ConfigurableWorkflowBranchProjectFactory {
     
     static final String SCRIPT = "Jenkinsfile";
 
-    @DataBoundConstructor public WorkflowBranchProjectFactory() {}
-
-    @Override protected FlowDefinition createDefinition() {
-        return new SCMBinder();
-    }
-
-    @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
-        return new SCMSourceCriteria() {
-            @Override public boolean isHead(SCMSourceCriteria.Probe probe, TaskListener listener) throws IOException {
-                SCMProbeStat stat = probe.stat(SCRIPT);
-                switch (stat.getType()) {
-                    case NONEXISTENT:
-                        if (stat.getAlternativePath() != null) {
-                            listener.getLogger().format("      ‘%s’ not found (but found ‘%s’, search is case sensitive)%n", SCRIPT, stat.getAlternativePath());
-                        } else {
-                            listener.getLogger().format("      ‘%s’ not found%n",SCRIPT);
-                        }
-                        return false;
-                    case DIRECTORY:
-                        listener.getLogger().format("      ‘%s’ found but is a directory not a file%n", SCRIPT);
-                        return false;
-                    default:
-                        listener.getLogger().format("      ‘%s’ found%n", SCRIPT);
-                        return true;
-
-                }
-            }
-
-            @Override
-            public int hashCode() {
-                return getClass().hashCode();
-            }
-
-            @Override
-            public boolean equals(Object obj) {
-                return getClass().isInstance(obj);
-            }
-        };
+    @DataBoundConstructor public WorkflowBranchProjectFactory() {
+        super(SCRIPT);
     }
 
     @Extension public static class DescriptorImpl extends AbstractWorkflowBranchProjectFactoryDescriptor {
