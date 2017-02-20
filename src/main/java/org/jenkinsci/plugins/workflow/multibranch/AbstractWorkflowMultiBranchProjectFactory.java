@@ -56,7 +56,7 @@ public abstract class AbstractWorkflowMultiBranchProjectFactory extends MultiBra
         } // otherwise got recognized by something else before, oh well
     }
 
-    protected void customize(WorkflowMultiBranchProject project) throws IOException {}
+    protected void customize(WorkflowMultiBranchProject project) throws IOException, InterruptedException {}
 
     @Extension public static class PerFolderAdder extends TransientActionFactory<OrganizationFolder> {
 
