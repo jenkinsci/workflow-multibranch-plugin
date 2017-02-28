@@ -55,6 +55,9 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
  */
 class SCMBinder extends FlowDefinition {
 
+    /** Kill switch for JENKINS-33273 in case of problems. */
+    static /* not final */ boolean USE_HEAVYWEIGHT_CHECKOUT = Boolean.getBoolean(SCMBinder.class.getName() + ".USE_HEAVYWEIGHT_CHECKOUT"); // TODO 2.4+ use SystemProperties
+
     @Override public FlowExecution create(FlowExecutionOwner handle, TaskListener listener, List<? extends Action> actions) throws Exception {
         Queue.Executable exec = handle.getExecutable();
         if (!(exec instanceof WorkflowRun)) {
@@ -81,7 +84,7 @@ class SCMBinder extends FlowDefinition {
         if (tip != null) {
             build.addAction(new SCMRevisionAction(tip));
             SCMRevision rev = scmSource.getTrustedRevision(tip, listener);
-            try (SCMFileSystem fs = SCMFileSystem.of(scmSource, head, rev)) {
+            try (SCMFileSystem fs = USE_HEAVYWEIGHT_CHECKOUT ? null : SCMFileSystem.of(scmSource, head, rev)) {
                 if (fs != null) { // JENKINS-33273
                     String script = null;
                     try {
