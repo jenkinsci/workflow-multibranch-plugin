@@ -110,7 +110,7 @@ class SCMBinder extends FlowDefinition {
     @Extension public static class DescriptorImpl extends FlowDefinitionDescriptor {
 
         @Override public String getDisplayName() {
-            return "Pipeline script from " + WorkflowBranchProjectFactory.SCRIPT;
+            return "Pipeline from " + WorkflowBranchProjectFactory.SCRIPT;
         }
 
     }
