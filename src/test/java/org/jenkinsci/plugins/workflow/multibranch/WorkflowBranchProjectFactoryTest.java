@@ -94,7 +94,7 @@ public class WorkflowBranchProjectFactoryTest {
         assertEquals("p/dev%2Fmain", p.getFullName());
         assertEquals("p » dev/main", p.getFullDisplayName());
         story.j.createWebClient().getPage(p);
-        assertEquals(new File(new File(p.getParent().getRootDir(), "branches"), "dev%2Fmain"), p.getRootDir());
+        assertEquals(new File(new File(p.getParent().getRootDir(), "branches"), "dev-main.k31kdj"), p.getRootDir());
     }
 
 }

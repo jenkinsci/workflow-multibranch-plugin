@@ -25,9 +25,7 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.model.Result;
-import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
-import jenkins.branch.DefaultBranchPropertyStrategy;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
@@ -55,7 +53,7 @@ public class ReadTrustedStepTest {
         sampleRepo.git("add", "Jenkinsfile", "message");
         sampleRepo.git("commit", "--all", "--message=defined");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new SCMBinderTest.WarySource(null, sampleRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        mp.getSourcesList().add(new BranchSource(new SCMBinderTest.WarySource(null, sampleRepo.toString(), "", "*", "", false)));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
         r.waitUntilNoActivity();
         WorkflowRun b = p.getLastBuild();
@@ -64,6 +62,7 @@ public class ReadTrustedStepTest {
         SCMBinderTest.assertRevisionAction(b);
         r.assertBuildStatusSuccess(b);
         r.assertLogContains("said how do you do", b);
+        r.assertLogContains("Obtained message from ", b);
         String branch = "evil";
         sampleRepo.git("checkout", "-b", branch);
         sampleRepo.write("message", "your father smelt of elderberries");
@@ -76,6 +75,7 @@ public class ReadTrustedStepTest {
         SCMBinderTest.assertRevisionAction(b);
         r.assertBuildStatus(Result.FAILURE, b);
         r.assertLogContains(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis("message"), b);
+        r.assertLogContains("Obtained message from ", b);
         sampleRepo.write("message", "how do you do");
         sampleRepo.write("ignored-message", "I fart in your general direction");
         sampleRepo.git("add", "ignored-message");
@@ -86,6 +86,7 @@ public class ReadTrustedStepTest {
         SCMBinderTest.assertRevisionAction(b);
         r.assertBuildStatusSuccess(b);
         r.assertLogContains("said how do you do", b);
+        r.assertLogContains("Obtained message from ", b);
     }
 
     @Test public void exactRevision() throws Exception {
@@ -96,7 +97,7 @@ public class ReadTrustedStepTest {
         sampleRepo.git("add", "Jenkinsfile", "alpha", "beta");
         sampleRepo.git("commit", "--all", "--message=defined");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new SCMBinderTest.WarySource(null, sampleRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        mp.getSourcesList().add(new BranchSource(new SCMBinderTest.WarySource(null, sampleRepo.toString(), "", "*", "", false)));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
         SemaphoreStep.waitForStart("wait1/1", null);
         WorkflowRun b = p.getLastBuild();
@@ -132,7 +133,7 @@ public class ReadTrustedStepTest {
         sampleRepo.git("add", "Jenkinsfile", "lib.groovy");
         sampleRepo.git("commit", "--all", "--message=defined");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new SCMBinderTest.WarySource(null, sampleRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        mp.getSourcesList().add(new BranchSource(new SCMBinderTest.WarySource(null, sampleRepo.toString(), "", "*", "", false)));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
         r.waitUntilNoActivity();
         WorkflowRun b = p.getLastBuild();
@@ -164,9 +165,13 @@ public class ReadTrustedStepTest {
         sampleRepo.git("add", "Jenkinsfile", "message");
         sampleRepo.git("commit", "--all", "--message=defined");
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
-        p.setDefinition(new CpsScmFlowDefinition(new GitStep(sampleRepo.toString()).createSCM(), "Jenkinsfile"));
+        GitStep step = new GitStep(sampleRepo.toString());
+        step.setCredentialsId("nonexistent"); // TODO work around NPE pending https://github.com/jenkinsci/git-plugin/pull/467
+        p.setDefinition(new CpsScmFlowDefinition(step.createSCM(), "Jenkinsfile"));
+        // TODO after https://github.com/jenkinsci/workflow-cps-plugin/pull/97 could setLightweight(true)
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
         r.assertLogContains("said how do you do", b);
+        r.assertLogContains("Obtained message from git ", b);
     }
 
 }

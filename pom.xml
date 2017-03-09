@@ -28,12 +28,12 @@ THE SOFTWARE.
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>2.19</version>
+        <version>2.21</version>
         <relativePath />
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
     <artifactId>workflow-multibranch</artifactId>
-    <version>2.10-beta-2-SNAPSHOT</version>
+    <version>2.14-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <name>Pipeline: Multibranch</name>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/Pipeline+Multibranch+Plugin</url>
@@ -64,13 +64,30 @@ THE SOFTWARE.
     </pluginRepositories>
     <properties>
         <jenkins.version>1.642.3</jenkins.version>
+        <scm-api.version>2.0.2</scm-api.version>
         <no-test-jar>false</no-test-jar>
+        <workflow-step-api.version>2.7</workflow-step-api.version>
     </properties>
+    <dependencyManagement>
+        <!-- TODO figure out why the version is being forced down to 2.5 without this -->
+        <dependencies>
+            <dependency>
+                <groupId>org.jenkins-ci.plugins.workflow</groupId>
+                <artifactId>workflow-step-api</artifactId>
+                <version>${workflow-step-api.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-step-api</artifactId>
+            <version>${workflow-step-api.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-job</artifactId>
-            <version>2.7</version>
+            <version>2.10</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -80,17 +97,17 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>scm-api</artifactId>
-            <version>2.0.1-beta-1</version>
+            <version>${scm-api.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>branch-api</artifactId>
-            <version>2.0.0-beta-1</version>
+            <version>2.0.7</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>cloudbees-folder</artifactId>
-            <version>5.15</version>
+            <version>5.17</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -106,6 +123,13 @@ THE SOFTWARE.
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>script-security</artifactId>
             <version>1.23</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>scm-api</artifactId>
+            <version>${scm-api.version}</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -134,7 +158,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-step-api</artifactId>
-            <version>2.5</version>
+            <version>${workflow-step-api.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
@@ -162,7 +186,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
-            <version>3.0.0</version>
+            <version>3.0.4</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -180,7 +204,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
-            <version>3.0.0</version>
+            <version>3.0.4</version>
             <classifier>tests</classifier>
             <scope>test</scope>
             <exclusions>
@@ -206,7 +230,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-job</artifactId>
-            <version>2.7</version>
+            <version>2.10</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
