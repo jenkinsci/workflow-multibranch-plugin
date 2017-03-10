@@ -30,6 +30,7 @@ import java.io.IOException;
 import jenkins.scm.api.SCMProbeStat;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -37,19 +38,34 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * Recognizes and builds {@code Jenkinsfile}.
  */
 public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectFactory {
-    
     static final String SCRIPT = "Jenkinsfile";
+    private String scriptPath = SCRIPT;
 
-    @DataBoundConstructor public WorkflowBranchProjectFactory() {}
+    public WorkflowBranchProjectFactory() {
+        this.scriptPath = SCRIPT;
+    }
+
+    @DataBoundConstructor public WorkflowBranchProjectFactory(String scriptPath) {
+        if (StringUtils.isEmpty(scriptPath)) {
+            this.scriptPath = SCRIPT;
+        } else {
+            this.scriptPath = scriptPath;
+        }
+    }
+
+    public String getScriptPath(){
+        return scriptPath;
+    }
+
 
     @Override protected FlowDefinition createDefinition() {
-        return new SCMBinder();
+        return new SCMBinder(scriptPath);
     }
 
     @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
         return new SCMSourceCriteria() {
             @Override public boolean isHead(SCMSourceCriteria.Probe probe, TaskListener listener) throws IOException {
-                SCMProbeStat stat = probe.stat(SCRIPT);
+                SCMProbeStat stat = probe.stat(scriptPath);
                 switch (stat.getType()) {
                     case NONEXISTENT:
                         if (stat.getAlternativePath() != null) {
@@ -81,6 +97,17 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
     }
 
     @Extension public static class DescriptorImpl extends AbstractWorkflowBranchProjectFactoryDescriptor {
+
+        private String scriptPath = SCRIPT;
+
+        public DescriptorImpl(){ this.scriptPath = SCRIPT; }
+
+        @DataBoundConstructor
+        public DescriptorImpl(String scriptPath){ this.scriptPath = scriptPath; }
+
+        public String getScriptPath(){
+            return scriptPath;
+        }
 
         @Override public String getDisplayName() {
             return "by " + SCRIPT;

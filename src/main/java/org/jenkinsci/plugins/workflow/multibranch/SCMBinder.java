@@ -49,6 +49,7 @@ import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * Checks out the desired version of {@link WorkflowBranchProjectFactory#SCRIPT}.
@@ -57,6 +58,11 @@ class SCMBinder extends FlowDefinition {
 
     /** Kill switch for JENKINS-33273 in case of problems. */
     static /* not final */ boolean USE_HEAVYWEIGHT_CHECKOUT = Boolean.getBoolean(SCMBinder.class.getName() + ".USE_HEAVYWEIGHT_CHECKOUT"); // TODO 2.4+ use SystemProperties
+    private String scriptPath;
+
+    public SCMBinder(String scriptPath) {
+        this.scriptPath = scriptPath;
+    }
 
     @Override public FlowExecution create(FlowExecutionOwner handle, TaskListener listener, List<? extends Action> actions) throws Exception {
         Queue.Executable exec = handle.getExecutable();
@@ -88,8 +94,8 @@ class SCMBinder extends FlowDefinition {
                 if (fs != null) { // JENKINS-33273
                     String script = null;
                     try {
-                        script = fs.child(WorkflowBranchProjectFactory.SCRIPT).contentAsString();
-                        listener.getLogger().println("Obtained " + WorkflowBranchProjectFactory.SCRIPT + " from " + rev);
+                        script = fs.child(scriptPath).contentAsString();
+                        listener.getLogger().println("Obtained " + scriptPath + " from " + rev);
                     } catch (IOException | InterruptedException x) {
                         listener.error("Could not do lightweight checkout, falling back to heavyweight").println(Functions.printThrowable(x).trim());
                     }
@@ -104,13 +110,23 @@ class SCMBinder extends FlowDefinition {
             // Build might fail later anyway, but reason should become clear: for example, branch was deleted before indexing could run.
             scm = branch.getScm();
         }
-        return new CpsScmFlowDefinition(scm, WorkflowBranchProjectFactory.SCRIPT).create(handle, listener, actions);
+        return new CpsScmFlowDefinition(scm, scriptPath).create(handle, listener, actions);
     }
 
     @Extension public static class DescriptorImpl extends FlowDefinitionDescriptor {
+        private String scriptPath;
+
+        public DescriptorImpl(){}
+
+        @DataBoundConstructor
+        public DescriptorImpl(String scriptPath){ this.scriptPath = scriptPath; }
+
+        public String getScriptPath(){
+            return scriptPath;
+        }
 
         @Override public String getDisplayName() {
-            return "Pipeline from " + WorkflowBranchProjectFactory.SCRIPT;
+            return "Pipeline from  + multibranch configuration"; // TODO Messages
         }
 
     }
