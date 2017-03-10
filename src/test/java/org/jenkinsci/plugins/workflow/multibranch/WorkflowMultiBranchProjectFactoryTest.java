@@ -59,11 +59,11 @@ public class WorkflowMultiBranchProjectFactoryTest {
     @Test public void smokes() throws Exception {
         File clones = tmp.newFolder();
         sampleRepo1.init();
-        sampleRepo1.write(WorkflowBranchProjectFactory.SCRIPT, "echo 'ran one'");
-        sampleRepo1.git("add", WorkflowBranchProjectFactory.SCRIPT);
+        sampleRepo1.write(WorkflowBranchProjectFactory.JENKINSFILE, "echo 'ran one'");
+        sampleRepo1.git("add", WorkflowBranchProjectFactory.JENKINSFILE);
         sampleRepo1.git("commit", "--all", "--message=flow");
         sampleRepo1.git("clone", ".", new File(clones, "one").getAbsolutePath());
-        sampleRepo3.init(); // but do not write SCRIPT, so should be ignored
+        sampleRepo3.init(); // but do not write JENKINSFILE, so should be ignored
         sampleRepo3.git("clone", ".", new File(clones, "three").getAbsolutePath());
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
         r.jenkins.setAuthorizationStrategy(new FullControlOnceLoggedInAuthorizationStrategy());
@@ -100,8 +100,8 @@ public class WorkflowMultiBranchProjectFactoryTest {
         r.assertLogContains("ran one", b1);
         // Then add a second checkout and reindex:
         sampleRepo2.init();
-        sampleRepo2.write(WorkflowBranchProjectFactory.SCRIPT, "echo 'ran two'");
-        sampleRepo2.git("add", WorkflowBranchProjectFactory.SCRIPT);
+        sampleRepo2.write(WorkflowBranchProjectFactory.JENKINSFILE, "echo 'ran two'");
+        sampleRepo2.git("add", WorkflowBranchProjectFactory.JENKINSFILE);
         sampleRepo2.git("commit", "--all", "--message=flow");
         sampleRepo2.git("clone", ".", new File(clones, "two").getAbsolutePath());
         top.scheduleBuild2(0).getFuture().get();
@@ -116,7 +116,7 @@ public class WorkflowMultiBranchProjectFactoryTest {
         assertEquals(1, b1.getNumber());
         r.assertLogContains("ran two", b1);
         // JENKINS-34246: also delete Jenkinsfile
-        sampleRepo2.git("rm", WorkflowBranchProjectFactory.SCRIPT);
+        sampleRepo2.git("rm", WorkflowBranchProjectFactory.JENKINSFILE);
         sampleRepo2.git("commit", "--message=noflow");
         top.scheduleBuild2(0).getFuture().get();
         top.getComputation().writeWholeLogTo(System.out);

@@ -38,31 +38,39 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectFactory {
     
-    static final String SCRIPT = "Jenkinsfile";
+    static final String JENKINSFILE = "Jenkinsfile";
 
-    @DataBoundConstructor public WorkflowBranchProjectFactory() {}
+    private String scriptPath = JENKINSFILE;
+
+    @DataBoundConstructor public WorkflowBranchProjectFactory(String scriptPath) {
+        this.scriptPath = scriptPath;
+    }
+
+    public String getScriptPath(){
+        return scriptPath;
+    }
 
     @Override protected FlowDefinition createDefinition() {
-        return new SCMBinder(SCRIPT);
+        return new SCMBinder(scriptPath);
     }
 
     @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
         return new SCMSourceCriteria() {
             @Override public boolean isHead(SCMSourceCriteria.Probe probe, TaskListener listener) throws IOException {
-                SCMProbeStat stat = probe.stat(SCRIPT);
+                SCMProbeStat stat = probe.stat(scriptPath);
                 switch (stat.getType()) {
                     case NONEXISTENT:
                         if (stat.getAlternativePath() != null) {
-                            listener.getLogger().format("      ‘%s’ not found (but found ‘%s’, search is case sensitive)%n", SCRIPT, stat.getAlternativePath());
+                            listener.getLogger().format("      ‘%s’ not found (but found ‘%s’, search is case sensitive)%n", scriptPath, stat.getAlternativePath());
                         } else {
-                            listener.getLogger().format("      ‘%s’ not found%n",SCRIPT);
+                            listener.getLogger().format("      ‘%s’ not found%n",scriptPath);
                         }
                         return false;
                     case DIRECTORY:
-                        listener.getLogger().format("      ‘%s’ found but is a directory not a file%n", SCRIPT);
+                        listener.getLogger().format("      ‘%s’ found but is a directory not a file%n", scriptPath);
                         return false;
                     default:
-                        listener.getLogger().format("      ‘%s’ found%n", SCRIPT);
+                        listener.getLogger().format("      ‘%s’ found%n", scriptPath);
                         return true;
 
                 }
@@ -80,10 +88,28 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
         };
     }
 
+    protected Object readResolve(){
+        if(scriptPath == null){
+            scriptPath = JENKINSFILE; //Maintains backwards compat with when scriptPath wasn't stored per job
+        }
+        return this;
+    }
+
     @Extension public static class DescriptorImpl extends AbstractWorkflowBranchProjectFactoryDescriptor {
 
+        private String scriptPath = JENKINSFILE;
+
+        public DescriptorImpl(){}
+
+        @DataBoundConstructor
+        public DescriptorImpl(String scriptPath){ this.scriptPath = scriptPath; }
+
+        public String getScriptPath(){
+            return scriptPath;
+        }
+
         @Override public String getDisplayName() {
-            return "by " + SCRIPT;
+            return Messages.ConfigurableWorkflowBranchProjectFactory_PipelineScript();
         }
 
     }

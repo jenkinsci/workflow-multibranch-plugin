@@ -49,6 +49,8 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import static org.jenkinsci.plugins.workflow.multibranch.WorkflowBranchProjectFactory.JENKINSFILE;
+
 /**
  * Representation of a set of workflows keyed off of source branches.
  */
@@ -66,7 +68,7 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
     }
 
     @Override protected BranchProjectFactory<WorkflowJob,WorkflowRun> newProjectFactory() {
-        return new WorkflowBranchProjectFactory();
+        return new WorkflowBranchProjectFactory(JENKINSFILE);
     }
 
     @Override public SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
@@ -96,7 +98,7 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
         }
 
         @Override public TopLevelItem newInstance(ItemGroup parent, String name) {
-            return new WorkflowMultiBranchProject(parent, name, new WorkflowBranchProjectFactory());
+            return new WorkflowMultiBranchProject(parent, name, new WorkflowBranchProjectFactory(JENKINSFILE));
         }
 
         @Override public boolean isApplicable(Descriptor descriptor) {

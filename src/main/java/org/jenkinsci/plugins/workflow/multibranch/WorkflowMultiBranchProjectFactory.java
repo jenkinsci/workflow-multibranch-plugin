@@ -31,6 +31,8 @@ import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import static org.jenkinsci.plugins.workflow.multibranch.WorkflowBranchProjectFactory.JENKINSFILE;
+
 /**
  * Defines organization folders by {@link WorkflowBranchProjectFactory}.
  */
@@ -61,7 +63,7 @@ public class WorkflowMultiBranchProjectFactory extends AbstractWorkflowMultiBran
         }
 
         @Override public MultiBranchProjectFactory newInstance() {
-            return new WorkflowMultiBranchProjectFactory(factory != null ? factory : new WorkflowBranchProjectFactory());
+            return new WorkflowMultiBranchProjectFactory(factory != null ? factory : new WorkflowBranchProjectFactory(JENKINSFILE));
         }
 
         @Override public String getDisplayName() {
