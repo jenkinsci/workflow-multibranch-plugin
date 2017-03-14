@@ -52,7 +52,7 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * Checks out the desired version of {@link WorkflowBranchProjectFactory#SCRIPT}.
+ * Checks out the desired version of the script referred to by scriptPath.
  */
 class SCMBinder extends FlowDefinition {
 
@@ -114,19 +114,9 @@ class SCMBinder extends FlowDefinition {
     }
 
     @Extension public static class DescriptorImpl extends FlowDefinitionDescriptor {
-        private String scriptPath;
-
-        public DescriptorImpl(){}
-
-        @DataBoundConstructor
-        public DescriptorImpl(String scriptPath){ this.scriptPath = scriptPath; }
-
-        public String getScriptPath(){
-            return scriptPath;
-        }
 
         @Override public String getDisplayName() {
-            return "Pipeline from  + multibranch configuration"; // TODO Messages
+            return "Pipeline from multibranch configuration";
         }
 
     }

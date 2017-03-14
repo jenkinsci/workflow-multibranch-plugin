@@ -69,16 +69,16 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
                 switch (stat.getType()) {
                     case NONEXISTENT:
                         if (stat.getAlternativePath() != null) {
-                            listener.getLogger().format("      ‘%s’ not found (but found ‘%s’, search is case sensitive)%n", SCRIPT, stat.getAlternativePath());
+                            listener.getLogger().format("      ‘%s’ not found (but found ‘%s’, search is case sensitive)%n", scriptPath, stat.getAlternativePath());
                         } else {
-                            listener.getLogger().format("      ‘%s’ not found%n",SCRIPT);
+                            listener.getLogger().format("      ‘%s’ not found%n", scriptPath);
                         }
                         return false;
                     case DIRECTORY:
-                        listener.getLogger().format("      ‘%s’ found but is a directory not a file%n", SCRIPT);
+                        listener.getLogger().format("      ‘%s’ found but is a directory not a file%n", scriptPath);
                         return false;
                     default:
-                        listener.getLogger().format("      ‘%s’ found%n", SCRIPT);
+                        listener.getLogger().format("      ‘%s’ found%n", scriptPath);
                         return true;
 
                 }
