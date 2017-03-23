@@ -212,7 +212,9 @@ public class WorkflowMultiBranchProjectTest {
         for (SCMSource source : mp.getSCMSources()) {
             assertEquals(mp, source.getOwner());
         }
-        mp.setProjectFactory(new WorkflowBranchProjectFactory("another-Jenkinsfile"));
+        WorkflowBranchProjectFactory projectFactory = new WorkflowBranchProjectFactory();
+        projectFactory.setScriptPath("another-Jenkinsfile");
+        mp.setProjectFactory(projectFactory);
 
         sampleRepo.write("file","initial commit");
         sampleRepo.git("commit", "--all", "--message=init-master");

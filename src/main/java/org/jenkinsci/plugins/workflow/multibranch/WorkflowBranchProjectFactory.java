@@ -33,6 +33,7 @@ import jenkins.scm.api.SCMSourceCriteria;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * Recognizes and builds {@code Jenkinsfile}.
@@ -41,11 +42,12 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
     static final String SCRIPT = "Jenkinsfile";
     private String scriptPath = SCRIPT;
 
-    public WorkflowBranchProjectFactory() {
+    @DataBoundConstructor public WorkflowBranchProjectFactory() {
         this.scriptPath = SCRIPT;
     }
 
-    @DataBoundConstructor public WorkflowBranchProjectFactory(String scriptPath) {
+    @DataBoundSetter
+    public void setScriptPath(String scriptPath) {
         if (StringUtils.isEmpty(scriptPath)) {
             this.scriptPath = SCRIPT;
         } else {
@@ -56,7 +58,6 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
     public String getScriptPath(){
         return scriptPath;
     }
-
 
     @Override protected FlowDefinition createDefinition() {
         return new SCMBinder(scriptPath);
@@ -97,17 +98,6 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
     }
 
     @Extension public static class DescriptorImpl extends AbstractWorkflowBranchProjectFactoryDescriptor {
-
-        private String scriptPath = SCRIPT;
-
-        public DescriptorImpl(){ this.scriptPath = SCRIPT; }
-
-        @DataBoundConstructor
-        public DescriptorImpl(String scriptPath){ this.scriptPath = scriptPath; }
-
-        public String getScriptPath(){
-            return scriptPath;
-        }
 
         @Override public String getDisplayName() {
             return "by " + SCRIPT;

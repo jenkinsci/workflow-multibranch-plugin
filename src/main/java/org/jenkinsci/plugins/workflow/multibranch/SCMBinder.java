@@ -49,7 +49,6 @@ import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * Checks out the desired version of the script referred to by scriptPath.
