@@ -42,9 +42,7 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
     static final String SCRIPT = "Jenkinsfile";
     private String scriptPath = SCRIPT;
 
-    @DataBoundConstructor public WorkflowBranchProjectFactory() {
-        this.scriptPath = SCRIPT;
-    }
+    @DataBoundConstructor public WorkflowBranchProjectFactory() { }
 
     @DataBoundSetter
     public void setScriptPath(String scriptPath) {
