@@ -30,16 +30,25 @@ import jenkins.branch.MultiBranchProjectFactoryDescriptor;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * Defines organization folders by {@link WorkflowBranchProjectFactory}.
  */
 public class WorkflowMultiBranchProjectFactory extends AbstractWorkflowMultiBranchProjectFactory {
+    private String scriptPath = WorkflowBranchProjectFactory.SCRIPT;
+
+    @DataBoundSetter
+    public void setScriptPath(String scriptPath) {
+        this.scriptPath = scriptPath;
+    }
 
     @DataBoundConstructor public WorkflowMultiBranchProjectFactory() {}
 
     @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
-        return new WorkflowBranchProjectFactory().getSCMSourceCriteria(source);
+        WorkflowBranchProjectFactory workflowBranchProjectFactory = new WorkflowBranchProjectFactory();
+        workflowBranchProjectFactory.setScriptPath(scriptPath);
+        return workflowBranchProjectFactory.getSCMSourceCriteria(source);
     }
 
     @Extension public static class DescriptorImpl extends MultiBranchProjectFactoryDescriptor {
