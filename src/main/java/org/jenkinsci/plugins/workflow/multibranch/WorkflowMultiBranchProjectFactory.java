@@ -31,23 +31,28 @@ import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import java.io.IOException;
 
 /**
  * Defines organization folders by {@link WorkflowBranchProjectFactory}.
  */
 public class WorkflowMultiBranchProjectFactory extends AbstractWorkflowMultiBranchProjectFactory {
     private String scriptPath = WorkflowBranchProjectFactory.SCRIPT;
+    private WorkflowBranchProjectFactory workflowBranchProjectFactory;
 
     @DataBoundSetter
     public void setScriptPath(String scriptPath) {
         this.scriptPath = scriptPath;
+        workflowBranchProjectFactory.setScriptPath(scriptPath);
     }
 
-    @DataBoundConstructor public WorkflowMultiBranchProjectFactory() {}
+    public String getScriptPath() { return scriptPath; }
+
+    @DataBoundConstructor public WorkflowMultiBranchProjectFactory() {
+        workflowBranchProjectFactory = new WorkflowBranchProjectFactory();
+    }
 
     @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
-        WorkflowBranchProjectFactory workflowBranchProjectFactory = new WorkflowBranchProjectFactory();
-        workflowBranchProjectFactory.setScriptPath(scriptPath);
         return workflowBranchProjectFactory.getSCMSourceCriteria(source);
     }
 
@@ -63,4 +68,8 @@ public class WorkflowMultiBranchProjectFactory extends AbstractWorkflowMultiBran
 
     }
 
+    @Override
+    protected void customize(WorkflowMultiBranchProject project) throws IOException, InterruptedException {
+        project.setProjectFactory(workflowBranchProjectFactory);
+    }
 }
