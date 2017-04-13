@@ -37,16 +37,14 @@ import java.io.IOException;
  * Defines organization folders by {@link WorkflowBranchProjectFactory}.
  */
 public class WorkflowMultiBranchProjectFactory extends AbstractWorkflowMultiBranchProjectFactory {
-    private String scriptPath = WorkflowBranchProjectFactory.SCRIPT;
     private WorkflowBranchProjectFactory workflowBranchProjectFactory;
 
     @DataBoundSetter
     public void setScriptPath(String scriptPath) {
-        this.scriptPath = scriptPath;
         workflowBranchProjectFactory.setScriptPath(scriptPath);
     }
 
-    public String getScriptPath() { return scriptPath; }
+    public String getScriptPath() { return workflowBranchProjectFactory.getScriptPath(); }
 
     @DataBoundConstructor public WorkflowMultiBranchProjectFactory() {
         workflowBranchProjectFactory = new WorkflowBranchProjectFactory();
