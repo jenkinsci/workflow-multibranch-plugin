@@ -29,6 +29,7 @@ import jenkins.branch.MultiBranchProjectFactory;
 import jenkins.branch.MultiBranchProjectFactoryDescriptor;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import java.io.IOException;
@@ -37,21 +38,29 @@ import java.io.IOException;
  * Defines organization folders by {@link WorkflowBranchProjectFactory}.
  */
 public class WorkflowMultiBranchProjectFactory extends AbstractWorkflowMultiBranchProjectFactory {
-    private WorkflowBranchProjectFactory workflowBranchProjectFactory;
+    private String scriptPath = WorkflowBranchProjectFactory.SCRIPT;
 
     @DataBoundSetter
     public void setScriptPath(String scriptPath) {
-        workflowBranchProjectFactory.setScriptPath(scriptPath);
+        if (StringUtils.isEmpty(scriptPath)) {
+            this.scriptPath = WorkflowBranchProjectFactory.SCRIPT;
+        } else {
+            this.scriptPath = scriptPath;
+        }
     }
 
-    public String getScriptPath() { return workflowBranchProjectFactory.getScriptPath(); }
+    public String getScriptPath() { return scriptPath; }
 
-    @DataBoundConstructor public WorkflowMultiBranchProjectFactory() {
-        workflowBranchProjectFactory = new WorkflowBranchProjectFactory();
-    }
+    @DataBoundConstructor public WorkflowMultiBranchProjectFactory() { }
 
     @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
-        return workflowBranchProjectFactory.getSCMSourceCriteria(source);
+        return newProjectFactory().getSCMSourceCriteria(source);
+    }
+
+    private AbstractWorkflowBranchProjectFactory newProjectFactory() {
+        WorkflowBranchProjectFactory workflowBranchProjectFactory = new WorkflowBranchProjectFactory();
+        workflowBranchProjectFactory.setScriptPath(scriptPath);
+        return workflowBranchProjectFactory;
     }
 
     @Extension public static class DescriptorImpl extends MultiBranchProjectFactoryDescriptor {
@@ -68,6 +77,6 @@ public class WorkflowMultiBranchProjectFactory extends AbstractWorkflowMultiBran
 
     @Override
     protected void customize(WorkflowMultiBranchProject project) throws IOException, InterruptedException {
-        project.setProjectFactory(workflowBranchProjectFactory);
+        project.setProjectFactory(newProjectFactory());
     }
 }
