@@ -45,6 +45,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.BuildWatcher;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class WorkflowMultiBranchProjectFactoryTest {
@@ -123,4 +124,67 @@ public class WorkflowMultiBranchProjectFactoryTest {
         assertEquals(1, top.getItems().size());
     }
 
+    @Issue("JENKINS-34561")
+    @Test public void configuredScriptName() throws Exception {
+        String alternativeJenkinsFileName = "alternative_Jenkinsfile_name.groovy";
+
+        File clones = tmp.newFolder();
+        sampleRepo1.init();
+        sampleRepo1.write(WorkflowBranchProjectFactory.SCRIPT,
+                "echo 'echo from " + WorkflowBranchProjectFactory.SCRIPT + "'");
+        sampleRepo1.git("add", WorkflowBranchProjectFactory.SCRIPT);
+        sampleRepo1.git("commit", "--all", "--message=flow");
+        String repoWithJenkinsfile = "repo_with_jenkinsfile";
+        sampleRepo1.git("clone", ".", new File(clones, repoWithJenkinsfile).getAbsolutePath());
+
+        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+        r.jenkins.setAuthorizationStrategy(new FullControlOnceLoggedInAuthorizationStrategy());
+        OrganizationFolder top = r.jenkins.createProject(OrganizationFolder.class, "top");
+        top.getNavigators().add(new GitDirectorySCMNavigator(clones.getAbsolutePath()));
+        top.scheduleBuild2(0).getFuture().get();
+        top.getComputation().writeWholeLogTo(System.out);
+        assertEquals(1, top.getItems().size());
+
+        // Make sure we created one multibranch project:
+        top.scheduleBuild2(0).getFuture().get();
+        top.getComputation().writeWholeLogTo(System.out);
+        assertEquals(1, top.getItems().size());
+        MultiBranchProject<?,?> projectFromJenkinsfile = top.getItem(repoWithJenkinsfile);
+        assertThat(projectFromJenkinsfile, is(instanceOf(WorkflowMultiBranchProject.class)));
+
+        // Check that the 'Jenkinsfile' project works:
+        r.waitUntilNoActivity();
+        WorkflowJob p = WorkflowMultiBranchProjectTest.findBranchProject((WorkflowMultiBranchProject) projectFromJenkinsfile, "master");
+        WorkflowRun b1 = p.getLastBuild();
+        assertEquals(1, b1.getNumber());
+        r.assertLogContains("echo from Jenkinsfile", b1);
+
+        // add second Project Recognizer with alternative Jenkinsfile name to organization folder
+        WorkflowMultiBranchProjectFactory workflowMultiBranchProjectFactory = new WorkflowMultiBranchProjectFactory();
+        workflowMultiBranchProjectFactory.setScriptPath(alternativeJenkinsFileName);
+        top.getProjectFactories().add(workflowMultiBranchProjectFactory);
+
+        // Then add a second checkout and reindex:
+        sampleRepo2.init();
+        sampleRepo2.write(alternativeJenkinsFileName,
+                "echo 'echo from " + alternativeJenkinsFileName + "'");
+        sampleRepo2.git("add", alternativeJenkinsFileName);
+        sampleRepo2.git("commit", "--all", "--message=flow");
+        String repoWithAlternativeJenkinsfile = "repo_with_alternative_jenkinsfile";
+        sampleRepo2.git("clone", ".", new File(clones, repoWithAlternativeJenkinsfile).getAbsolutePath());
+
+        // Make sure we created two multibranch projects:
+        top.scheduleBuild2(0).getFuture().get();
+        top.getComputation().writeWholeLogTo(System.out);
+        assertEquals(2, top.getItems().size());
+
+        // Check that the 'alternative_Jenkinsfile_name' project works:
+        MultiBranchProject<?,?> projectFromAlternativeJenkinsFile = top.getItem(repoWithAlternativeJenkinsfile);
+        assertThat(projectFromAlternativeJenkinsFile, is(instanceOf(WorkflowMultiBranchProject.class)));
+        r.waitUntilNoActivity();
+        p = WorkflowMultiBranchProjectTest.findBranchProject((WorkflowMultiBranchProject) projectFromAlternativeJenkinsFile, "master");
+        b1 = p.getLastBuild();
+        assertEquals(1, b1.getNumber());
+        r.assertLogContains("echo from alternative_Jenkinsfile_name", b1);
+    }
 }
