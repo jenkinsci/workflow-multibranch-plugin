@@ -41,7 +41,7 @@ THE SOFTWARE.
     <licenses>
         <license>
             <name>MIT License</name>
-            <url>http://opensource.org/licenses/MIT</url>
+            <url>https://opensource.org/licenses/MIT</url>
         </license>
     </licenses>
     <scm>
@@ -53,13 +53,13 @@ THE SOFTWARE.
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>
-            <url>http://repo.jenkins-ci.org/public/</url>
+            <url>https://repo.jenkins-ci.org/public/</url>
         </repository>
     </repositories>
     <pluginRepositories>
         <pluginRepository>
             <id>repo.jenkins-ci.org</id>
-            <url>http://repo.jenkins-ci.org/public/</url>
+            <url>https://repo.jenkins-ci.org/public/</url>
         </pluginRepository>
     </pluginRepositories>
     <properties>
@@ -67,6 +67,7 @@ THE SOFTWARE.
         <scm-api.version>2.0.7</scm-api.version>
         <no-test-jar>false</no-test-jar>
         <workflow-step-api.version>2.9</workflow-step-api.version>
+        <workflow-scm-step-plugin.version>2.4</workflow-scm-step-plugin.version>
     </properties>
     <dependencies>
         <dependency>
@@ -107,7 +108,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-scm-step</artifactId>
-            <version>2.2</version>
+            <version>${workflow-scm-step-plugin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -169,7 +170,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-scm-step</artifactId>
-            <version>2.2</version>
+            <version>${workflow-scm-step-plugin.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
