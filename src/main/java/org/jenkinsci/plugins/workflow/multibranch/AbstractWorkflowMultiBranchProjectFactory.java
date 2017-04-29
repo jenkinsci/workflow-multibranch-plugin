@@ -44,7 +44,7 @@ import org.jenkinsci.plugins.workflow.cps.Snippetizer;
  */
 public abstract class AbstractWorkflowMultiBranchProjectFactory extends MultiBranchProjectFactory.BySCMSourceCriteria {
 
-    @Override protected final WorkflowMultiBranchProject doCreateProject(ItemGroup<?> parent, String name, Map<String,Object> attributes) {
+    @Override protected final WorkflowMultiBranchProject doCreateProject(ItemGroup<?> parent, String name, Map<String,Object> attributes) throws IOException, InterruptedException {
         WorkflowMultiBranchProject project = new WorkflowMultiBranchProject(parent, name);
         customize(project);
         return project;
@@ -56,7 +56,7 @@ public abstract class AbstractWorkflowMultiBranchProjectFactory extends MultiBra
         } // otherwise got recognized by something else before, oh well
     }
 
-    protected void customize(WorkflowMultiBranchProject project) {}
+    protected void customize(WorkflowMultiBranchProject project) throws IOException, InterruptedException {}
 
     @Extension public static class PerFolderAdder extends TransientActionFactory<OrganizationFolder> {
 

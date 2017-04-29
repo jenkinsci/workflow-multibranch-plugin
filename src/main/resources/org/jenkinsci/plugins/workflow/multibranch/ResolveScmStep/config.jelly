@@ -2,7 +2,7 @@
 <!--
 The MIT License
 
-Copyright 2015 CloudBees, Inc.
+Copyright 2017 CloudBees, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,10 +24,24 @@ THE SOFTWARE.
 -->
 
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core">
-    Represents the SCM configuration in a multibranch project build.
-    Use <code>checkout scm</code> to check out sources matching <code>Jenkinsfile</code>.
-    <br/>You may also use this in a standalone project configured with <i>Pipeline from SCM</i>,
-    though in that case the checkout will just be of the latest revision in the branch,
-    possibly newer than the revision from which the Pipeline was loaded.
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+  <f:dropdownDescriptorSelector field="source" title="${%Source}"/>
+  <f:entry field="targets" title="${%Targets}">
+    <f:repeatable name="${targets}" var="targets"
+                  items="${instance.targets}" minimum="1" add="${%Add target}">
+      <table width="100%">
+        <tr>
+          <td width="80%">
+            <f:textbox name="target"/>
+          </td>
+          <td width="auto">
+            <f:repeatableDeleteButton/>
+          </td>
+        </tr>
+      </table>
+    </f:repeatable>
+  </f:entry>
+  <f:entry field="ignoreErrors" title="${%Ignore Errors}">
+    <f:checkbox />
+  </f:entry>
 </j:jelly>

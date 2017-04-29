@@ -54,12 +54,10 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.impl.SingleSCMSource;
 import static org.hamcrest.Matchers.*;
-import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import static org.junit.Assert.*;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
@@ -94,7 +92,6 @@ public class WorkflowMultiBranchProjectTest {
         r.assertLogContains("branch=master", b1);
         sampleRepo.git("checkout", "-b", "feature");
         sampleRepo.write("Jenkinsfile", "echo \"branch=${env.BRANCH_NAME}\"; node {checkout scm; echo readFile('file').toUpperCase()}");
-        ScriptApproval.get().approveSignature("method java.lang.String toUpperCase");
         sampleRepo.write("file", "subsequent content");
         sampleRepo.git("commit", "--all", "--message=tweaked");
         p = scheduleAndFindBranchProject(mp, "feature");
@@ -179,7 +176,6 @@ public class WorkflowMultiBranchProjectTest {
         }
     }
 
-    @Ignore("TODO cloudbees-folder 5.5+")
     @Issue("JENKINS-32179")
     @Test public void conflictingBranches() throws Exception {
         sampleRepo.init();

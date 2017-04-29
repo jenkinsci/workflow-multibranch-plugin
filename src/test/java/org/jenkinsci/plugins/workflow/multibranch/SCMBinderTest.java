@@ -24,10 +24,12 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import com.cloudbees.hudson.plugins.folder.computed.DefaultOrphanedItemStrategy;
 import hudson.Util;
-import hudson.model.Descriptor;
+import hudson.model.Item;
 import hudson.model.Result;
 import hudson.model.TaskListener;
+import hudson.model.User;
 import hudson.plugins.git.util.BuildData;
 import hudson.scm.ChangeLogSet;
 import java.io.File;
@@ -37,9 +39,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
-import jenkins.branch.DefaultBranchPropertyStrategy;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.GitSCMSource;
@@ -47,11 +47,12 @@ import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
-import jenkins.scm.api.SCMSource;
+import jenkins.scm.api.SCMSourceDescriptor;
 import jenkins.scm.impl.subversion.SubversionSCMSource;
 import static org.hamcrest.Matchers.*;
 
 import jenkins.scm.impl.subversion.SubversionSampleRepoRule;
+import org.acegisecurity.Authentication;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -61,6 +62,7 @@ import static org.junit.Assert.*;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.jvnet.hudson.test.BuildWatcher;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 public class SCMBinderTest {
@@ -80,15 +82,15 @@ public class SCMBinderTest {
         sampleGitRepo.git("add", "Jenkinsfile");
         sampleGitRepo.git("commit", "--all", "--message=flow");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false)));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
         SemaphoreStep.waitForStart("wait/1", null);
         WorkflowRun b1 = p.getLastBuild();
         assertNotNull(b1);
         assertEquals(1, b1.getNumber());
         assertRevisionAction(b1);
+        r.assertLogContains("Obtained Jenkinsfile from ", b1);
         sampleGitRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file').toUpperCase()}");
-        sa.approveSignature("method java.lang.String toUpperCase");
         sampleGitRepo.write("file", "subsequent content");
         sampleGitRepo.git("commit", "--all", "--message=tweaked");
         SemaphoreStep.success("wait/1", null);
@@ -117,11 +119,14 @@ public class SCMBinderTest {
         assertNotNull(revisionAction);
         SCMRevision revision = revisionAction.getRevision();
         assertEquals(AbstractGitSCMSource.SCMRevisionImpl.class, revision.getClass());
-        Set<String> expected = new HashSet<String>();
-        for (BuildData data : build.getActions(BuildData.class)) {
-            expected.add(data.lastBuild.marked.getSha1().getName());
+        Set<String> expected = new HashSet<>();
+        List<BuildData> buildDataActions = build.getActions(BuildData.class);
+        if (!buildDataActions.isEmpty()) { // i.e., we have run at least one checkout step, or done a heavyweight checkout to get a single file
+            for (BuildData data : buildDataActions) {
+                expected.add(data.lastBuild.marked.getSha1().getName());
+            }
+            assertThat(expected, hasItem(((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash()));
         }
-        assertThat(expected, hasItem(((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash()));
     }
 
     @Test public void exactRevisionSubversion() throws Exception {
@@ -131,19 +136,18 @@ public class SCMBinderTest {
         sa.approveSignature("method com.thoughtworks.xstream.XStream toXML java.lang.Object");
         sampleSvnRepo.write("Jenkinsfile", "echo hudson.model.Items.XSTREAM2.toXML(scm); semaphore 'wait'; node {checkout scm; echo readFile('file')}");
         sampleSvnRepo.write("file", "initial content");
-        sampleSvnRepo.svn("add", "Jenkinsfile");
-        sampleSvnRepo.svn("commit", "--message=flow");
+        sampleSvnRepo.svnkit("add", sampleSvnRepo.wc() + "/Jenkinsfile");
+        sampleSvnRepo.svnkit("commit", "--message=flow", sampleSvnRepo.wc());
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new SubversionSCMSource(null, sampleSvnRepo.prjUrl(), null, null, null), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        mp.getSourcesList().add(new BranchSource(new SubversionSCMSource(null, sampleSvnRepo.prjUrl())));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "trunk");
         SemaphoreStep.waitForStart("wait/1", null);
         WorkflowRun b1 = p.getLastBuild();
         assertNotNull(b1);
         assertEquals(1, b1.getNumber());
         sampleSvnRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file').toUpperCase()}");
-        sa.approveSignature("method java.lang.String toUpperCase");
         sampleSvnRepo.write("file", "subsequent content");
-        sampleSvnRepo.svn("commit", "--message=tweaked");
+        sampleSvnRepo.svnkit("commit", "--message=tweaked", sampleSvnRepo.wc());
         SemaphoreStep.success("wait/1", null);
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
         assertEquals(2, b2.getNumber());
@@ -170,7 +174,7 @@ public class SCMBinderTest {
         sampleGitRepo.git("add", "Jenkinsfile");
         sampleGitRepo.git("commit", "--all", "--message=flow");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false)));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
         assertEquals(1, mp.getItems().size());
         r.waitUntilNoActivity();
@@ -182,7 +186,9 @@ public class SCMBinderTest {
         r.assertLogContains("Jenkinsfile not found", b2);
     }
 
+    @Issue("JENKINS-40521")
     @Test public void deletedBranch() throws Exception {
+        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
         sampleGitRepo.init();
         // TODO GitSCMSource offers no way to set a GitSCMExtension such as CleanBeforeCheckout; work around with deleteDir
         // (without cleaning, b2 will succeed since the workspace will still have a cached origin/feature ref)
@@ -194,12 +200,16 @@ public class SCMBinderTest {
         sampleGitRepo.git("add", "somefile");
         sampleGitRepo.git("commit", "--all", "--message=tweaked");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false)));
+        mp.setOrphanedItemStrategy(new DefaultOrphanedItemStrategy(false, "", ""));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "feature");
         assertEquals(2, mp.getItems().size());
         r.waitUntilNoActivity();
         WorkflowRun b1 = p.getLastBuild();
         assertEquals(1, b1.getNumber());
+        Authentication auth = User.get("dev").impersonate();
+        assertFalse(p.getACL().hasPermission(auth, Item.DELETE));
+        assertTrue(p.isBuildable());
         sampleGitRepo.git("checkout", "master");
         sampleGitRepo.git("branch", "-D", "feature");
         { // TODO AbstractGitSCMSource.retrieve(SCMHead, TaskListener) is incorrect: after fetching remote refs into the cache,
@@ -208,8 +218,15 @@ public class SCMBinderTest {
         }
         WorkflowRun b2 = r.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get());
         r.assertLogContains("nondeterministic checkout", b2); // SCMBinder
-        r.assertLogContains("any revision to build", b2); // checkout scm
+        r.assertLogContains("Could not determine exact tip revision of feature", b2); // SCMVar
         mp.scheduleBuild2(0).getFuture().get();
+        WorkflowMultiBranchProjectTest.showIndexing(mp);
+        assertEquals(2, mp.getItems().size());
+        assertTrue(p.getACL().hasPermission(auth, Item.DELETE));
+        assertFalse(p.isBuildable());
+        mp.setOrphanedItemStrategy(new DefaultOrphanedItemStrategy(true, "", "0"));
+        mp.scheduleBuild2(0).getFuture().get();
+        WorkflowMultiBranchProjectTest.showIndexing(mp);
         assertEquals(1, mp.getItems().size());
     }
 
@@ -220,7 +237,7 @@ public class SCMBinderTest {
         sampleGitRepo.git("add", "Jenkinsfile");
         sampleGitRepo.git("commit", "--all", "--message=flow");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new WarySource(null, sampleGitRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        mp.getSourcesList().add(new BranchSource(new WarySource(null, sampleGitRepo.toString(), "", "*", "", false)));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
         r.waitUntilNoActivity();
         WorkflowRun b = p.getLastBuild();
@@ -257,7 +274,7 @@ public class SCMBinderTest {
                 return fetch(new SCMHead("master"), listener);
             }
         }
-        @Override public Descriptor<SCMSource> getDescriptor() {
+        @Override public SCMSourceDescriptor getDescriptor() {
             return Jenkins.getInstance().getDescriptorByType(GitSCMSource.DescriptorImpl.class);
         }
     }

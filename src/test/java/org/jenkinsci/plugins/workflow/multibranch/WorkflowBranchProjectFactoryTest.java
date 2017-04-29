@@ -25,12 +25,9 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import java.io.File;
-import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
-import jenkins.branch.DefaultBranchPropertyStrategy;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
-import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
@@ -55,7 +52,6 @@ public class WorkflowBranchProjectFactoryTest {
             @Override public void evaluate() throws Throwable {
                 sampleRepo.init();
                 sampleRepo.git("checkout", "-b", "dev/main");
-                ScriptApproval.get().approveSignature("method java.lang.String replaceFirst java.lang.String java.lang.String"); // TODO add to generic-whitelist
                 String script =
                     "echo \"branch=${env.BRANCH_NAME}\"\n" +
                     "node {\n" +
@@ -66,14 +62,14 @@ public class WorkflowBranchProjectFactoryTest {
                 sampleRepo.git("add", "Jenkinsfile");
                 sampleRepo.git("commit", "--all", "--message=flow");
                 WorkflowMultiBranchProject mp = story.j.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-                mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+                mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false)));
                 WorkflowJob p = scheduleAndFindBranchProject(mp, "dev%2Fmain");
                 assertEquals(1, mp.getItems().size());
                 story.j.waitUntilNoActivity();
                 WorkflowRun b1 = p.getLastBuild();
                 assertEquals(1, b1.getNumber());
                 story.j.assertLogContains("branch=dev/main", b1);
-                story.j.assertLogContains("workspace=dev%2Fmain", b1);
+                story.j.assertLogContains("workspace=dev_main-ZFNHWJSHKH4HUVOQUPOQV6WFX7XUPIKIAQAQ3DV7CCAGIXQW7YSA", b1);
                 verifyProject(p);
                 sampleRepo.write("Jenkinsfile", script.replace("branch=", "Branch="));
             }
@@ -87,7 +83,7 @@ public class WorkflowBranchProjectFactoryTest {
                 WorkflowRun b2 = p.getLastBuild();
                 assertEquals(2, b2.getNumber());
                 story.j.assertLogContains("Branch=dev/main", b2);
-                story.j.assertLogContains("workspace=dev%2Fmain", b2);
+                story.j.assertLogContains("workspace=dev_main-ZFNHWJSHKH4HUVOQUPOQV6WFX7XUPIKIAQAQ3DV7CCAGIXQW7YSA", b2);
                 verifyProject(p);
             }
         });
@@ -98,7 +94,7 @@ public class WorkflowBranchProjectFactoryTest {
         assertEquals("p/dev%2Fmain", p.getFullName());
         assertEquals("p » dev/main", p.getFullDisplayName());
         story.j.createWebClient().getPage(p);
-        assertEquals(new File(new File(p.getParent().getRootDir(), "branches"), "dev%2Fmain"), p.getRootDir());
+        assertEquals(new File(new File(p.getParent().getRootDir(), "branches"), "dev-main.k31kdj"), p.getRootDir());
     }
 
 }
