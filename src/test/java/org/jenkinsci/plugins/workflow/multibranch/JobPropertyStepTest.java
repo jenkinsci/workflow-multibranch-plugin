@@ -114,7 +114,7 @@ public class JobPropertyStepTest {
         List<JobProperty> properties = Collections.<JobProperty>singletonList(new ParametersDefinitionProperty(new BooleanParameterDefinition("flag", true, null)));
         if (HAVE_SYMBOL) {
             // TODO *ParameterDefinition.description ought to be defaulted to null:
-            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([parameters([booleanParam(defaultValue: true, description: '', name: 'flag')])])");
+            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([parameters([booleanParam(defaultValue: true, name: 'flag')])])");
         } else {
             new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'BooleanParameterDefinition', defaultValue: true, name: 'flag']]]])");
         }
