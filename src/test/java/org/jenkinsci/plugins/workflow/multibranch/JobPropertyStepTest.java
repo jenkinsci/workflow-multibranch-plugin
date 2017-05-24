@@ -574,7 +574,7 @@ public class JobPropertyStepTest {
                 "  'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',\n" +
                 "  '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
 
-        if (TimerTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class)) {
+        if (ReverseBuildTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class)) {
             new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([upstream(threshold: 'UNSTABLE', upstreamProjects: 'some-job')])])", null);
             new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([upstream(threshold: 'UNSTABLE', upstreamProjects: 'some-job')])])");
         } else {
