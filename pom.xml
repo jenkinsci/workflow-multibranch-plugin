@@ -68,6 +68,9 @@ THE SOFTWARE.
         <no-test-jar>false</no-test-jar>
         <workflow-step-api.version>2.10</workflow-step-api.version>
         <workflow-scm-step-plugin.version>2.4</workflow-scm-step-plugin.version>
+        <workflow-support.version>2.14</workflow-support.version>
+        <workflow-cps.version>2.32-20170524.171102-1</workflow-cps.version> <!-- TODO: Switch to release after https://github.com/jenkinsci/workflow-cps-plugin/pull/136 is merged and released -->
+
     </properties>
     <dependencies>
         <dependency>
@@ -83,7 +86,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-support</artifactId>
-            <version>2.14</version>
+            <version>${workflow-support.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -93,7 +96,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-cps</artifactId>
-            <version>2.32-20170524.171102-1</version> <!-- TODO: Switch to release after https://github.com/jenkinsci/workflow-cps-plugin/pull/136 is merged and released -->
+            <version>${workflow-cps.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -166,14 +169,14 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-support</artifactId>
-            <version>2.14</version>
+            <version>${workflow-support.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-cps</artifactId>
-            <version>2.19</version>
+            <version>${workflow-cps.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
