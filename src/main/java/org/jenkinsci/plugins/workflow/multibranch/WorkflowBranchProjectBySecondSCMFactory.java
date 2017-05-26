@@ -1,6 +1,7 @@
 /*
  * The MIT License
  *
+ * Copyright 2017 IBM Corporation
  * Copyright 2015 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,47 +26,45 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.Extension;
+import hudson.model.Job;
 import hudson.model.TaskListener;
+import hudson.scm.SCM;
+import hudson.scm.SCMDescriptor;
+
 import java.io.IOException;
-import jenkins.scm.api.SCMProbeStat;
+import java.util.Collection;
+
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
+
+import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.Stapler;
+import org.kohsuke.stapler.StaplerRequest;
 
 /**
- * Recognizes and builds {@code Jenkinsfile}.
+ * Builds all branches unless otherwise filtered.
  */
-public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectFactory {
+public class WorkflowBranchProjectBySecondSCMFactory extends AbstractWorkflowBranchProjectFactory {
+    public final SCM scm;
+    public final String scriptPath;
 
-    static final String SCRIPT = "Jenkinsfile";
-
-    @DataBoundConstructor public WorkflowBranchProjectFactory() {}
+    @DataBoundConstructor public WorkflowBranchProjectBySecondSCMFactory(SCM scm, String scriptPath) {
+        this.scm = scm;
+        this.scriptPath = scriptPath;
+    }
 
     @Override protected FlowDefinition createDefinition() {
-        return new SCMBinder();
+        return new CpsScmFlowDefinition(scm, scriptPath);
     }
 
     @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
         return new SCMSourceCriteria() {
-            @Override public boolean isHead(SCMSourceCriteria.Probe probe, TaskListener listener) throws IOException {
-                SCMProbeStat stat = probe.stat(SCRIPT);
-                switch (stat.getType()) {
-                    case NONEXISTENT:
-                        if (stat.getAlternativePath() != null) {
-                            listener.getLogger().format("      ‘%s’ not found (but found ‘%s’, search is case sensitive)%n", SCRIPT, stat.getAlternativePath());
-                        } else {
-                            listener.getLogger().format("      ‘%s’ not found%n",SCRIPT);
-                        }
-                        return false;
-                    case DIRECTORY:
-                        listener.getLogger().format("      ‘%s’ found but is a directory not a file%n", SCRIPT);
-                        return false;
-                    default:
-                        listener.getLogger().format("      ‘%s’ found%n", SCRIPT);
-                        return true;
+            private static final long serialVersionUID = 1000125077208604613L;
 
-                }
+            @Override public boolean isHead(SCMSourceCriteria.Probe probe, TaskListener listener) throws IOException {
+                return true;
             }
 
             @Override
@@ -83,9 +82,14 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
     @Extension public static class DescriptorImpl extends AbstractWorkflowBranchProjectFactoryDescriptor {
 
         @Override public String getDisplayName() {
-            return "In SCM " + SCRIPT;
+            return "Pipeline Script From External SCM";
         }
 
+        public Collection<? extends SCMDescriptor<?>> getApplicableDescriptors() {
+            StaplerRequest req = Stapler.getCurrentRequest();
+            Job job = req != null ? req.findAncestorObject(Job.class) : null;
+            return job != null ? SCM._for(job) : /* TODO 1.599+ does this for job == null */ SCM.all();
+        }
     }
 
 }
