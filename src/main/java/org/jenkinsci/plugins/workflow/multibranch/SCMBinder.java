@@ -53,7 +53,7 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 /**
  * Checks out the desired version of {@link WorkflowBranchProjectFactory#SCRIPT}.
  */
-class SCMBinder extends FlowDefinition {
+public class SCMBinder extends FlowDefinition {
 
     /** Kill switch for JENKINS-33273 in case of problems. */
     static /* not final */ boolean USE_HEAVYWEIGHT_CHECKOUT = Boolean.getBoolean(SCMBinder.class.getName() + ".USE_HEAVYWEIGHT_CHECKOUT"); // TODO 2.4+ use SystemProperties
