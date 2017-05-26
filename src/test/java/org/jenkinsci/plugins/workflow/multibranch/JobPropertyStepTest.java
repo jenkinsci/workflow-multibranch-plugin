@@ -29,6 +29,7 @@ import hudson.model.BooleanParameterValue;
 import hudson.model.JobProperty;
 import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
+import hudson.model.Result;
 import hudson.model.StringParameterDefinition;
 import hudson.model.StringParameterValue;
 import hudson.model.queue.QueueTaskFuture;
@@ -50,6 +51,7 @@ import jenkins.model.BuildDiscarder;
 import jenkins.model.BuildDiscarderProperty;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
+import jenkins.triggers.ReverseBuildTrigger;
 import org.jenkinsci.Symbol;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
@@ -556,6 +558,28 @@ public class JobPropertyStepTest {
             new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([[$class: 'SCMTrigger', scmpoll_spec: '@daily']])])", null);
             new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([[$class: 'SCMTrigger', scmpoll_spec: '@daily']])])");
             */
+        }
+    }
+
+    @Issue("JENKINS-34464")
+    @Test
+    public void configRoundTripReverseBuildTrigger() throws Exception {
+        List<JobProperty> properties = Collections.<JobProperty>singletonList(new PipelineTriggersJobProperty(Collections.<Trigger>singletonList(new ReverseBuildTrigger("some-job", Result.UNSTABLE))));
+        String snippetJson = "{'propertiesMap': {\n" +
+                "    'stapler-class-bag': 'true',\n" +
+                "    'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'triggers': {\n" +
+                "      'stapler-class-bag': 'true',\n" +
+                "      'jenkins-triggers-ReverseBuildTrigger': { 'threshold': 'UNSTABLE', 'upstreamProjects': 'some-job'}\n" +
+                "    }}},\n" +
+                "  'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',\n" +
+                "  '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
+
+        if (ReverseBuildTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class)) {
+            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([upstream(threshold: 'UNSTABLE', upstreamProjects: 'some-job')])])", null);
+            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([upstream(threshold: 'UNSTABLE', upstreamProjects: 'some-job')])])");
+        } else {
+            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([[$class: 'ReverseBuildTrigger', threshold: 'UNSTABLE', upstreamProjects: 'some-job']])])", null);
+            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([[$class: 'ReverseBuildTrigger', threshold: 'UNSTABLE', upstreamProjects: 'some-job']])])");
         }
     }
 

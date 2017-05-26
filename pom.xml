@@ -66,8 +66,11 @@ THE SOFTWARE.
         <jenkins.version>1.642.3</jenkins.version>
         <scm-api.version>2.0.7</scm-api.version>
         <no-test-jar>false</no-test-jar>
-        <workflow-step-api.version>2.9</workflow-step-api.version>
+        <workflow-step-api.version>2.10</workflow-step-api.version>
         <workflow-scm-step-plugin.version>2.4</workflow-scm-step-plugin.version>
+        <workflow-support.version>2.14</workflow-support.version>
+        <workflow-cps.version>2.32-20170524.171102-1</workflow-cps.version> <!-- TODO: Switch to release after https://github.com/jenkinsci/workflow-cps-plugin/pull/136 is merged and released -->
+
     </properties>
     <dependencies>
         <dependency>
@@ -82,8 +85,18 @@ THE SOFTWARE.
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-support</artifactId>
+            <version>${workflow-support.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>structs</artifactId>
+            <version>1.7</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-cps</artifactId>
-            <version>2.19</version>
+            <version>${workflow-cps.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -103,7 +116,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-api</artifactId>
-            <version>2.5</version>
+            <version>2.15</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -113,7 +126,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>script-security</artifactId>
-            <version>1.23</version>
+            <version>1.26</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -156,14 +169,14 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-support</artifactId>
-            <version>2.10</version>
+            <version>${workflow-support.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-cps</artifactId>
-            <version>2.19</version>
+            <version>${workflow-cps.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
