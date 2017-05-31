@@ -40,7 +40,12 @@ import org.kohsuke.stapler.DataBoundSetter;
  */
 public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectFactory {
     static final String SCRIPT = "Jenkinsfile";
-    private String scriptPath = SCRIPT;
+    private String scriptPath;
+
+    public Object readResolve() {
+        this.scriptPath = WorkflowBranchProjectFactory.SCRIPT;
+        return this;
+    }
 
     @DataBoundConstructor public WorkflowBranchProjectFactory() { }
 

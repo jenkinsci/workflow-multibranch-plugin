@@ -41,6 +41,7 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
@@ -59,8 +60,17 @@ class SCMBinder extends FlowDefinition {
     static /* not final */ boolean USE_HEAVYWEIGHT_CHECKOUT = Boolean.getBoolean(SCMBinder.class.getName() + ".USE_HEAVYWEIGHT_CHECKOUT"); // TODO 2.4+ use SystemProperties
     private String scriptPath;
 
+    public Object readResolve() {
+        this.scriptPath = WorkflowBranchProjectFactory.SCRIPT;
+        return this;
+    }
+
     public SCMBinder(String scriptPath) {
-        this.scriptPath = scriptPath;
+        if (StringUtils.isEmpty(scriptPath)) {
+            this.scriptPath = WorkflowBranchProjectFactory.SCRIPT;
+        } else {
+            this.scriptPath = scriptPath;
+        }
     }
 
     @Override public FlowExecution create(FlowExecutionOwner handle, TaskListener listener, List<? extends Action> actions) throws Exception {
