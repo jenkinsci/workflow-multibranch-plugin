@@ -223,7 +223,7 @@ public class WorkflowMultiBranchProjectTest {
         assertNull(mp.getItem("master"));
 
         sampleRepo.git("checkout", "-b", "feature");
-        sampleRepo.write("another-Jenkinsfile", "echo \"branch=${env.BRANCH_NAME}\"; node {checkout scm; echo readFile('file')}");
+        sampleRepo.write("another-Jenkinsfile", "echo(/branch=$BRANCH_NAME/); node {checkout scm; echo readFile('file')}");
         sampleRepo.git("add", "another-Jenkinsfile");
         sampleRepo.write("file", "subsequent content");
         sampleRepo.git("commit", "--all", "--message=feature-create");
@@ -236,7 +236,7 @@ public class WorkflowMultiBranchProjectTest {
         r.assertLogContains("branch=feature", b1);
 
         sampleRepo.git("checkout", "-b", "feature2");
-        sampleRepo.write("another-Jenkinsfile", "echo \"branch=${env.BRANCH_NAME}\"; node {checkout scm; echo readFile('file').toUpperCase()}");
+        sampleRepo.write("another-Jenkinsfile", "echo(/branch=$BRANCH_NAME/); node {checkout scm; echo readFile('file').toUpperCase()}");
         sampleRepo.write("file", "alternative content");
         sampleRepo.git("commit", "--all", "--message=feature2-create");
         WorkflowJob p2 = scheduleAndFindBranchProject(mp, "feature2");
