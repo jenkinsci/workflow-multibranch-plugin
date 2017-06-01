@@ -30,39 +30,61 @@ import java.io.IOException;
 import jenkins.scm.api.SCMProbeStat;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * Recognizes and builds {@code Jenkinsfile}.
  */
 public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectFactory {
-    
     static final String SCRIPT = "Jenkinsfile";
+    private String scriptPath = SCRIPT;
 
-    @DataBoundConstructor public WorkflowBranchProjectFactory() {}
+    public Object readResolve() {
+        if (this.scriptPath == null) {
+            this.scriptPath = WorkflowBranchProjectFactory.SCRIPT;
+        }
+        return this;
+    }
+
+    @DataBoundConstructor public WorkflowBranchProjectFactory() { }
+
+    @DataBoundSetter
+    public void setScriptPath(String scriptPath) {
+        if (StringUtils.isEmpty(scriptPath)) {
+            this.scriptPath = SCRIPT;
+        } else {
+            this.scriptPath = scriptPath;
+        }
+    }
+
+    public String getScriptPath(){
+        return scriptPath;
+    }
 
     @Override protected FlowDefinition createDefinition() {
-        return new SCMBinder();
+        return new SCMBinder(scriptPath);
     }
 
     @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
         return new SCMSourceCriteria() {
             @Override public boolean isHead(SCMSourceCriteria.Probe probe, TaskListener listener) throws IOException {
-                SCMProbeStat stat = probe.stat(SCRIPT);
+                SCMProbeStat stat = probe.stat(scriptPath);
                 switch (stat.getType()) {
                     case NONEXISTENT:
                         if (stat.getAlternativePath() != null) {
-                            listener.getLogger().format("      ‘%s’ not found (but found ‘%s’, search is case sensitive)%n", SCRIPT, stat.getAlternativePath());
+                            listener.getLogger().format("      ‘%s’ not found (but found ‘%s’, search is case sensitive)%n", scriptPath, stat.getAlternativePath());
                         } else {
-                            listener.getLogger().format("      ‘%s’ not found%n",SCRIPT);
+                            listener.getLogger().format("      ‘%s’ not found%n", scriptPath);
                         }
                         return false;
                     case DIRECTORY:
-                        listener.getLogger().format("      ‘%s’ found but is a directory not a file%n", SCRIPT);
+                        listener.getLogger().format("      ‘%s’ found but is a directory not a file%n", scriptPath);
                         return false;
                     default:
-                        listener.getLogger().format("      ‘%s’ found%n", SCRIPT);
+                        listener.getLogger().format("      ‘%s’ found%n", scriptPath);
                         return true;
 
                 }

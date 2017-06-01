@@ -202,4 +202,50 @@ public class WorkflowMultiBranchProjectTest {
         }
     }
 
+
+    @Issue("JENKINS-34561")
+    @Test public void configuredScriptNameBranches() throws Exception {
+        sampleRepo.init();
+
+        WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+        for (SCMSource source : mp.getSCMSources()) {
+            assertEquals(mp, source.getOwner());
+        }
+        WorkflowBranchProjectFactory projectFactory = new WorkflowBranchProjectFactory();
+        projectFactory.setScriptPath("another-Jenkinsfile");
+        mp.setProjectFactory(projectFactory);
+
+        sampleRepo.write("file","initial commit");
+        sampleRepo.git("commit", "--all", "--message=init-master");
+
+        mp.scheduleBuild2(0).getFuture().get();
+        assertNull(mp.getItem("master"));
+
+        sampleRepo.git("checkout", "-b", "feature");
+        sampleRepo.write("another-Jenkinsfile", "echo(/branch=$BRANCH_NAME/); node {checkout scm; echo readFile('file')}");
+        sampleRepo.git("add", "another-Jenkinsfile");
+        sampleRepo.write("file", "subsequent content");
+        sampleRepo.git("commit", "--all", "--message=feature-create");
+        WorkflowJob p1 = scheduleAndFindBranchProject(mp, "feature");
+        assertEquals(1, mp.getItems().size());
+        r.waitUntilNoActivity();
+        WorkflowRun b1 = p1.getLastBuild();
+        assertEquals(1, b1.getNumber());
+        r.assertLogContains("subsequent content", b1);
+        r.assertLogContains("branch=feature", b1);
+
+        sampleRepo.git("checkout", "-b", "feature2");
+        sampleRepo.write("another-Jenkinsfile", "echo(/branch=$BRANCH_NAME/); node {checkout scm; echo readFile('file').toUpperCase()}");
+        sampleRepo.write("file", "alternative content");
+        sampleRepo.git("commit", "--all", "--message=feature2-create");
+        WorkflowJob p2 = scheduleAndFindBranchProject(mp, "feature2");
+        assertEquals(2, mp.getItems().size());
+        r.waitUntilNoActivity();
+        WorkflowRun b2 = p2.getLastBuild();
+        assertEquals(1, b2.getNumber());
+        r.assertLogContains("ALTERNATIVE CONTENT", b2);
+        r.assertLogContains("branch=feature2", b2);
+    }
+
 }
