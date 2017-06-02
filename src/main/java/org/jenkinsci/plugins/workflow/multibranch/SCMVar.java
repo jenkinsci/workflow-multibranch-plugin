@@ -99,11 +99,10 @@ import org.jenkinsci.plugins.workflow.support.pickles.XStreamPickle;
             FlowExecutionOwner owner = ((WorkflowRun) build).asFlowExecutionOwner();
             TaskListener listener = owner != null ? owner.getListener() : TaskListener.NULL;
             tip = scmSource.fetch(head, listener);
-            if (tip == null) {
-                throw new AbortException("Could not determine exact tip revision of " + branch.getName());
+            if (tip != null) {
+                revisionAction = new SCMRevisionAction(tip);
+                build.addAction(revisionAction);
             }
-            revisionAction = new SCMRevisionAction(tip);
-            build.addAction(revisionAction);
         }
         return scmSource.build(branch.getHead(), tip);
     }
