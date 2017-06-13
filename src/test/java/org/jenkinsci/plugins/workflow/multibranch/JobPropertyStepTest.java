@@ -230,6 +230,45 @@ public class JobPropertyStepTest {
         assertNull(b3.getPreviousBuild());
     }
 
+    @Issue("JENKINS-44848")
+    @Test public void onlyRemoveJenkinsfileProperties() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        p.addProperty(new DisableConcurrentBuildsJobProperty());
+
+        // Base case - not calling the properties step
+        p.setDefinition(new CpsFlowDefinition("echo 'Not doing anything'", true));
+
+        WorkflowRun b1 = r.buildAndAssertSuccess(p);
+
+        assertNotNull(p.getProperty(DisableConcurrentBuildsJobProperty.class));
+        assertNull(b1.getAction(JobPropertyTrackerAction.class));
+
+        // Adding a property, make sure the predefined one is still there.
+        p.setDefinition(new CpsFlowDefinition("properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', numToKeepStr: '1']]])", true));
+
+        WorkflowRun b2 = r.buildAndAssertSuccess(p);
+
+        assertNotNull(p.getProperty(DisableConcurrentBuildsJobProperty.class));
+        assertNotNull(p.getProperty(BuildDiscarderProperty.class));
+        JobPropertyTrackerAction action2 = b2.getAction(JobPropertyTrackerAction.class);
+        assertNotNull(action2);
+        assertEquals(1, action2.getJobPropertyDescriptors().size());
+        assertEquals(r.jenkins.getDescriptor(BuildDiscarderProperty.class).getId(),
+                action2.getJobPropertyDescriptors().iterator().next());
+
+        // Make sure the predefined property is still there after we remove the properties-step-defined property.
+        p.setDefinition(new CpsFlowDefinition("properties([])", true));
+
+        WorkflowRun b3 = r.buildAndAssertSuccess(p);
+
+        assertNotNull(p.getProperty(DisableConcurrentBuildsJobProperty.class));
+        assertNull(p.getProperty(BuildDiscarderProperty.class));
+
+        JobPropertyTrackerAction action3 = b3.getAction(JobPropertyTrackerAction.class);
+        assertNotNull(action3);
+        assertTrue(action3.getJobPropertyDescriptors().isEmpty());
+    }
+
     @Issue("JENKINS-34547")
     @Test public void concurrentBuildProperty() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
@@ -299,14 +338,6 @@ public class JobPropertyStepTest {
 
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
 
-        // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
-        r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b);
-        // Verify that we're not seeing warnings for any properties being removed, since there are no pre-existing ones.
-        // Note - not using Messages here because we're not actually removing any properties.
-        String warningSubString = "WARNING: Removing existing job property";
-        assertThat(Messages.JobPropertyStep__removed_property_warning(""), containsString(warningSubString));
-        r.assertLogNotContains(warningSubString, b);
-
         assertEquals(2, p.getTriggers().size());
 
         PipelineTriggersJobProperty triggerProp = p.getTriggersJobProperty();
@@ -331,12 +362,6 @@ public class JobPropertyStepTest {
                 + "echo 'foo'"));
 
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
-
-        // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
-        r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b2);
-        // Verify that we *are* seeing warnings for removing the triggers property.
-        String propName = r.jenkins.getDescriptorByType(PipelineTriggersJobProperty.DescriptorImpl.class).getDisplayName();
-        r.assertLogContains(Messages.JobPropertyStep__removed_property_warning(propName), b2);
 
         assertNotNull(p.getTriggersJobProperty());
 
@@ -374,14 +399,6 @@ public class JobPropertyStepTest {
 
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
 
-        // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
-        r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b);
-        // Verify that we're not seeing warnings for any properties being removed, since there are no pre-existing ones.
-        // Note - not using Messages here because we're not actually removing any properties.
-        String warningSubString = "WARNING: Removing existing job property";
-        assertThat(Messages.JobPropertyStep__removed_property_warning(""), containsString(warningSubString));
-        r.assertLogNotContains(warningSubString, b);
-
         assertEquals(2, p.getTriggers().size());
 
         PipelineTriggersJobProperty triggerProp = p.getTriggersJobProperty();
@@ -407,12 +424,6 @@ public class JobPropertyStepTest {
                 + "echo 'foo'"));
 
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
-
-        // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
-        r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b2);
-        // Verify that we *are* seeing warnings for removing the triggers property.
-        String propName = r.jenkins.getDescriptorByType(PipelineTriggersJobProperty.DescriptorImpl.class).getDisplayName();
-        r.assertLogContains(Messages.JobPropertyStep__removed_property_warning(propName), b2);
 
         assertNotNull(p.getTriggersJobProperty());
 
@@ -440,12 +451,6 @@ public class JobPropertyStepTest {
 
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
 
-        // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
-        r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b);
-        // Verify that we're not seeing warnings for any properties being removed, since there are no pre-existing ones.
-        // Note - not using Messages here because we're not actually removing any properties.
-        r.assertLogNotContains("WARNING: Removing existing job property", b);
-
         assertEquals(1, p.getTriggers().size());
 
         PipelineTriggersJobProperty triggerProp = p.getTriggersJobProperty();
@@ -462,12 +467,6 @@ public class JobPropertyStepTest {
                 + "echo 'foo'"));
 
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
-
-        // Verify that we're seeing warnings due to running 'properties' in a non-multibranch job.
-        r.assertLogContains(Messages.JobPropertyStep__could_remove_warning(), b2);
-        // Verify that we *are* seeing warnings for removing the triggers property.
-        String propName = r.jenkins.getDescriptorByType(PipelineTriggersJobProperty.DescriptorImpl.class).getDisplayName();
-        r.assertLogContains(Messages.JobPropertyStep__removed_property_warning(propName), b2);
 
         assertNotNull(p.getTriggersJobProperty());
 
@@ -603,7 +602,6 @@ public class JobPropertyStepTest {
         r.waitUntilNoActivity();
         WorkflowRun b1 = p.getLastBuild();
         assertEquals(1, b1.getNumber());
-        r.assertLogNotContains(Messages.JobPropertyStep__could_remove_warning(), b1);
 
         // Now verify that we don't get any messages about removing properties when a property actually gets removed as
         // we add a new one.
@@ -614,10 +612,7 @@ public class JobPropertyStepTest {
                 sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("commit", "--all", "--message=flow");
 
-        WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
-        r.assertLogNotContains(Messages.JobPropertyStep__could_remove_warning(), b2);
-        String propName = r.jenkins.getDescriptorByType(DisableConcurrentBuildsJobProperty.DescriptorImpl.class).getDisplayName();
-        r.assertLogNotContains(Messages.JobPropertyStep__removed_property_warning(propName), b2);
+        r.assertBuildStatusSuccess(p.scheduleBuild2(0));
     }
 
     @Issue("JENKINS-37219")
