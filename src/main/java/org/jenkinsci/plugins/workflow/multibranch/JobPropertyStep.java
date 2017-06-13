@@ -96,7 +96,7 @@ public class JobPropertyStep extends AbstractStepImpl {
             boolean previousHadStep = false;
             if (previousAction == null) {
                 Run<?,?> previousRun = build.getPreviousCompletedBuild();
-                if (previousRun != null && previousRun instanceof FlowExecutionOwner.Executable) {
+                if (previousRun instanceof FlowExecutionOwner.Executable) {
                     // If the job doesn't have the tracker action but does have a previous completed build,, check to
                     // see if it ran the properties step. This is to deal with first run after this change is added.
                     FlowExecutionOwner owner = ((FlowExecutionOwner.Executable) previousRun).asFlowExecutionOwner();
