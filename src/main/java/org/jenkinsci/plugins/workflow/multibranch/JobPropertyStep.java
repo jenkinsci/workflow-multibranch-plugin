@@ -46,6 +46,8 @@ import jenkins.branch.BuildRetentionBranchProperty;
 import jenkins.branch.RateLimitBranchProperty;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
+import org.jenkinsci.plugins.workflow.flow.FlowExecution;
+import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
 import org.jenkinsci.plugins.workflow.graphanalysis.NodeStepTypePredicate;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -91,16 +93,21 @@ public class JobPropertyStep extends AbstractStepImpl {
             Job<?,?> job = build.getParent();
 
             Run<?,?> previousRun = build.getPreviousCompletedBuild();
-            JobPropertyTrackerAction previousAction = null;
+            JobPropertyTrackerAction previousAction = job.getAction(JobPropertyTrackerAction.class);
             boolean previousHadStep = false;
-            if (previousRun != null) {
-                previousAction = previousRun.getAction(JobPropertyTrackerAction.class);
-
+            if (previousAction == null && previousRun != null) {
                 // If the previous run did not have the tracker action, check to see if it ran the properties step. This
                 // is to deal with first run after this change is added.
-                if (previousRun instanceof WorkflowRun) {
-                    previousHadStep = new DepthFirstScanner().findFirstMatch(((WorkflowRun) previousRun).getExecution(),
-                            new NodeStepTypePredicate(step.getDescriptor())) != null;
+                if (previousRun instanceof FlowExecutionOwner.Executable) {
+                    FlowExecutionOwner owner = ((FlowExecutionOwner.Executable) previousRun).asFlowExecutionOwner();
+
+                    if (owner != null) {
+                        FlowExecution execution = owner.getOrNull();
+                        if (execution != null) {
+                            previousHadStep = new DepthFirstScanner().findFirstMatch(execution,
+                                    new NodeStepTypePredicate(step.getDescriptor())) != null;
+                        }
+                    }
                 }
             }
 
@@ -113,7 +120,6 @@ public class JobPropertyStep extends AbstractStepImpl {
             try {
                 for (JobProperty prop : job.getAllProperties()) {
                     if (prop instanceof BranchJobProperty) {
-                        // TODO do we need to define an API for other properties which should not be removed?
                         continue;
                     }
                     // If we have a record of JobPropertys defined via the properties step in the previous run, only
@@ -132,12 +138,9 @@ public class JobPropertyStep extends AbstractStepImpl {
                     job.addProperty(prop);
                 }
                 bc.commit();
-                build.addAction(new JobPropertyTrackerAction(step.properties));
+                job.replaceAction(new JobPropertyTrackerAction(step.properties));
             } finally {
                 bc.abort();
-                if (build.getAction(JobPropertyTrackerAction.class) == null && previousAction != null) {
-                    build.addAction(new JobPropertyTrackerAction(previousAction));
-                }
             }
             return null;
         }

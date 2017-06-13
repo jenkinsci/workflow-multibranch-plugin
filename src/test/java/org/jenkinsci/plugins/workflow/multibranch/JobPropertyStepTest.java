@@ -83,6 +83,7 @@ import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.NoStaplerConstructorException;
 
 import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
@@ -244,17 +245,17 @@ public class JobPropertyStepTest {
         assertNull(b1.getAction(JobPropertyTrackerAction.class));
 
         // Adding a property, make sure the predefined one is still there.
+        // TODO Jenkins 2.x use symbols
         p.setDefinition(new CpsFlowDefinition("properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', numToKeepStr: '1']]])", true));
 
         WorkflowRun b2 = r.buildAndAssertSuccess(p);
 
         assertNotNull(p.getProperty(DisableConcurrentBuildsJobProperty.class));
         assertNotNull(p.getProperty(BuildDiscarderProperty.class));
-        JobPropertyTrackerAction action2 = b2.getAction(JobPropertyTrackerAction.class);
+        JobPropertyTrackerAction action2 = p.getAction(JobPropertyTrackerAction.class);
         assertNotNull(action2);
         assertEquals(1, action2.getJobPropertyDescriptors().size());
-        assertEquals(r.jenkins.getDescriptor(BuildDiscarderProperty.class).getId(),
-                action2.getJobPropertyDescriptors().iterator().next());
+        assertEquals(Collections.singleton(r.jenkins.getDescriptor(BuildDiscarderProperty.class).getId()), action2.getJobPropertyDescriptors());
 
         // Make sure the predefined property is still there after we remove the properties-step-defined property.
         p.setDefinition(new CpsFlowDefinition("properties([])", true));
@@ -264,9 +265,31 @@ public class JobPropertyStepTest {
         assertNotNull(p.getProperty(DisableConcurrentBuildsJobProperty.class));
         assertNull(p.getProperty(BuildDiscarderProperty.class));
 
-        JobPropertyTrackerAction action3 = b3.getAction(JobPropertyTrackerAction.class);
+        JobPropertyTrackerAction action3 = p.getAction(JobPropertyTrackerAction.class);
         assertNotNull(action3);
         assertTrue(action3.getJobPropertyDescriptors().isEmpty());
+    }
+
+    @Issue("JENKINS-44848")
+    @LocalData
+    @Test
+    public void trackerPropertyUpgrade() throws Exception {
+        WorkflowJob p = r.jenkins.getItemByFullName("trackerPropertyUpgrade", WorkflowJob.class);
+        assertNotNull(p);
+        WorkflowRun b1 = p.getLastBuild();
+        assertNotNull(b1);
+        assertNotNull(p.getProperty(BuildDiscarderProperty.class));
+        assertNull(p.getAction(JobPropertyTrackerAction.class));
+
+        p.setDefinition(new CpsFlowDefinition("properties([disableConcurrentBuilds()])", true));
+
+        r.buildAndAssertSuccess(p);
+
+        assertNull(p.getProperty(BuildDiscarderProperty.class));
+        assertNotNull(p.getProperty(DisableConcurrentBuildsJobProperty.class));
+        JobPropertyTrackerAction action2 = p.getAction(JobPropertyTrackerAction.class);
+        assertNotNull(action2);
+        assertEquals(Collections.singleton(r.jenkins.getDescriptor(DisableConcurrentBuildsJobProperty.class).getId()), action2.getJobPropertyDescriptors());
     }
 
     @Issue("JENKINS-34547")
