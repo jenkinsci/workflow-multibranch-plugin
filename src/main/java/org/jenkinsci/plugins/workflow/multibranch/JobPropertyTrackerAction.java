@@ -14,19 +14,19 @@ import java.util.Set;
  * Invisible action used for tracking what {@link JobProperty}s were defined in the Jenkinsfile in the last run of a
  * job.
  */
-class JobPropertyTrackerAction extends InvisibleAction {
+public class JobPropertyTrackerAction extends InvisibleAction {
     /**
      * Uses {@link Descriptor#getId()} to identify the {@link JobProperty}s.
      */
     private final Set<String> jobPropertyDescriptors = new HashSet<>();
 
-    JobPropertyTrackerAction(@Nonnull List<JobProperty> jobProperties) {
+    public JobPropertyTrackerAction(@Nonnull List<JobProperty> jobProperties) {
         for (JobProperty j : jobProperties) {
             jobPropertyDescriptors.add(j.getDescriptor().getId());
         }
     }
 
-    Set<String> getJobPropertyDescriptors() {
+    public Set<String> getJobPropertyDescriptors() {
         return Collections.unmodifiableSet(jobPropertyDescriptors);
     }
 
