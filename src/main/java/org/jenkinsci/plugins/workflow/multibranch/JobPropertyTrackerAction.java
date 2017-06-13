@@ -11,7 +11,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Invisible action used for tracking what {@link JobProperty}s were defined in the Jenkinsfile for a given run.
+ * Invisible action used for tracking what {@link JobProperty}s were defined in the Jenkinsfile in the last run of a
+ * job.
  */
 class JobPropertyTrackerAction extends InvisibleAction {
     /**

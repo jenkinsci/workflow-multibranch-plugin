@@ -239,16 +239,16 @@ public class JobPropertyStepTest {
         // Base case - not calling the properties step
         p.setDefinition(new CpsFlowDefinition("echo 'Not doing anything'", true));
 
-        WorkflowRun b1 = r.buildAndAssertSuccess(p);
+        r.buildAndAssertSuccess(p);
 
         assertNotNull(p.getProperty(DisableConcurrentBuildsJobProperty.class));
-        assertNull(b1.getAction(JobPropertyTrackerAction.class));
+        assertNull(p.getAction(JobPropertyTrackerAction.class));
 
         // Adding a property, make sure the predefined one is still there.
         // TODO Jenkins 2.x use symbols
         p.setDefinition(new CpsFlowDefinition("properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', numToKeepStr: '1']]])", true));
 
-        WorkflowRun b2 = r.buildAndAssertSuccess(p);
+        r.buildAndAssertSuccess(p);
 
         assertNotNull(p.getProperty(DisableConcurrentBuildsJobProperty.class));
         assertNotNull(p.getProperty(BuildDiscarderProperty.class));
@@ -260,7 +260,7 @@ public class JobPropertyStepTest {
         // Make sure the predefined property is still there after we remove the properties-step-defined property.
         p.setDefinition(new CpsFlowDefinition("properties([])", true));
 
-        WorkflowRun b3 = r.buildAndAssertSuccess(p);
+        r.buildAndAssertSuccess(p);
 
         assertNotNull(p.getProperty(DisableConcurrentBuildsJobProperty.class));
         assertNull(p.getProperty(BuildDiscarderProperty.class));

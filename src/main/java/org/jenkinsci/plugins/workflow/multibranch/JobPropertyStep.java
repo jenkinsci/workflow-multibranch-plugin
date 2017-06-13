@@ -92,20 +92,22 @@ public class JobPropertyStep extends AbstractStepImpl {
         @Override protected Void run() throws Exception {
             Job<?,?> job = build.getParent();
 
-            Run<?,?> previousRun = build.getPreviousCompletedBuild();
             JobPropertyTrackerAction previousAction = job.getAction(JobPropertyTrackerAction.class);
             boolean previousHadStep = false;
-            if (previousAction == null && previousRun != null) {
-                // If the previous run did not have the tracker action, check to see if it ran the properties step. This
-                // is to deal with first run after this change is added.
-                if (previousRun instanceof FlowExecutionOwner.Executable) {
-                    FlowExecutionOwner owner = ((FlowExecutionOwner.Executable) previousRun).asFlowExecutionOwner();
+            if (previousAction == null) {
+                Run<?,?> previousRun = build.getPreviousCompletedBuild();
+                if (previousRun != null) {
+                    // If the job doesn't have the tracker action but does have a previous completed build,, check to
+                    // see if it ran the properties step. This is to deal with first run after this change is added.
+                    if (previousRun instanceof FlowExecutionOwner.Executable) {
+                        FlowExecutionOwner owner = ((FlowExecutionOwner.Executable) previousRun).asFlowExecutionOwner();
 
-                    if (owner != null) {
-                        FlowExecution execution = owner.getOrNull();
-                        if (execution != null) {
-                            previousHadStep = new DepthFirstScanner().findFirstMatch(execution,
-                                    new NodeStepTypePredicate(step.getDescriptor())) != null;
+                        if (owner != null) {
+                            FlowExecution execution = owner.getOrNull();
+                            if (execution != null) {
+                                previousHadStep = new DepthFirstScanner().findFirstMatch(execution,
+                                        new NodeStepTypePredicate(step.getDescriptor())) != null;
+                            }
                         }
                     }
                 }
@@ -120,6 +122,8 @@ public class JobPropertyStep extends AbstractStepImpl {
             try {
                 for (JobProperty prop : job.getAllProperties()) {
                     if (prop instanceof BranchJobProperty) {
+                        // To be safe and avoid breaking everything if there's a corner case, we're explicitly ignoring
+                        // BranchJobProperty to make sure it gets preserved.
                         continue;
                     }
                     // If we have a record of JobPropertys defined via the properties step in the previous run, only
