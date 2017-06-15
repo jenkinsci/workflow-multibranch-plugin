@@ -30,7 +30,6 @@ import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
-import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.JobProperty;
 import hudson.model.JobPropertyDescriptor;
@@ -47,7 +46,12 @@ import jenkins.branch.BuildRetentionBranchProperty;
 import jenkins.branch.RateLimitBranchProperty;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
+import org.jenkinsci.plugins.workflow.flow.FlowExecution;
+import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
+import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
+import org.jenkinsci.plugins.workflow.graphanalysis.NodeStepTypePredicate;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousStepExecution;
@@ -87,7 +91,25 @@ public class JobPropertyStep extends AbstractStepImpl {
         @SuppressWarnings("unchecked") // untypable
         @Override protected Void run() throws Exception {
             Job<?,?> job = build.getParent();
-            boolean isMultibranch = isMultibranch(job);
+
+            JobPropertyTrackerAction previousAction = job.getAction(JobPropertyTrackerAction.class);
+            boolean previousHadStep = false;
+            if (previousAction == null) {
+                Run<?,?> previousRun = build.getPreviousCompletedBuild();
+                if (previousRun instanceof FlowExecutionOwner.Executable) {
+                    // If the job doesn't have the tracker action but does have a previous completed build,, check to
+                    // see if it ran the properties step. This is to deal with first run after this change is added.
+                    FlowExecutionOwner owner = ((FlowExecutionOwner.Executable) previousRun).asFlowExecutionOwner();
+
+                    if (owner != null) {
+                        FlowExecution execution = owner.getOrNull();
+                        if (execution != null) {
+                            previousHadStep = new DepthFirstScanner().findFirstMatch(execution,
+                                    new NodeStepTypePredicate(step.getDescriptor())) != null;
+                        }
+                    }
+                }
+            }
 
             for (JobProperty prop : step.properties) {
                 if (!prop.getDescriptor().isApplicable(job.getClass())) {
@@ -96,37 +118,33 @@ public class JobPropertyStep extends AbstractStepImpl {
             }
             BulkChange bc = new BulkChange(job);
             try {
-                if (!isMultibranch) {
-                    l.getLogger().println(Messages.JobPropertyStep__could_remove_warning());
-                }
                 for (JobProperty prop : job.getAllProperties()) {
                     if (prop instanceof BranchJobProperty) {
-                        // TODO do we need to define an API for other properties which should not be removed?
+                        // To be safe and avoid breaking everything if there's a corner case, we're explicitly ignoring
+                        // BranchJobProperty to make sure it gets preserved.
                         continue;
                     }
-                    if (!isMultibranch) {
-                        l.getLogger().println(Messages.JobPropertyStep__removed_property_warning(prop.getDescriptor().getDisplayName()));
+                    // If we have a record of JobPropertys defined via the properties step in the previous run, only
+                    // remove those properties.
+                    if (previousAction != null) {
+                        if (previousAction.getJobPropertyDescriptors().contains(prop.getDescriptor().getId())) {
+                            job.removeProperty(prop);
+                        }
+                    } else if (previousHadStep) {
+                        // If the previous run did not have the tracker action but *did* run the properties step, use
+                        // legacy behavior and remove everything.
+                        job.removeProperty(prop);
                     }
-                    job.removeProperty(prop);
                 }
                 for (JobProperty prop : step.properties) {
                     job.addProperty(prop);
                 }
                 bc.commit();
+                job.replaceAction(new JobPropertyTrackerAction(step.properties));
             } finally {
                 bc.abort();
             }
             return null;
-        }
-
-        /**
-         * Returns true if we're in a multibranch job - behavior may be slightly different when that's not the case.
-         *
-         * @param job The job this build belongs to.
-         * @return True if this is a multibranch job, false otherwise.
-         */
-        private boolean isMultibranch(Job<?,?> job) {
-            return job.getParent() instanceof WorkflowMultiBranchProject;
         }
 
         private static final long serialVersionUID = 1L;
