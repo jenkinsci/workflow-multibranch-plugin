@@ -92,6 +92,7 @@ public class ReadTrustedStep extends AbstractStepImpl {
             SCM standaloneSCM = null;
             BranchJobProperty property = job.getProperty(BranchJobProperty.class);
             if (property == null) {
+                boolean ok = false;
                 if (job instanceof WorkflowJob) {
                     FlowDefinition defn = ((WorkflowJob) job).getDefinition();
                     if (defn instanceof CpsScmFlowDefinition) {
@@ -106,13 +107,18 @@ public class ReadTrustedStep extends AbstractStepImpl {
                                 } catch (IOException | InterruptedException x) {
                                     listener.error("Could not do lightweight checkout, falling back to heavyweight").println(Functions.printThrowable(x).trim());
                                 }
+                            } else if (!SCMBinder.USE_HEAVYWEIGHT_CHECKOUT) {
+                                listener.getLogger().println("No lightweight checkout support in this SCM configuration");
                             }
                         }
+                        ok = true;
                     }
                 }
-                throw new AbortException("‘readTrusted’ is only available when using “" +
-                    Jenkins.getActiveInstance().getDescriptorByType(WorkflowMultiBranchProject.DescriptorImpl.class).getDisplayName() +
-                    "” or “" + Jenkins.getActiveInstance().getDescriptorByType(CpsScmFlowDefinition.DescriptorImpl.class).getDisplayName() + "”");
+                if (!ok) { // wrong definition or job type
+                    throw new AbortException("‘readTrusted’ is only available when using “" +
+                        Jenkins.getActiveInstance().getDescriptorByType(WorkflowMultiBranchProject.DescriptorImpl.class).getDisplayName() +
+                        "” or “" + Jenkins.getActiveInstance().getDescriptorByType(CpsScmFlowDefinition.DescriptorImpl.class).getDisplayName() + "”");
+                }
             }
             Node node = Jenkins.getActiveInstance();
             FilePath dir;
