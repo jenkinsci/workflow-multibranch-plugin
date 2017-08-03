@@ -166,12 +166,31 @@ public class ReadTrustedStepTest {
         sampleRepo.git("commit", "--all", "--message=defined");
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         GitStep step = new GitStep(sampleRepo.toString());
-        step.setCredentialsId("nonexistent"); // TODO work around NPE pending https://github.com/jenkinsci/git-plugin/pull/467
         p.setDefinition(new CpsScmFlowDefinition(step.createSCM(), "Jenkinsfile"));
-        // TODO after https://github.com/jenkinsci/workflow-cps-plugin/pull/97 could setLightweight(true)
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
         r.assertLogContains("said how do you do", b);
         r.assertLogContains("Obtained message from git ", b);
+    }
+
+    @Issue("JENKINS-42817")
+    @Test public void nonMultibranchHeavyweight() throws Exception {
+        SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
+        try {
+            sampleRepo.init();
+            sampleRepo.write("Jenkinsfile", "echo \"said ${readTrusted 'message'}\"");
+            sampleRepo.write("message", "how do you do");
+            sampleRepo.git("add", "Jenkinsfile", "message");
+            sampleRepo.git("commit", "--all", "--message=defined");
+            WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+            GitStep step = new GitStep(sampleRepo.toString());
+            CpsScmFlowDefinition def = new CpsScmFlowDefinition(step.createSCM(), "Jenkinsfile");
+            def.setLightweight(true);
+            p.setDefinition(def);
+            WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
+            r.assertLogContains("said how do you do", b);
+        } finally {
+            SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = false;
+        }
     }
 
 }
