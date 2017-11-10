@@ -69,5 +69,9 @@ public class DurabilityHintBranchProperty extends BranchProperty {
         public String getDisplayName() {
             return "Add a durabilityHint about how durable the pipeline should be";
         }
+
+        public Enum[] getDurabilityHintValues() {
+            return FlowDurabilityHint.values();
+        }
     }
 }
