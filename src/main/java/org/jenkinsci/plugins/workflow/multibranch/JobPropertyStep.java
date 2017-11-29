@@ -79,7 +79,7 @@ public class JobPropertyStep extends AbstractStepImpl {
     }
 
     public Map<JobPropertyDescriptor,JobProperty> getPropertiesMap() {
-        return Descriptor.toMap(properties);
+        return (Map)(Descriptor.toMap(properties));
     }
 
     public static class Execution extends AbstractSynchronousStepExecution<Void> {
