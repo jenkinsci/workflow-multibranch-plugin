@@ -9,12 +9,15 @@ import hudson.model.Run;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchPropertyDescriptor;
 import jenkins.branch.JobDecorator;
+import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.properties.DurabilityHintJobProperty;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.util.Iterator;
 import java.util.List;
@@ -33,10 +36,18 @@ public class DurabilityHintBranchProperty extends BranchProperty {
         return durabilityHint;
     }
 
+    @DataBoundConstructor
+    public DurabilityHintBranchProperty(@Nonnull String hintName) {
+        this.durabilityHint = DurabilityHintJobProperty.DescriptorImpl.getDurabilityHintForName(hintName);
+    }
+
     public DurabilityHintBranchProperty(@Nonnull FlowDurabilityHint durabilityHint) {
         this.durabilityHint = durabilityHint;
     }
 
+    public String getHintName() {
+        return this.durabilityHint.getName();
+    }
 
     @Override
     public final <P extends Job<P, B>, B extends Run<P, B>> JobDecorator<P, B> jobDecorator(Class<P> clazz) {
@@ -56,7 +67,7 @@ public class DurabilityHintBranchProperty extends BranchProperty {
                     }
                 }
                 if (getDurabilityHint() != null) {
-                    result.add((JobProperty)(new DurabilityHintJobProperty(getDurabilityHint())));
+                    result.add((JobProperty)(new DurabilityHintJobProperty(getHintName())));
                 }
                 return result;
             }
@@ -72,6 +83,21 @@ public class DurabilityHintBranchProperty extends BranchProperty {
 
         public List<FlowDurabilityHint> getDurabilityHintValues() {
             return FlowDurabilityHint.all();
+        }
+
+        @CheckForNull
+        public static FlowDurabilityHint getDurabilityHintForName(String hintName) {
+            for (FlowDurabilityHint hint : FlowDurabilityHint.all()) {
+                if (hint.getName().equals(hintName)) {
+                    return hint;
+                }
+            }
+            System.out.println("No hint for name: "+hintName);
+            return null;
+        }
+
+        public static String getDefaultHintName() {
+            return Jenkins.getInstance().getExtensionList(FlowDurabilityHint.FullyDurable.class).get(0).getName();
         }
     }
 }
