@@ -24,10 +24,14 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import hudson.model.BooleanParameterValue;
+import hudson.model.ParametersAction;
+import hudson.model.Result;
+import hudson.model.StringParameterValue;
 import hudson.model.queue.QueueTaskFuture;
-import java.util.Collections;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
+import jenkins.branch.DefaultBranchPropertyStrategy;
 import jenkins.branch.NamedExceptionsBranchPropertyStrategy;
 import jenkins.branch.NoTriggerBranchProperty;
 import jenkins.branch.NoTriggerOrganizationFolderProperty;
@@ -36,136 +40,89 @@ import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.impl.SingleSCMNavigator;
+import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import org.jenkinsci.plugins.workflow.job.properties.DurabilityHintJobProperty;
+import org.junit.Assert;
 import org.junit.Rule;
+import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+
+import java.util.Collections;
+
+import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Integration test for {@link NoTriggerBranchProperty} and {@link NoTriggerOrganizationFolderProperty}.
  */
 @Issue("JENKINS-32396")
-public class NoTriggerBranchPropertyWorkflowTest {
+public class DurabilityHintBranchPropertyWorkflowTest {
 
     @Rule public JenkinsRule r = new JenkinsRule();
     @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
 
-    @Issue("JENKINS-30206")
-    @Test public void singleRepo() throws Exception {
-        round1();
-        WorkflowMultiBranchProject p = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        BranchSource branchSource = new BranchSource(new GitSCMSource("source-id", sampleRepo.toString(), "", "*", "", false));
-        branchSource.setStrategy(new NamedExceptionsBranchPropertyStrategy(new BranchProperty[0], new NamedExceptionsBranchPropertyStrategy.Named[] {
-            new NamedExceptionsBranchPropertyStrategy.Named("release*", new BranchProperty[] {new NoTriggerBranchProperty()})
-        }));
-        p.getSourcesList().add(branchSource);
-        // Should be initial builds of master & newfeature but not release.
-        WorkflowJob master = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(p, "master");
-        r.waitUntilNoActivity();
-        assertEquals(2, master.getNextBuildNumber());
-        WorkflowJob release = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(p, "release");
-        assertEquals(1, release.getNextBuildNumber());
-        WorkflowJob newfeature = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(p, "newfeature");
-        assertEquals(2, newfeature.getNextBuildNumber());
-        round2();
-        WorkflowMultiBranchProjectTest.showIndexing(p);
-        // Should be second builds of master & newfeature but not release.
-        assertEquals(3, master.getNextBuildNumber());
-        assertEquals(1, release.getNextBuildNumber());
-        assertEquals(3, newfeature.getNextBuildNumber());
-        // Should be able to manually build release.
-        QueueTaskFuture<WorkflowRun> releaseBuild = release.scheduleBuild2(0);
-        assertNotNull(releaseBuild);
-        assertEquals(1, releaseBuild.get().getNumber());
-        assertEquals(2, release.getNextBuildNumber());
-        // Updating configuration should take effect for next time: new builds of newfeature & release but not master.
-        branchSource = new BranchSource(new GitSCMSource("source-id", sampleRepo.toString(), "", "*", "", false));
-        branchSource.setStrategy(new NamedExceptionsBranchPropertyStrategy(new BranchProperty[0], new NamedExceptionsBranchPropertyStrategy.Named[] {
-            new NamedExceptionsBranchPropertyStrategy.Named("master", new BranchProperty[] {new NoTriggerBranchProperty()})
-        }));
-        p.getSourcesList().clear();
-        p.getSourcesList().add(branchSource);
-        round3();
-        WorkflowMultiBranchProjectTest.showIndexing(p);
-        assertEquals(3, master.getNextBuildNumber());
-        assertEquals(3, release.getNextBuildNumber());
-        assertEquals(4, newfeature.getNextBuildNumber());
+    @Test
+    public void configRoundtrip() throws Exception {
+        WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+        BranchSource bs = new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false));
+        mp.getSourcesList().add(bs);
+        bs.setStrategy(new DefaultBranchPropertyStrategy(new BranchProperty[]{new DurabilityHintBranchProperty(FlowDurabilityHint.SURVIVABLE_NONATOMIC)}));
+        r.configRoundtrip(mp);
+        DefaultBranchPropertyStrategy strat = (DefaultBranchPropertyStrategy)(mp.getBranchPropertyStrategy(mp.getSCMSources().get(0)));
+        DurabilityHintBranchProperty prop = null;
+        for (BranchProperty bp : strat.getProps()) {
+            if (bp instanceof  DurabilityHintBranchProperty) {
+                prop = (DurabilityHintBranchProperty)bp;
+                break;
+            }
+        }
+        Assert.assertNotNull(prop);
+        Assert.assertEquals(FlowDurabilityHint.SURVIVABLE_NONATOMIC, prop.getDurabilityHint());
     }
 
-    @Test public void organizationFolder() throws Exception {
-        round1();
-        OrganizationFolder top = r.jenkins.createProject(OrganizationFolder.class, "top");
-        top.getProperties().add(new NoTriggerOrganizationFolderProperty("(?!release.*).*"));
-        top.getNavigators().add(new SingleSCMNavigator("p", Collections.<SCMSource>singletonList(new GitSCMSource("source-id", sampleRepo.toString(), "", "*", "", false))));
-        top.scheduleBuild2(0).getFuture().get();
-        r.waitUntilNoActivity();
-        top.getComputation().writeWholeLogTo(System.out);
-        WorkflowMultiBranchProject p = r.jenkins.getItemByFullName("top/p", WorkflowMultiBranchProject.class);
-        assertNotNull(p);
-        WorkflowJob master = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(p, "master");
-        r.waitUntilNoActivity();
-        assertEquals(2, master.getNextBuildNumber());
-        WorkflowJob release = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(p, "release");
-        assertEquals(1, release.getNextBuildNumber());
-        WorkflowJob newfeature = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(p, "newfeature");
-        assertEquals(2, newfeature.getNextBuildNumber());
-        round2();
-        WorkflowMultiBranchProjectTest.showIndexing(p);
-        assertEquals(3, master.getNextBuildNumber());
-        assertEquals(1, release.getNextBuildNumber());
-        assertEquals(3, newfeature.getNextBuildNumber());
-        QueueTaskFuture<WorkflowRun> releaseBuild = release.scheduleBuild2(0);
-        assertNotNull(releaseBuild);
-        assertEquals(1, releaseBuild.get().getNumber());
-        assertEquals(2, release.getNextBuildNumber());
-        top.getProperties().replace(new NoTriggerOrganizationFolderProperty("(?!master$).*"));
-        round3();
-        WorkflowMultiBranchProjectTest.showIndexing(p);
-        assertEquals(3, master.getNextBuildNumber());
-        assertEquals(3, release.getNextBuildNumber());
-        assertEquals(4, newfeature.getNextBuildNumber());
-    }
-
-    private void round1() throws Exception {
+    @Test public void durabilityHintByPropertyStep() throws Exception {
         sampleRepo.init();
-        sampleRepo.write("Jenkinsfile", "");
+        sampleRepo.write("Jenkinsfile",
+                        "properties(durabilityHint('" + FlowDurabilityHint.SURVIVABLE_NONATOMIC.getName()+"'))\n"+
+                        "echo 'whynot'");
         sampleRepo.git("add", "Jenkinsfile");
-        sampleRepo.git("commit", "--message=init");
-        sampleRepo.git("checkout", "-b", "newfeature");
-        sampleRepo.write("Jenkinsfile", "// newfeature");
-        sampleRepo.git("commit", "--all", "--message=newfeature");
-        sampleRepo.git("checkout", "-b", "release", "master");
-        sampleRepo.write("Jenkinsfile", "// release");
-        sampleRepo.git("commit", "--all", "--message=release");
+        sampleRepo.git("commit", "--all", "--message=flow");
+
+
+        WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false)));
+        WorkflowJob p = scheduleAndFindBranchProject(mp, "master");
+        r.waitUntilNoActivity();
+
+        WorkflowRun b1 = p.getLastBuild();
+        Assert.assertEquals(Result.SUCCESS, b1.getResult());
+        DurabilityHintJobProperty prop = p.getProperty(DurabilityHintJobProperty.class);
+        Assert.assertEquals(FlowDurabilityHint.SURVIVABLE_NONATOMIC, prop.getHint());
+        r.assertLogContains("SURVIVABLE_NONATOMIC", b1);
     }
 
-    private void round2() throws Exception {
-        sampleRepo.git("checkout", "master");
-        sampleRepo.write("Jenkinsfile", "// more");
-        sampleRepo.git("commit", "--all", "--message=master-2");
-        sampleRepo.git("checkout", "newfeature");
-        sampleRepo.write("Jenkinsfile", "// more");
-        sampleRepo.git("commit", "--all", "--message=newfeature-2");
-        sampleRepo.git("checkout", "release");
-        sampleRepo.write("Jenkinsfile", "// more");
-        sampleRepo.git("commit", "--all", "--message=release-2");
-        sampleRepo.notifyCommit(r);
-    }
+    @Test public void durabilityHintByBranchProperty() throws Exception {
+        sampleRepo.init();
+        sampleRepo.write("Jenkinsfile",
+                        "echo 'whynot'");
+        sampleRepo.git("add", "Jenkinsfile");
+        sampleRepo.git("commit", "--all", "--message=flow");
 
-    private void round3() throws Exception {
-        sampleRepo.git("checkout", "master");
-        sampleRepo.write("Jenkinsfile", "// yet more");
-        sampleRepo.git("commit", "--all", "--message=master-3");
-        sampleRepo.git("checkout", "newfeature");
-        sampleRepo.write("Jenkinsfile", "// yet more");
-        sampleRepo.git("commit", "--all", "--message=newfeature-3");
-        sampleRepo.git("checkout", "release");
-        sampleRepo.write("Jenkinsfile", "// yet more");
-        sampleRepo.git("commit", "--all", "--message=release-3");
-        sampleRepo.notifyCommit(r);
+
+        WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+        BranchSource bs = new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false));
+        mp.getSourcesList().add(bs);
+        bs.setStrategy(new DefaultBranchPropertyStrategy(new BranchProperty[]{new DurabilityHintBranchProperty(FlowDurabilityHint.SURVIVABLE_NONATOMIC)}));
+        WorkflowJob p = scheduleAndFindBranchProject(mp, "master");
+        r.waitUntilNoActivity();
+
+        Assert.assertEquals(FlowDurabilityHint.SURVIVABLE_NONATOMIC, p.getProperty(DurabilityHintJobProperty.class).getHint());
+        WorkflowRun b1 = p.getLastBuild();
+        Assert.assertEquals(Result.SUCCESS, b1.getResult());
     }
 
 }
