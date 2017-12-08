@@ -37,7 +37,7 @@ public class DurabilityHintBranchProperty extends BranchProperty {
         return durabilityHint;
     }
 
-    DataBoundConstructor
+    @DataBoundConstructor
     public DurabilityHintBranchProperty(@Nonnull FlowDurabilityHint durabilityHint) {
         this.durabilityHint = durabilityHint;
     }
