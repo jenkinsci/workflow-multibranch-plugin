@@ -24,22 +24,14 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
-import hudson.model.BooleanParameterValue;
-import hudson.model.ParametersAction;
 import hudson.model.Result;
-import hudson.model.StringParameterValue;
-import hudson.model.queue.QueueTaskFuture;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
-import jenkins.branch.NamedExceptionsBranchPropertyStrategy;
 import jenkins.branch.NoTriggerBranchProperty;
 import jenkins.branch.NoTriggerOrganizationFolderProperty;
-import jenkins.branch.OrganizationFolder;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
-import jenkins.scm.api.SCMSource;
-import jenkins.scm.impl.SingleSCMNavigator;
 import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -49,8 +41,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import java.util.Collections;
 
 import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
 import static org.junit.Assert.assertEquals;
@@ -81,13 +71,13 @@ public class DurabilityHintBranchPropertyWorkflowTest {
             }
         }
         Assert.assertNotNull(prop);
-        Assert.assertEquals(FlowDurabilityHint.SURVIVABLE_NONATOMIC, prop.getDurabilityHint());
+        Assert.assertEquals(FlowDurabilityHint.SURVIVABLE_NONATOMIC, prop.getHint());
     }
 
     @Test public void durabilityHintByPropertyStep() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile",
-                        "properties(durabilityHint('" + FlowDurabilityHint.SURVIVABLE_NONATOMIC.getName()+"'))\n"+
+                        "properties([durabilityHint('" + FlowDurabilityHint.SURVIVABLE_NONATOMIC.getName()+"')])\n"+
                         "echo 'whynot'");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("commit", "--all", "--message=flow");
@@ -102,7 +92,6 @@ public class DurabilityHintBranchPropertyWorkflowTest {
         Assert.assertEquals(Result.SUCCESS, b1.getResult());
         DurabilityHintJobProperty prop = p.getProperty(DurabilityHintJobProperty.class);
         Assert.assertEquals(FlowDurabilityHint.SURVIVABLE_NONATOMIC, prop.getHint());
-        r.assertLogContains("SURVIVABLE_NONATOMIC", b1);
     }
 
     @Test public void durabilityHintByBranchProperty() throws Exception {

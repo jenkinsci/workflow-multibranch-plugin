@@ -4,12 +4,10 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Job;
 import hudson.model.JobProperty;
-import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Run;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchPropertyDescriptor;
 import jenkins.branch.JobDecorator;
-import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
 import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -18,7 +16,6 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.util.Iterator;
 import java.util.List;
@@ -31,15 +28,15 @@ import java.util.List;
 @Restricted(NoExternalUse.class)
 public class DurabilityHintBranchProperty extends BranchProperty {
 
-    private final FlowDurabilityHint durabilityHint;
+    private final FlowDurabilityHint hint;
 
-    public FlowDurabilityHint getDurabilityHint() {
-        return durabilityHint;
+    public FlowDurabilityHint getHint() {
+        return hint;
     }
 
     @DataBoundConstructor
-    public DurabilityHintBranchProperty(@Nonnull FlowDurabilityHint durabilityHint) {
-        this.durabilityHint = durabilityHint;
+    public DurabilityHintBranchProperty(@Nonnull FlowDurabilityHint hint) {
+        this.hint = hint;
     }
 
     @Override
@@ -59,8 +56,8 @@ public class DurabilityHintBranchProperty extends BranchProperty {
                         iterator.remove();
                     }
                 }
-                if (getDurabilityHint() != null) {
-                    result.add((JobProperty)(new DurabilityHintJobProperty(getDurabilityHint())));
+                if (getHint() != null) {
+                    result.add((JobProperty)(new DurabilityHintJobProperty(getHint())));
                 }
                 return result;
             }

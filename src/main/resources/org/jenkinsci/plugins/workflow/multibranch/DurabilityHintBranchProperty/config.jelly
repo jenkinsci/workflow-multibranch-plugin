@@ -27,7 +27,7 @@ THE SOFTWARE.
         <j:set var="defaultHint" value="${descriptor.defaultDurabilityHint}"/>
         <select class="setting-input" name="hint">
             <j:forEach var="it" items="${descriptor.durabilityHintValues}">
-                <f:option value="${it.name()}" selected="${instance != null ? it.name==instance[field].name() : it.name==defaultHint}">
+                <f:option value="${it.name()}" selected="${instance != null ? it.name()==instance[field].name() : it.name==defaultHint}">
                     ${it.description}
                 </f:option>
             </j:forEach>
