@@ -22,7 +22,7 @@ import java.util.List;
 
 /**
  * Branch property so we can define per-branch durability policies, i.e. so feature branches aren't built durably but master is.
- * NEEDS WORKFLOW-JOB-PROPERTY
+ * Also lets us set the durability level before the pipeline has run (a step ahead of the "properties" step).
  * @author Sam Van Oort
  */
 @Restricted(NoExternalUse.class)
