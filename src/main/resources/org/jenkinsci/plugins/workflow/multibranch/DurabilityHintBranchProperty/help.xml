@@ -1,0 +1,50 @@
+<!--
+ ~ The MIT License
+ ~
+ ~ Copyright (c) 2017, CloudBees, Inc.
+ ~
+ ~ Permission is hereby granted, free of charge, to any person obtaining a copy
+ ~ of this software and associated documentation files (the "Software"), to deal
+ ~ in the Software without restriction, including without limitation the rights
+ ~ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ ~ copies of the Software, and to permit persons to whom the Software is
+ ~ furnished to do so, subject to the following conditions:
+ ~
+ ~ The above copyright notice and this permission notice shall be included in
+ ~ all copies or substantial portions of the Software.
+ ~
+ ~ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ ~ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ ~ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ ~ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ ~ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ ~ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ ~ THE SOFTWARE.
+ -->
+<div>
+    <p>
+        This setting allows users to change the default durability mode for running Pipelines.  In most cases this is a
+        trade-off between performance and the ability for running pipelines to resume after unplanned Jenkins outages.
+
+        <br><br><strong>What does this do?</strong>
+        <ul>
+            <li>Previously, running pipelines wrote data constantly, so that they could resume even if Jenkins fails.
+                This setting gives the user the ability to adjust this write behavior.</li>
+            <li>Higher-performance/lower-durability modes write data to disk <strong>much</strong> less often for running pipelines.</li>
+            <li>Writing data less often can massively reduce build times for Pipelines with many steps or complex logic.
+                For pipelines which spend most of their time waiting for a shell/batch script to run, the difference will be less visible.</li>
+            <li>Running pipelines with lower durability settings may lose data <strong>if</strong> they do not finish and Jenkins is not shut down gracefully:</li>
+            <ul>
+                <li>A "graceful" shutdown where Jenkins goes through a full shutdown process, such as visiting <code>http://[jenkins-server]/exit</code></li>
+                <li>A "dirty" shutdown, such as using <code>kill -9</code> to terminate the Jenkins process, may prevent incomplete pipelines from persisting data</li>
+            </ul>
+            <li>Pipelines that cannot persist data may not be able to resume or displayed in Blue Ocean/Stage View/etc.</li>
+            <li>Pipelines will generally write log data regardless of durability settings.</li>
+            <li>Some modes use an "atomic write" option - this helps ensure that pipeline build files aren't overwritten or left partially written if something fails.</li>
+            <li>Atomic writes may place more stress on filesystems, so especially with networked storage it may be faster not to use them.</li>
+        </ul>
+    </p>
+    <p>
+        <strong>Note: </strong> defaults may be set globally under Manage Jenkins > Configure System.
+    </p>
+</div>

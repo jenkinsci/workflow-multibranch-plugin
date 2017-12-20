@@ -23,13 +23,14 @@ THE SOFTWARE.
 -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-    <f:entry title="${%Custom Durability Setting}" field="hint">
+    <f:entry title="${%Custom Branch Speed/Durability Level}" field="hint">
         <j:set var="defaultHint" value="${descriptor.defaultDurabilityHint}"/>
         <select class="setting-input" name="hint">
             <j:forEach var="it" items="${descriptor.durabilityHintValues}">
-                <f:option value="${it.name()}" selected="${instance != null ? it.name()==instance[field].name() : it.name==defaultHint}">
-                    ${it.description}
-                </f:option>
+                <j:set var="optionBody" encode="false">${it.description}</j:set>
+                <option value="${it.name()}"
+                        selected="${((instance != null) ? it==instance[field] : it==defaultHint) ? 'true' : null}"
+                        tooltip="${it.tooltip}"><j:out value="${optionBody}"/></option>
             </j:forEach>
         </select>
     </f:entry>
