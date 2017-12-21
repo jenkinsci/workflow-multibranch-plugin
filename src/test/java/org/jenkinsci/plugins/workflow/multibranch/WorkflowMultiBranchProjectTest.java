@@ -45,9 +45,12 @@ import jenkins.branch.BranchPropertyDescriptor;
 import jenkins.branch.BranchPropertyStrategy;
 import jenkins.branch.BranchPropertyStrategyDescriptor;
 import jenkins.branch.BranchSource;
+import jenkins.branch.BuildRetentionBranchProperty;
 import jenkins.branch.DefaultBranchPropertyStrategy;
 import jenkins.branch.NamedExceptionsBranchPropertyStrategy;
 import jenkins.branch.NoTriggerBranchProperty;
+import jenkins.branch.RateLimitBranchProperty;
+import jenkins.branch.UntrustedBranchProperty;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.scm.api.SCMHead;
@@ -138,7 +141,12 @@ public class WorkflowMultiBranchProjectTest {
         }
         // RateLimitBranchProperty & BuildRetentionBranchProperty hidden by JobPropertyStep.HideSuperfluousBranchProperties.
         // UntrustedBranchProperty hidden because it applies only to Project.
-        assertEquals(Collections.singleton(NoTriggerBranchProperty.class), propertyTypes);
+        assert propertyTypes.contains(NoTriggerBranchProperty.class);
+        assert propertyTypes.contains(DurabilityHintBranchProperty.class);
+        assert !propertyTypes.contains(BuildRetentionBranchProperty.class);
+        assert !propertyTypes.contains(RateLimitBranchProperty.class);
+        assert !propertyTypes.contains(UntrustedBranchProperty.class);
+
         Set<Class<? extends BranchPropertyStrategy>> strategyTypes = new HashSet<>();
         for (BranchPropertyStrategyDescriptor d : r.jenkins.getDescriptorByType(BranchSource.DescriptorImpl.class).propertyStrategyDescriptors(p, r.jenkins.getDescriptorByType(SingleSCMSource.DescriptorImpl.class))) {
             strategyTypes.add(d.clazz);
