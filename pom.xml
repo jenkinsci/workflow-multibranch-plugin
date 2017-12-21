@@ -70,8 +70,8 @@ THE SOFTWARE.
         <workflow-step-api.version>2.13</workflow-step-api.version>
         <workflow-scm-step-plugin.version>2.4</workflow-scm-step-plugin.version>
         <!-- Temp versions only until upstreams are released -->
-        <workflow-support.version>2.17-durability-v4-20171220.180125-3</workflow-support.version>
-        <workflow-cps.version>2.43-durability-v4-20171220.195202-1</workflow-cps.version>
+        <workflow-support.version>2.17-durability-beta-1</workflow-support.version>
+        <workflow-cps.version>2.43-durability-beta-1</workflow-cps.version>
     </properties>
     <dependencies>
         <dependency>
@@ -82,7 +82,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-job</artifactId>
-            <version>2.15-durability-v4-20171220.195701-1</version>
+            <version>2.17-durability-beta-1</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -118,7 +118,7 @@ THE SOFTWARE.
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-api</artifactId>
             <!-- Until we get https://github.com/jenkinsci/workflow-api-plugin/pull/55 -->
-            <version>2.25-durability-v4-20171220.174016-1</version>
+            <version>2.25-durability-beta</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
