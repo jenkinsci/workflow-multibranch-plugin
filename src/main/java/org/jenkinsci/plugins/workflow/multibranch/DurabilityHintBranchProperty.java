@@ -75,7 +75,7 @@ public class DurabilityHintBranchProperty extends BranchProperty {
             return FlowDurabilityHint.values();
         }
 
-        public static FlowDurabilityHint getDefaultHint() {
+        public static FlowDurabilityHint getDefaultDurabilityHint() {
             return GlobalDefaultFlowDurabilityLevel.getDefaultDurabilityHint();
         }
     }

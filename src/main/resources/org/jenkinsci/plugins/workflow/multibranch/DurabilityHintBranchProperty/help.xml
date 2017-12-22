@@ -35,7 +35,7 @@
                 For pipelines which spend most of their time waiting for a shell/batch script to run, the difference will be less visible.</li>
             <li>Running pipelines with lower durability settings may lose data <strong>if</strong> they do not finish and Jenkins is not shut down gracefully:</li>
             <ul>
-                <li>A "graceful" shutdown where Jenkins goes through a full shutdown process, such as visiting <code>http://[jenkins-server]/exit</code></li>
+                <li>A "graceful" shutdown is where Jenkins goes through a full shutdown process, such as visiting <code>http://[jenkins-server]/exit</code></li>
                 <li>A "dirty" shutdown, such as using <code>kill -9</code> to terminate the Jenkins process, may prevent incomplete pipelines from persisting data</li>
             </ul>
             <li>Pipelines that cannot persist data may not be able to resume or displayed in Blue Ocean/Stage View/etc.</li>
