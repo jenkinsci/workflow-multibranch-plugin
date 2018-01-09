@@ -28,6 +28,7 @@ import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
 import hudson.ExtensionList;
 import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Item;
+import hudson.model.Queue;
 import hudson.model.listeners.ItemListener;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.ChangeLogParser;
@@ -196,12 +197,22 @@ public class WorkflowMultiBranchProjectTest {
         WorkflowJob p = scheduleAndFindBranchProject(mp, "master");
         mp.getIndexing().writeWholeLogTo(System.out);
         assertEquals(1, mp.getItems().size());
-        r.waitUntilNoActivity();
+
+        r.waitForCompletion(p.getLastBuild());
+        Thread.sleep(1000);
+        assert !p.isBuilding();
         WorkflowRun b1 = p.getLastBuild();
         assertEquals(1, b1.getNumber());
-        mp.scheduleBuild2(0).getFuture().get();
-        mp.getIndexing().writeWholeLogTo(System.out);
-        assertEquals("[p, p/master]", ExtensionList.lookup(Listener.class).get(0).names.toString());
+        Queue.Item it = mp.scheduleBuild2(0);
+        Thread.sleep(100);
+        if (it != null) {
+            System.out.println("indexing");
+        }
+        it.getFuture().waitForStart();
+        it.getFuture().get();
+//        mp.scheduleBuild2(0).getFuture().get();
+     //   mp.getIndexing().writeWholeLogTo(System.out);
+//        assertEquals("[p, p/master]", ExtensionList.lookup(Listener.class).get(0).names.toString());
     }
     @TestExtension("conflictingBranches") public static class Listener extends ItemListener {
         List<String> names = new ArrayList<>();
