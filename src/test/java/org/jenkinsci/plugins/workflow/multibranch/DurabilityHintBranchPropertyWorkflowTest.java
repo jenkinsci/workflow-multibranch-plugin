@@ -32,11 +32,14 @@ import jenkins.branch.NoTriggerBranchProperty;
 import jenkins.branch.NoTriggerOrganizationFolderProperty;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
+import org.jenkinsci.plugins.workflow.flow.DurabilityHintProvider;
 import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
+import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.job.properties.DurabilityHintJobProperty;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
@@ -94,7 +97,9 @@ public class DurabilityHintBranchPropertyWorkflowTest {
         Assert.assertEquals(FlowDurabilityHint.SURVIVABLE_NONATOMIC, prop.getHint());
     }
 
-    @Test public void durabilityHintByBranchProperty() throws Exception {
+    @Test
+    @Issue("JENKINS-48826")
+    public void durabilityHintByBranchProperty() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile",
                         "echo 'whynot'");
@@ -109,9 +114,15 @@ public class DurabilityHintBranchPropertyWorkflowTest {
         WorkflowJob p = scheduleAndFindBranchProject(mp, "master");
         r.waitUntilNoActivity();
 
-        Assert.assertEquals(FlowDurabilityHint.SURVIVABLE_NONATOMIC, p.getProperty(DurabilityHintJobProperty.class).getHint());
+        Assert.assertEquals(FlowDurabilityHint.SURVIVABLE_NONATOMIC, DurabilityHintProvider.suggestedFor(p));
         WorkflowRun b1 = p.getLastBuild();
         Assert.assertEquals(Result.SUCCESS, b1.getResult());
-    }
 
+        // Ensure when we remove the property, branches see that on the next build
+        bs.setStrategy(new DefaultBranchPropertyStrategy(new BranchProperty[]{}));
+        p = scheduleAndFindBranchProject(mp, "master");
+        r.waitUntilNoActivity();
+
+        Assert.assertEquals(GlobalDefaultFlowDurabilityLevel.getDefaultDurabilityHint(), DurabilityHintProvider.suggestedFor(mp.getItems().iterator().next()));
+    }
 }

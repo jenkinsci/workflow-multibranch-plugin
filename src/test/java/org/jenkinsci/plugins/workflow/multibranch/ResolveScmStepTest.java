@@ -25,19 +25,14 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
-import hudson.model.Result;
 import hudson.model.TopLevelItem;
 import jenkins.scm.impl.mock.MockSCMController;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 public class ResolveScmStepTest {
 
@@ -60,15 +55,14 @@ public class ResolveScmStepTest {
             c.addFile("repo", "foo", "Add file", "new-file.txt", "content".getBytes());
             WorkflowJob job = j.jenkins.createProject(WorkflowJob.class, "workflow");
             job.setDefinition(new CpsFlowDefinition("node {\n"
-                    + "  def tests = resolveScm(source: [$class: 'jenkins.scm.impl.mock.MockSCMSource', controllerId:'"
+                    + "  def tests = resolveScm source: mockScm(controllerId:'"
                     + c.getId()
-                    + "', repository:'repo', includeBranches:true, includeTags:true, includeChangeRequests:true], "
-                    + "targets:['foo'])\n"
+                    + "', repository:'repo', traits: [discoverBranches()]), "
+                    + "targets:['foo']\n"
                     + "  checkout tests\n"
                     + "  if (!fileExists('new-file.txt')) { error 'wrong branch checked out' }\n"
                     + "}"));
-            WorkflowRun run = job.scheduleBuild2(0).get();
-            assertThat(run.getResult(), is(Result.SUCCESS));
+            j.buildAndAssertSuccess(job);
         } finally {
             c.close();
         }
@@ -82,14 +76,13 @@ public class ResolveScmStepTest {
             c.createBranch("repo", "foo");
             WorkflowJob job = j.jenkins.createProject(WorkflowJob.class, "workflow");
             job.setDefinition(new CpsFlowDefinition("node {\n"
-                    + "  def tests = resolveScm(source: [$class: 'jenkins.scm.impl.mock.MockSCMSource', controllerId:'"
+                    + "  def tests = resolveScm source: mockScm(controllerId:'"
                     + c.getId()
-                    + "', repository:'repo', includeBranches:true, includeTags:true, includeChangeRequests:true], "
-                    + "targets:['bar'], ignoreErrors: true)\n"
+                    + "', repository:'repo', traits: [discoverBranches()]), "
+                    + "targets:['bar'], ignoreErrors: true\n"
                     + "  if (tests != null) { error \"resolved as ${tests}\"}\n"
                     + "}"));
-            WorkflowRun run = job.scheduleBuild2(0).get();
-            assertThat(run.getResult(), is(Result.SUCCESS));
+            j.buildAndAssertSuccess(job);
         } finally {
             c.close();
         }
@@ -105,17 +98,15 @@ public class ResolveScmStepTest {
             job.setDefinition(new CpsFlowDefinition("node {\n"
                     + "  def ok = true\n"
                     + "  try {\n"
-                    + "    def tests = resolveScm(source: [$class: 'jenkins.scm.impl.mock.MockSCMSource', "
-                    + "controllerId:'"
+                    + "  def tests = resolveScm source: mockScm(controllerId:'"
                     + c.getId()
-                    + "', repository:'repo', includeBranches:true, includeTags:true, includeChangeRequests:true], "
-                    + "targets:['bar'])\n"
+                    + "', repository:'repo', traits: [discoverBranches()]), "
+                    + "targets:['bar']\n"
                     + "    ok = false\n"
                     + "  } catch (e) {}\n"
                     + "  if (!ok) { error 'abort not thrown' }\n"
                     + "}"));
-            WorkflowRun run = job.scheduleBuild2(0).get();
-            assertThat(run.getResult(), is(Result.SUCCESS));
+            j.buildAndAssertSuccess(job);
         } finally {
             c.close();
         }
@@ -130,14 +121,14 @@ public class ResolveScmStepTest {
             c.addFile("repo", "manchu", "Add file", "new-file.txt", "content".getBytes());
             WorkflowJob job = j.jenkins.createProject(WorkflowJob.class, "workflow");
             job.setDefinition(new CpsFlowDefinition("node {\n"
-                    + "  def tests = resolveScm(source: [$class: 'jenkins.scm.impl.mock.MockSCMSource', controllerId:'"
+                    + "  def tests = resolveScm source: mockScm(controllerId:'"
                     + c.getId()
-                    + "', repository:'repo', includeBranches:true, includeTags:true, includeChangeRequests:true], targets:['bar', 'manchu'])\n"
+                    + "', repository:'repo', traits: [discoverBranches()]), "
+                    + "targets:['bar', 'manchu']\n"
                     + "  checkout tests\n"
                     + "  if (!fileExists('new-file.txt')) { error 'wrong branch checked out' }\n"
                     + "}"));
-            WorkflowRun run = job.scheduleBuild2(0).get();
-            assertThat(run.getResult(), is(Result.SUCCESS));
+            j.buildAndAssertSuccess(job);
         } finally {
             c.close();
         }

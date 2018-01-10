@@ -51,7 +51,6 @@ import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
 import org.jenkinsci.plugins.workflow.graphanalysis.NodeStepTypePredicate;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousStepExecution;
@@ -65,7 +64,7 @@ import org.kohsuke.stapler.StaplerRequest;
 /**
  * Resets the properties of the current job.
  */
-@SuppressWarnings("rawtypes") // TODO JENKINS-26535: cannot bind List<JobProperty<?>>
+@SuppressWarnings({"unchecked", "rawtypes"}) // TODO JENKINS-26535: cannot bind List<JobProperty<?>>
 public class JobPropertyStep extends AbstractStepImpl {
 
     private final List<JobProperty> properties;
@@ -79,7 +78,7 @@ public class JobPropertyStep extends AbstractStepImpl {
     }
 
     public Map<JobPropertyDescriptor,JobProperty> getPropertiesMap() {
-        return (Map)(Descriptor.toMap(properties));
+        return Descriptor.toMap((List) properties);
     }
 
     public static class Execution extends AbstractSynchronousStepExecution<Void> {
