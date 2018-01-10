@@ -25,19 +25,14 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
-import hudson.model.Result;
 import hudson.model.TopLevelItem;
 import jenkins.scm.impl.mock.MockSCMController;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 public class ResolveScmStepTest {
 
@@ -67,8 +62,7 @@ public class ResolveScmStepTest {
                     + "  checkout tests\n"
                     + "  if (!fileExists('new-file.txt')) { error 'wrong branch checked out' }\n"
                     + "}"));
-            WorkflowRun run = job.scheduleBuild2(0).get();
-            assertThat(run.getResult(), is(Result.SUCCESS));
+            j.buildAndAssertSuccess(job);
         } finally {
             c.close();
         }
@@ -88,8 +82,7 @@ public class ResolveScmStepTest {
                     + "targets:['bar'], ignoreErrors: true)\n"
                     + "  if (tests != null) { error \"resolved as ${tests}\"}\n"
                     + "}"));
-            WorkflowRun run = job.scheduleBuild2(0).get();
-            assertThat(run.getResult(), is(Result.SUCCESS));
+            j.buildAndAssertSuccess(job);
         } finally {
             c.close();
         }
@@ -114,8 +107,7 @@ public class ResolveScmStepTest {
                     + "  } catch (e) {}\n"
                     + "  if (!ok) { error 'abort not thrown' }\n"
                     + "}"));
-            WorkflowRun run = job.scheduleBuild2(0).get();
-            assertThat(run.getResult(), is(Result.SUCCESS));
+            j.buildAndAssertSuccess(job);
         } finally {
             c.close();
         }
@@ -136,8 +128,7 @@ public class ResolveScmStepTest {
                     + "  checkout tests\n"
                     + "  if (!fileExists('new-file.txt')) { error 'wrong branch checked out' }\n"
                     + "}"));
-            WorkflowRun run = job.scheduleBuild2(0).get();
-            assertThat(run.getResult(), is(Result.SUCCESS));
+            j.buildAndAssertSuccess(job);
         } finally {
             c.close();
         }
