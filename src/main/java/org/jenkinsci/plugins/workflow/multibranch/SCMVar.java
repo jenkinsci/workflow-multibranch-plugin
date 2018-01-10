@@ -102,7 +102,7 @@ import org.jenkinsci.plugins.workflow.support.pickles.XStreamPickle;
             if (tip == null) {
                 throw new AbortException("Could not determine exact tip revision of " + branch.getName());
             }
-            revisionAction = new SCMRevisionAction(tip);
+            revisionAction = new SCMRevisionAction(scmSource, tip);
             build.addAction(revisionAction);
         }
         return scmSource.build(branch.getHead(), tip);
