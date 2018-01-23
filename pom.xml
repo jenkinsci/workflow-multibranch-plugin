@@ -63,14 +63,14 @@ THE SOFTWARE.
         </pluginRepository>
     </pluginRepositories>
     <properties>
-        <jenkins.version>2.60.3</jenkins.version>
         <java.level>8</java.level>
+        <jenkins.version>2.62</jenkins.version>
         <scm-api.version>2.2.6</scm-api.version>
         <no-test-jar>false</no-test-jar>
-        <workflow-step-api.version>2.10</workflow-step-api.version>
+        <workflow-step-api.version>2.13</workflow-step-api.version>
         <workflow-scm-step-plugin.version>2.4</workflow-scm-step-plugin.version>
-        <workflow-support.version>2.14</workflow-support.version>
-        <workflow-cps.version>2.32</workflow-cps.version>
+        <workflow-support.version>2.17</workflow-support.version>
+        <workflow-cps.version>2.43</workflow-cps.version>
         <git-plugin.version>3.7.0</git-plugin.version>
     </properties>
     <dependencies>
@@ -82,7 +82,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-job</artifactId>
-            <version>2.10</version>
+            <version>2.17</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -123,7 +123,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-api</artifactId>
-            <version>2.15</version>
+            <version>2.25</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -133,7 +133,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>script-security</artifactId>
-            <version>1.26</version>
+            <version>1.39</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -249,8 +249,14 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-job</artifactId>
-            <version>2.10</version>
+            <version>2.17</version>
             <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>matrix-auth</artifactId>
+            <version>2.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
