@@ -28,4 +28,7 @@ THE SOFTWARE.
     <f:entry title="${%Script Path}" field="scriptPath">
         <f:textbox default="Jenkinsfile"/>
     </f:entry>
+    <f:entry title="${%Force heavyweight checkout for Jenkinsfile retrieval}" field="forceHeavyweightCheckout">
+        <f:checkbox />
+    </f:entry>
 </j:jelly>

@@ -59,6 +59,7 @@ class SCMBinder extends FlowDefinition {
     /** Kill switch for JENKINS-33273 in case of problems. */
     static /* not final */ boolean USE_HEAVYWEIGHT_CHECKOUT = Boolean.getBoolean(SCMBinder.class.getName() + ".USE_HEAVYWEIGHT_CHECKOUT"); // TODO 2.4+ use SystemProperties
     private String scriptPath = WorkflowBranchProjectFactory.SCRIPT;
+    private boolean forceHeavyweightCheckout = false;
 
     public Object readResolve() {
         if (this.scriptPath == null) {
@@ -67,8 +68,9 @@ class SCMBinder extends FlowDefinition {
         return this;
     }
 
-    public SCMBinder(String scriptPath) {
+    public SCMBinder(String scriptPath, boolean forceHeavyweightCheckout) {
         this.scriptPath = scriptPath;
+        this.forceHeavyweightCheckout = forceHeavyweightCheckout;
     }
 
     @Override public FlowExecution create(FlowExecutionOwner handle, TaskListener listener, List<? extends Action> actions) throws Exception {
@@ -97,7 +99,7 @@ class SCMBinder extends FlowDefinition {
         if (tip != null) {
             build.addAction(new SCMRevisionAction(scmSource, tip));
             SCMRevision rev = scmSource.getTrustedRevision(tip, listener);
-            try (SCMFileSystem fs = USE_HEAVYWEIGHT_CHECKOUT ? null : SCMFileSystem.of(scmSource, head, rev)) {
+            try (SCMFileSystem fs = (USE_HEAVYWEIGHT_CHECKOUT || forceHeavyweightCheckout) ? null : SCMFileSystem.of(scmSource, head, rev)) {
                 if (fs != null) { // JENKINS-33273
                     String script = null;
                     try {

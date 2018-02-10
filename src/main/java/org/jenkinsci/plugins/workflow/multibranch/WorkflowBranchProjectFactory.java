@@ -41,6 +41,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectFactory {
     static final String SCRIPT = "Jenkinsfile";
     private String scriptPath = SCRIPT;
+    private boolean forceHeavyweightCheckout = false;
 
     public Object readResolve() {
         if (this.scriptPath == null) {
@@ -64,8 +65,17 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
         return scriptPath;
     }
 
+    @DataBoundSetter
+    public void setForceHeavyweightCheckout(boolean forceHeavyweightCheckout) {
+        this.forceHeavyweightCheckout = forceHeavyweightCheckout;
+    }
+
+    public boolean getForceHeavyweightCheckout(){
+        return forceHeavyweightCheckout;
+    }
+
     @Override protected FlowDefinition createDefinition() {
-        return new SCMBinder(scriptPath);
+        return new SCMBinder(scriptPath, forceHeavyweightCheckout);
     }
 
     @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
