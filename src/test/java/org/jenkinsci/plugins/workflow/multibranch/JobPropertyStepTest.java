@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.model.BooleanParameterDefinition;
 import hudson.model.BooleanParameterValue;
+import hudson.model.ChoiceParameterDefinition;
 import hudson.model.JobProperty;
 import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
@@ -36,6 +37,7 @@ import hudson.model.queue.QueueTaskFuture;
 import hudson.tasks.LogRotator;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -99,6 +101,7 @@ public class JobPropertyStepTest {
         ParametersDefinitionProperty.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "parameters"
         BooleanParameterDefinition.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "booleanParam"
         StringParameterDefinition.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "string"
+        ChoiceParameterDefinition.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "choice" and "choiceParam"
         BuildDiscarderProperty.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "buildDiscarder"
         LogRotator.LRDescriptor.class.isAnnotationPresent(Symbol.class) && // "logRotator"
         TimerTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class); // "cron"
@@ -184,6 +187,7 @@ public class JobPropertyStepTest {
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new StringParameterValue("myparam", "special value"))));
         assertEquals(2, b2.getNumber());
         r.assertLogContains("received special value", b2);
+
         sampleRepo.write("Jenkinsfile",
                 (HAVE_SYMBOL ?
                     "properties([parameters([booleanParam(name: 'flag', defaultValue: false)])])\n" :
@@ -197,6 +201,7 @@ public class JobPropertyStepTest {
         WorkflowRun b4 = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new BooleanParameterValue("flag", true))));
         assertEquals(4, b4.getNumber());
         r.assertLogContains("enabled? true", b4);
+
         sampleRepo.write("Jenkinsfile",
                 (HAVE_SYMBOL ?
                     "properties([parameters([booleanParam(name: 'newflag', defaultValue: false)])])\n" :
@@ -206,6 +211,44 @@ public class JobPropertyStepTest {
         WorkflowRun b5 = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new BooleanParameterValue("newflag", true))));
         assertEquals(5, b5.getNumber());
         r.assertLogContains("enabled again? true", b5);
+
+        sampleRepo.write("Jenkinsfile",
+                (HAVE_SYMBOL ?
+                    "properties([parameters([choice(name: 'select', choices: 'foo\\nbar\\nbaz')])])\n" :
+                    "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'ChoiceParameterDefinition', name: 'select', choices: 'foo\\nbar\\nbaz']]]])\n") +
+                "echo \"value ${params.select}\"");
+        sampleRepo.git("commit", "--all", "--message=flow");
+        sampleRepo.notifyCommit(r);
+        WorkflowRun b6 = p.getLastBuild();
+        assertEquals(6, b6.getNumber());
+        r.assertLogContains("value foo", b6);
+        WorkflowRun b7 = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new StringParameterValue("select", "bar", ""))));
+        assertEquals(7, b7.getNumber());
+        r.assertLogContains("value bar", b7);
+
+        if (HAVE_SYMBOL) {
+            sampleRepo.write("Jenkinsfile",
+                    "properties([parameters([choice(name: 'select', choices: ['foo', 'bar', 'baz'] )])])\n" +
+                            "echo \"value ${params.select}\"");
+            sampleRepo.git("commit", "--all", "--message=flow");
+            sampleRepo.notifyCommit(r);
+            WorkflowRun b8 = p.getLastBuild();
+            assertEquals(8, b8.getNumber());
+            r.assertLogContains("value foo", b8);
+            WorkflowRun b9 = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new StringParameterValue("select", "bar", ""))));
+            assertEquals(9, b9.getNumber());
+            r.assertLogContains("value bar", b9);
+        }
+
+    }
+
+    @Issue("JENKINS-26143")
+    @Test
+    public void testChoiceParameterSnippetizer() throws Exception {
+        //new SnippetizerTester(r).assertGenerateSnippet();
+        new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(Arrays.asList(new ParametersDefinitionProperty(new ChoiceParameterDefinition[] {
+                new ChoiceParameterDefinition("paramName", new String[] { "foo", "bar", "baz" }, "")
+        }))), "properties([parameters([choice(choices: ['foo', 'bar', 'baz'], description: '', name: 'paramName')])])");
     }
 
     @SuppressWarnings("deprecation") // RunList.size
