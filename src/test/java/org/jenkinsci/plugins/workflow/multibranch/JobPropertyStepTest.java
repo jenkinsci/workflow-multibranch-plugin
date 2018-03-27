@@ -124,7 +124,7 @@ public class JobPropertyStepTest {
 
         StepConfigTester tester = new StepConfigTester(r);
         properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
-        assertEquals(2, properties.size());
+        assertEquals(1, properties.size());
         ParametersDefinitionProperty pdp = getPropertyFromList(ParametersDefinitionProperty.class, properties);
         assertNotNull(pdp);
         assertEquals(1, pdp.getParameterDefinitions().size());
@@ -151,7 +151,7 @@ public class JobPropertyStepTest {
 
         StepConfigTester tester = new StepConfigTester(r);
         properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
-        assertEquals(2, properties.size());
+        assertEquals(1, properties.size());
         BuildDiscarderProperty bdp = getPropertyFromList(BuildDiscarderProperty.class, properties);
         assertNotNull(bdp);
         BuildDiscarder strategy = bdp.getStrategy();

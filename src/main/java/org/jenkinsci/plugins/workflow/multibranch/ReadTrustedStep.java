@@ -170,7 +170,7 @@ public class ReadTrustedStep extends AbstractStepImpl {
                 if (tip == null) {
                     throw new AbortException("Could not determine exact tip revision of " + branch.getName());
                 }
-                build.addAction(new SCMRevisionAction(tip));
+                build.addAction(new SCMRevisionAction(scmSource, tip));
             }
             SCMRevision trusted = scmSource.getTrustedRevision(tip, listener);
             boolean trustCheck = !tip.equals(trusted);

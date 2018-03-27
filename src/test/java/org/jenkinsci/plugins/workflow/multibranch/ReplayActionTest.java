@@ -24,17 +24,11 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
-import com.cloudbees.hudson.plugins.folder.properties.AuthorizationMatrixProperty;
 import hudson.model.Item;
 import hudson.model.User;
 import hudson.security.ACL;
-import hudson.security.Permission;
-import hudson.security.ProjectMatrixAuthorizationStrategy;
 import java.io.File;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
@@ -57,6 +51,7 @@ import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 public class ReplayActionTest {
 
@@ -120,18 +115,13 @@ public class ReplayActionTest {
         // Set up a secured instance with an organization folder.
         // Developers have varying permissions set at the topmost (configurable) level.
         r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
-        ProjectMatrixAuthorizationStrategy pmas = new ProjectMatrixAuthorizationStrategy();
-        pmas.add(Jenkins.ADMINISTER, "admin");
-        pmas.add(Jenkins.READ, "dev1");
-        pmas.add(Jenkins.READ, "dev2");
-        pmas.add(Jenkins.READ, "dev3");
-        r.jenkins.setAuthorizationStrategy(pmas);
         OrganizationFolder top = r.jenkins.createProject(OrganizationFolder.class, "top");
-        Map<Permission, Set<String>> perms = new HashMap<Permission, Set<String>>();
-        perms.put(Item.CONFIGURE, Collections.singleton("dev1")); // implies REPLAY
-        perms.put(ReplayAction.REPLAY, Collections.singleton("dev2"));
-        perms.put(Item.BUILD, Collections.singleton("dev3")); // does not imply REPLAY
-        top.addProperty(new AuthorizationMatrixProperty(perms));
+        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().
+            grant(Jenkins.ADMINISTER).everywhere().to("admin").
+            grant(Jenkins.READ).everywhere().to("dev1", "dev2", "dev3").
+            grant(Item.CONFIGURE).onFolders(top).to("dev1"). // implies REPLAY
+            grant(ReplayAction.REPLAY).onFolders(top).to("dev2").
+            grant(Item.BUILD).onFolders(top).to("dev3")); // does not imply REPLAY
         top.getNavigators().add(new GitDirectorySCMNavigator(clones.getAbsolutePath()));
         top.scheduleBuild2(0).getFuture().get();
         top.getComputation().writeWholeLogTo(System.out);

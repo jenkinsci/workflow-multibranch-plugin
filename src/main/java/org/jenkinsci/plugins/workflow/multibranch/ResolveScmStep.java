@@ -277,8 +277,8 @@ public class ResolveScmStep extends Step {
             out.printf("Checking for first existing branch from %s...%n", targets);
             SCMRevision fetch = source.fetch(new ObserverImpl(targets), listener).result();
             if (fetch == null) {
-                out.println("Could not find any matching branch%n");
                 if (ignoreErrors) {
+                    out.println("Could not find any matching branch");
                     return null;
                 }
                 throw new AbortException("Could not find any matching branch");

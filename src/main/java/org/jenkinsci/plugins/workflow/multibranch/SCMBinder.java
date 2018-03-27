@@ -100,7 +100,7 @@ class SCMBinder extends FlowDefinition {
         SCMRevision tip = scmSource.fetch(head, listener);
         SCM scm;
         if (tip != null) {
-            build.addAction(new SCMRevisionAction(tip));
+            build.addAction(new SCMRevisionAction(scmSource, tip));
             SCMRevision rev = scmSource.getTrustedRevision(tip, listener);
             try (SCMFileSystem fs = USE_HEAVYWEIGHT_CHECKOUT ? null : SCMFileSystem.of(scmSource, head, rev)) {
                 if (fs != null) { // JENKINS-33273
