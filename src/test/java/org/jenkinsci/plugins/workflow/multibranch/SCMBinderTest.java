@@ -232,8 +232,7 @@ public class SCMBinderTest {
 
     @Test public void untrustedRevisions() throws Exception {
         sampleGitRepo.init();
-        String masterJenkinsfile = "node {checkout scm; echo readFile('file')}";
-        sampleGitRepo.write("Jenkinsfile", masterJenkinsfile);
+        sampleGitRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file')}");
         sampleGitRepo.write("file", "initial content");
         sampleGitRepo.git("add", "Jenkinsfile");
         sampleGitRepo.git("commit", "--all", "--message=flow");
@@ -258,20 +257,8 @@ public class SCMBinderTest {
         assertNotNull(b);
         assertEquals(1, b.getNumber());
         assertRevisionAction(b);
-        r.assertBuildStatus(Result.FAILURE, b);
+        r.assertBuildStatusSuccess(b);
         r.assertLogContains(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis("Jenkinsfile"), b);
-        r.assertLogContains("not trusting", b);
-        SCMBinder.IGNORE_UNTRUSTED_EDITS = true;
-        try {
-            b = r.buildAndAssertSuccess(p);
-            r.assertLogContains("subsequent content", b);
-            r.assertLogContains("not trusting", b);
-        } finally {
-            SCMBinder.IGNORE_UNTRUSTED_EDITS = false;
-        }
-        sampleGitRepo.write("Jenkinsfile", masterJenkinsfile);
-        sampleGitRepo.git("commit", "--all", "--message=meekly submitting");
-        b = r.buildAndAssertSuccess(p);
         r.assertLogContains("subsequent content", b);
         r.assertLogContains("not trusting", b);
     }

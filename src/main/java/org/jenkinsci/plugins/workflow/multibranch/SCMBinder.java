@@ -24,9 +24,12 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
-import hudson.AbortException;
 import hudson.Extension;
 import hudson.Functions;
+import hudson.MarkupText;
+import hudson.console.ConsoleAnnotationDescriptor;
+import hudson.console.ConsoleAnnotator;
+import hudson.console.ConsoleNote;
 import hudson.model.Action;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
@@ -42,7 +45,6 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
@@ -59,9 +61,6 @@ class SCMBinder extends FlowDefinition {
 
     /** Kill switch for JENKINS-33273 in case of problems. */
     static /* not final */ boolean USE_HEAVYWEIGHT_CHECKOUT = Boolean.getBoolean(SCMBinder.class.getName() + ".USE_HEAVYWEIGHT_CHECKOUT"); // TODO 2.4+ use SystemProperties
-
-    /** Kill switch for making this as strict as {@link ReadTrustedStep} about untrusted modifications. */
-    static /* not final */ boolean IGNORE_UNTRUSTED_EDITS = Boolean.getBoolean(SCMBinder.class.getName() + ".IGNORE_UNTRUSTED_EDITS"); // TODO 2.4+ use SystemProperties
 
     private String scriptPath = WorkflowBranchProjectFactory.SCRIPT;
 
@@ -112,10 +111,10 @@ class SCMBinder extends FlowDefinition {
                         listener.error("Could not do lightweight checkout, falling back to heavyweight").println(Functions.printThrowable(x).trim());
                     }
                     if (script != null) {
-                        if (!IGNORE_UNTRUSTED_EDITS && !rev.equals(tip)) {
-                            // Make a best effort to abort builds where an untrusted contributor has tried to edit Jenkinsfile.
-                            // If we fail to check this (e.g., due to heavyweight checkout), a warning will be printed to the log
-                            // and the build will continue with the trusted variant, which is safe but confusing.
+                        if (!rev.equals(tip)) {
+                            // Print a warning in builds where an untrusted contributor has tried to edit Jenkinsfile.
+                            // If we fail to check this (e.g., due to heavyweight checkout), a warning will still be printed to the log
+                            // by the SCM, but that is less apparent.
                             SCMFileSystem tipFS = SCMFileSystem.of(scmSource, head, tip);
                             if (tipFS != null) {
                                 String tipScript = null;
@@ -125,7 +124,9 @@ class SCMBinder extends FlowDefinition {
                                     listener.error("Could not compare lightweight checkout of trusted revision").println(Functions.printThrowable(x).trim());
                                 }
                                 if (tipScript != null && !script.equals(tipScript)) {
-                                    throw new AbortException(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis(scriptPath));
+                                    listener.annotate(new WarningNote());
+                                    listener.getLogger().println(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis(scriptPath));
+                                    // TODO JENKINS-45970 consider aborting instead, at least optionally
                                 }
                             }
                         }
@@ -159,6 +160,23 @@ class SCMBinder extends FlowDefinition {
                 return context instanceof WorkflowJob && ((WorkflowJob) context).getParent() instanceof WorkflowMultiBranchProject;
             }
             return true;
+        }
+
+    }
+
+    // TODO seems there is no general-purpose ConsoleNote which simply wraps markup in specified HTML
+    @SuppressWarnings("rawtypes")
+    public static class WarningNote extends ConsoleNote {
+
+        @Override public ConsoleAnnotator annotate(Object context, MarkupText text, int charPos) {
+            text.addMarkup(0, text.length(), "<span class='warning-inline'>", "</span>");
+            return null;
+        }
+
+        @Extension public static final class DescriptorImpl extends ConsoleAnnotationDescriptor {
+            @Override public String getDisplayName() {
+                return "Multibranch warnings";
+            }
         }
 
     }
