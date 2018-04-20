@@ -101,7 +101,7 @@ public class JobPropertyStep extends AbstractStepImpl {
                     FlowExecutionOwner owner = ((FlowExecutionOwner.Executable) previousRun).asFlowExecutionOwner();
 
                     if (owner != null) {
-                        FlowExecution execution = owner.getOrNull();
+                        FlowExecution execution = owner.get();
                         if (execution != null) {
                             previousHadStep = new DepthFirstScanner().findFirstMatch(execution,
                                     new NodeStepTypePredicate(step.getDescriptor())) != null;
