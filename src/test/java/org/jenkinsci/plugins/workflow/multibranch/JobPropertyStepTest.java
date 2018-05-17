@@ -35,6 +35,7 @@ import hudson.model.StringParameterValue;
 import hudson.model.queue.QueueTaskFuture;
 import hudson.tasks.LogRotator;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -77,6 +78,7 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.*;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -136,6 +138,25 @@ public class JobPropertyStepTest {
         List<JobProperty> emptyInput = tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties();
 
         assertEquals(Collections.emptyList(), removeTriggerProperty(emptyInput));
+    }
+
+    @Issue("JENKINS-51290")
+    @Test
+    public void testPreviousBuildFailedHard() throws Exception {
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+
+        // First we simulate a build that has resulted in a null execution
+        // This can be a result of a hard-kill of the Pipeline or a catastrophic failure starting the run, i.e. fetching the Jenkinsfile
+        p.setDefinition(new CpsFlowDefinition("echo 'Not doing anything'", true));
+        WorkflowRun run = r.buildAndAssertSuccess(p);
+        Field f = run.getClass().getDeclaredField("execution");
+        f.setAccessible(true);
+        f.set(run, null);
+        Assert.assertNull(run.getExecution());
+
+        // Verify build runs cleanly
+        p.setDefinition(new CpsFlowDefinition("properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', numToKeepStr: '1']]])", true));
+        r.buildAndAssertSuccess(p);
     }
 
     @SuppressWarnings("rawtypes")
