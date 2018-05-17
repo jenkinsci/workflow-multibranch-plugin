@@ -145,7 +145,8 @@ public class JobPropertyStepTest {
     public void testPreviousBuildFailedHard() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
 
-        // First we simulate a build that has failed so hard it has a null execution
+        // First we simulate a build that has resulted in a null execution
+        // This can be a result of a hard-kill of the Pipeline or a catastrophic failure starting the run, i.e. fetching the Jenkinsfile
         p.setDefinition(new CpsFlowDefinition("echo 'Not doing anything'", true));
         WorkflowRun run = r.buildAndAssertSuccess(p);
         Field f = run.getClass().getDeclaredField("execution");
