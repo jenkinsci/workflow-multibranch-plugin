@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Extension;
@@ -39,6 +40,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.inject.Inject;
 
 import hudson.model.TaskListener;
@@ -51,6 +54,7 @@ import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
 import org.jenkinsci.plugins.workflow.graphanalysis.NodeStepTypePredicate;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousStepExecution;
@@ -77,6 +81,8 @@ public class JobPropertyStep extends AbstractStepImpl {
         return properties;
     }
 
+    private static final Logger LOGGER = Logger.getLogger(JobPropertyStep.class.getName());
+
     public Map<JobPropertyDescriptor,JobProperty> getPropertiesMap() {
         return Descriptor.toMap((List) properties);
     }
@@ -101,10 +107,15 @@ public class JobPropertyStep extends AbstractStepImpl {
                     FlowExecutionOwner owner = ((FlowExecutionOwner.Executable) previousRun).asFlowExecutionOwner();
 
                     if (owner != null) {
-                        FlowExecution execution = owner.get();
-                        if (execution != null) {
-                            previousHadStep = new DepthFirstScanner().findFirstMatch(execution,
-                                    new NodeStepTypePredicate(step.getDescriptor())) != null;
+                        try {
+                            FlowExecution execution = owner.get();
+                            if (execution != null) {
+                                previousHadStep = new DepthFirstScanner().findFirstMatch(execution,
+                                        new NodeStepTypePredicate(step.getDescriptor())) != null;
+                            }
+                        } catch (Exception ex) {
+                            // May happen legitimately due to owner.get() throwing IOException when previous execution was nulled
+                            LOGGER.log(Level.FINE, "Could not search for JobPropertyStep execution: previous run either had null execution due to legitimate error and shows as not-yet-started, or threw exception", ex);
                         }
                     }
                 }
