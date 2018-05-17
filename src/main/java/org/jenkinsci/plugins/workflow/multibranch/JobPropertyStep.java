@@ -35,6 +35,8 @@ import hudson.model.Job;
 import hudson.model.JobProperty;
 import hudson.model.JobPropertyDescriptor;
 import hudson.model.Run;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -113,9 +115,9 @@ public class JobPropertyStep extends AbstractStepImpl {
                                 previousHadStep = new DepthFirstScanner().findFirstMatch(execution,
                                         new NodeStepTypePredicate(step.getDescriptor())) != null;
                             }
-                        } catch (Exception ex) {
+                        } catch (IOException ex) {
                             // May happen legitimately due to owner.get() throwing IOException when previous execution was nulled
-                            LOGGER.log(Level.FINE, "Could not search for JobPropertyStep execution: previous run either had null execution due to legitimate error and shows as not-yet-started, or threw exception", ex);
+                            LOGGER.log(Level.FINE, "Could not search for JobPropertyStep execution: previous run either had null execution due to legitimate error and shows as not-yet-started, or threw other IOException", ex);
                         }
                     }
                 }
