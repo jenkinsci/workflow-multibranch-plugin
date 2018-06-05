@@ -51,6 +51,7 @@ import jenkins.branch.OverrideIndexTriggersJobProperty;
 import jenkins.model.BuildDiscarder;
 import jenkins.model.BuildDiscarderProperty;
 import jenkins.plugins.git.GitSCMSource;
+import jenkins.plugins.git.GitBranchSCMHead;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.triggers.ReverseBuildTrigger;
 import org.jenkinsci.Symbol;
@@ -641,7 +642,7 @@ public class JobPropertyStepTest {
             assertEquals(mp, source.getOwner());
         }
         WorkflowJob p = scheduleAndFindBranchProject(mp, "master");
-        assertEquals(new SCMHead("master"), SCMHead.HeadByItem.findHead(p));
+        assertEquals(new GitBranchSCMHead("master"), SCMHead.HeadByItem.findHead(p));
         assertEquals(1, mp.getItems().size());
         r.waitUntilNoActivity();
         WorkflowRun b1 = p.getLastBuild();

@@ -197,7 +197,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
-            <version>${git-plugin.version}</version>
+            <version>3.9.1</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
