@@ -41,7 +41,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import jenkins.branch.BranchSource;
 import jenkins.model.Jenkins;
-import jenkins.plugins.git.AbstractGitSCMSource;
+import jenkins.plugins.git.GitBranchSCMRevision;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.scm.api.SCMHead;
@@ -118,14 +118,14 @@ public class SCMBinderTest {
         SCMRevisionAction revisionAction = build.getAction(SCMRevisionAction.class);
         assertNotNull(revisionAction);
         SCMRevision revision = revisionAction.getRevision();
-        assertEquals(AbstractGitSCMSource.SCMRevisionImpl.class, revision.getClass());
+        assertEquals(GitBranchSCMRevision.class, revision.getClass());
         Set<String> expected = new HashSet<>();
         List<BuildData> buildDataActions = build.getActions(BuildData.class);
         if (!buildDataActions.isEmpty()) { // i.e., we have run at least one checkout step, or done a heavyweight checkout to get a single file
             for (BuildData data : buildDataActions) {
                 expected.add(data.lastBuild.marked.getSha1().getName());
             }
-            assertThat(expected, hasItem(((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash()));
+            assertThat(expected, hasItem(((GitBranchSCMRevision) revision).getHash()));
         }
     }
 
