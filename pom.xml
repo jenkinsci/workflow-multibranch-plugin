@@ -71,7 +71,7 @@ THE SOFTWARE.
         <workflow-scm-step-plugin.version>2.4</workflow-scm-step-plugin.version>
         <workflow-support.version>2.17</workflow-support.version>
         <workflow-cps.version>2.53</workflow-cps.version>
-        <git-plugin.version>3.7.0</git-plugin.version>
+        <git-plugin.version>3.9.1</git-plugin.version>
     </properties>
     <dependencies>
         <dependency>
@@ -197,7 +197,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
-            <version>3.9.1</version>
+            <version>${git-plugin.version}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
