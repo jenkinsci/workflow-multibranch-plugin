@@ -53,6 +53,7 @@ import jenkins.branch.NoTriggerBranchProperty;
 import jenkins.branch.RateLimitBranchProperty;
 import jenkins.branch.UntrustedBranchProperty;
 import jenkins.plugins.git.GitSCMSource;
+import jenkins.plugins.git.GitBranchSCMHead;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
@@ -87,7 +88,7 @@ public class WorkflowMultiBranchProjectTest {
             assertEquals(mp, source.getOwner());
         }
         WorkflowJob p = scheduleAndFindBranchProject(mp, "master");
-        assertEquals(new SCMHead("master"), SCMHead.HeadByItem.findHead(p));
+        assertEquals(new GitBranchSCMHead("master"), SCMHead.HeadByItem.findHead(p));
         assertEquals(1, mp.getItems().size());
         r.waitUntilNoActivity();
         WorkflowRun b1 = p.getLastBuild();
