@@ -47,7 +47,7 @@ public class BranchJobProperty extends WorkflowJobProperty {
 
     private @Nonnull Branch branch;
 
-    BranchJobProperty(@Nonnull Branch branch) {
+    public BranchJobProperty(@Nonnull Branch branch) {
         this.branch = branch;
     }
 
