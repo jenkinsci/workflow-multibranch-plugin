@@ -41,6 +41,8 @@ import jenkins.scm.api.SCMNavigatorDescriptor;
 import jenkins.scm.api.SCMSourceObserver;
 import org.apache.commons.io.IOUtils;
 import static org.junit.Assert.assertFalse;
+
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -103,7 +105,8 @@ public class GitDirectorySCMNavigator extends SCMNavigator {
     }
     private static final Pattern ORIGIN = Pattern.compile("origin\t(.+) [(]fetch[)]");
 
-    @Extension public static class DescriptorImpl extends SCMNavigatorDescriptor {
+    @Extension @Symbol("gitDirectory")
+    public static class DescriptorImpl extends SCMNavigatorDescriptor {
 
         @Override public String getDisplayName() {
             return "Directory of Git checkouts";
