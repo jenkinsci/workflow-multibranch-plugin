@@ -33,7 +33,7 @@ THE SOFTWARE.
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
     <artifactId>workflow-multibranch</artifactId>
-    <version>2.21-SNAPSHOT</version>
+    <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
     <name>Pipeline: Multibranch</name>
     <url>https://wiki.jenkins.io/display/JENKINS/Pipeline+Multibranch+Plugin</url>
@@ -48,7 +48,7 @@ THE SOFTWARE.
         <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-      <tag>HEAD</tag>
+        <tag>${scmTag}</tag>
   </scm>
     <repositories>
         <repository>
@@ -63,9 +63,11 @@ THE SOFTWARE.
         </pluginRepository>
     </pluginRepositories>
     <properties>
+        <revision>2.21</revision>
+        <changelist>-SNAPSHOT</changelist>
         <java.level>8</java.level>
         <jenkins.version>2.121.1</jenkins.version>
-        <scm-api.version>2.2.6</scm-api.version>
+        <scm-api.version>2.2.7</scm-api.version>
         <no-test-jar>false</no-test-jar>
         <workflow-step-api.version>2.13</workflow-step-api.version>
         <workflow-scm-step-plugin.version>2.4</workflow-scm-step-plugin.version>
@@ -107,13 +109,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>branch-api</artifactId>
-            <version>2.0.19</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jenkins-ci</groupId>
-                    <artifactId>annotation-indexer</artifactId>
-                </exclusion>
-            </exclusions>
+            <version>2.0.21-rc630.81000cf36de3</version> <!-- TODO https://github.com/jenkinsci/branch-api-plugin/pull/129 -->
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>

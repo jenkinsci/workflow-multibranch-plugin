@@ -25,9 +25,11 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import java.io.File;
+import java.util.Collections;
 import jenkins.branch.BranchSource;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
+import jenkins.plugins.git.traits.BranchDiscoveryTrait;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
@@ -62,14 +64,16 @@ public class WorkflowBranchProjectFactoryTest {
                 sampleRepo.git("add", "Jenkinsfile");
                 sampleRepo.git("commit", "--all", "--message=flow");
                 WorkflowMultiBranchProject mp = story.j.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-                mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false)));
+                GitSCMSource source = new GitSCMSource(sampleRepo.toString());
+                source.setTraits(Collections.singletonList(new BranchDiscoveryTrait()));
+                mp.getSourcesList().add(new BranchSource(source));
                 WorkflowJob p = scheduleAndFindBranchProject(mp, "dev%2Fmain");
                 assertEquals(1, mp.getItems().size());
                 story.j.waitUntilNoActivity();
                 WorkflowRun b1 = p.getLastBuild();
                 assertEquals(1, b1.getNumber());
                 story.j.assertLogContains("branch=dev/main", b1);
-                story.j.assertLogContains("workspace=dev_main-ZFNHWJSHKH4HUVOQUPOQV6WFX7XUPIKIAQAQ3DV7CCAGIXQW7YSA", b1);
+                story.j.assertLogContains("workspace=dev_main", b1);
                 verifyProject(p);
                 sampleRepo.write("Jenkinsfile", script.replace("branch=", "Branch="));
             }
@@ -83,7 +87,7 @@ public class WorkflowBranchProjectFactoryTest {
                 WorkflowRun b2 = p.getLastBuild();
                 assertEquals(2, b2.getNumber());
                 story.j.assertLogContains("Branch=dev/main", b2);
-                story.j.assertLogContains("workspace=dev_main-ZFNHWJSHKH4HUVOQUPOQV6WFX7XUPIKIAQAQ3DV7CCAGIXQW7YSA", b2);
+                story.j.assertLogContains("workspace=dev_main", b2);
                 verifyProject(p);
             }
         });
