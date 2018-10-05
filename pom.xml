@@ -74,6 +74,7 @@ THE SOFTWARE.
         <workflow-support.version>2.17</workflow-support.version>
         <workflow-cps.version>2.53</workflow-cps.version>
         <git-plugin.version>3.9.1</git-plugin.version>
+        <jenkins-test-harness.version>2.44-20181005.152055-1</jenkins-test-harness.version> <!-- TODO https://github.com/jenkinsci/jenkins-test-harness/pull/113 -->
     </properties>
     <dependencies>
         <dependency>
