@@ -64,7 +64,8 @@ THE SOFTWARE.
     </pluginRepositories>
     <properties>
         <java.level>8</java.level>
-        <jenkins.version>2.62</jenkins.version>
+        <jenkins-core.version>2.111-20180312.014148-2</jenkins-core.version>
+        <jenkins-war.version>2.111-20180312.014313-2</jenkins-war.version>
         <scm-api.version>2.2.6</scm-api.version>
         <no-test-jar>false</no-test-jar>
         <workflow-step-api.version>2.13</workflow-step-api.version>
@@ -262,7 +263,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.modules</groupId>
             <artifactId>sshd</artifactId>
-            <version>2.3</version>
+            <version>2.4</version>
             <scope>test</scope><!-- from git-server via workflow-cps-global-lib and otherwise unavailable during tests -->
         </dependency>
         <dependency>
