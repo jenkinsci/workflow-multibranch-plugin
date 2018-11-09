@@ -26,17 +26,18 @@ package org.jenkinsci.plugins.workflow.multibranch;
 
 import hudson.model.BooleanParameterDefinition;
 import hudson.model.BooleanParameterValue;
+import hudson.model.ChoiceParameterDefinition;
 import hudson.model.JobProperty;
 import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Result;
-import hudson.model.StringParameterDefinition;
 import hudson.model.StringParameterValue;
 import hudson.model.queue.QueueTaskFuture;
 import hudson.tasks.LogRotator;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +55,6 @@ import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitBranchSCMHead;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.triggers.ReverseBuildTrigger;
-import org.jenkinsci.Symbol;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
 import org.jenkinsci.plugins.structs.SymbolLookup;
@@ -75,7 +75,6 @@ import org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.*;
 
 import org.junit.After;
@@ -98,14 +97,6 @@ public class JobPropertyStepTest {
     @Rule public JenkinsRule r = new JenkinsRule();
     @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
 
-    private static final boolean HAVE_SYMBOL =
-        ParametersDefinitionProperty.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "parameters"
-        BooleanParameterDefinition.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "booleanParam"
-        StringParameterDefinition.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "string"
-        BuildDiscarderProperty.DescriptorImpl.class.isAnnotationPresent(Symbol.class) && // "buildDiscarder"
-        LogRotator.LRDescriptor.class.isAnnotationPresent(Symbol.class) && // "logRotator"
-        TimerTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class); // "cron"
-
     /**
      * Needed to ensure that we get a fresh {@code MockTrigger#startsAndStops} with each test run. Has to be *after* rather than
      * *before* to avoid weird ordering issues with {@code @LocalData}.
@@ -118,12 +109,8 @@ public class JobPropertyStepTest {
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripParameters() throws Exception {
         List<JobProperty> properties = Collections.<JobProperty>singletonList(new ParametersDefinitionProperty(new BooleanParameterDefinition("flag", true, null)));
-        if (HAVE_SYMBOL) {
-            // TODO *ParameterDefinition.description ought to be defaulted to null:
-            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([parameters([booleanParam(defaultValue: true, name: 'flag')])])");
-        } else {
-            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'BooleanParameterDefinition', defaultValue: true, name: 'flag']]]])");
-        }
+        // TODO *ParameterDefinition.description ought to be defaulted to null:
+        new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([parameters([booleanParam(defaultValue: true, name: 'flag')])])");
 
         StepConfigTester tester = new StepConfigTester(r);
         properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
@@ -156,7 +143,7 @@ public class JobPropertyStepTest {
         Assert.assertNull(run.getExecution());
 
         // Verify build runs cleanly
-        p.setDefinition(new CpsFlowDefinition("properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', numToKeepStr: '1']]])", true));
+        p.setDefinition(new CpsFlowDefinition("properties([buildDiscarder(logRotator(numToKeepStr: '1'))])", true));
         r.buildAndAssertSuccess(p);
     }
 
@@ -164,12 +151,8 @@ public class JobPropertyStepTest {
     @Test public void configRoundTripBuildDiscarder() throws Exception {
         List<JobProperty> properties = Collections.<JobProperty>singletonList(new BuildDiscarderProperty(new LogRotator(1, 2, -1, 3)));
 
-        if (HAVE_SYMBOL) {
-            // TODO structural form of LogRotator is awful; confusion between integer and string types, and failure to handle default values:
-            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '3', daysToKeepStr: '1', numToKeepStr: '2'))])");
-        } else {
-            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', artifactDaysToKeepStr: '', artifactNumToKeepStr: '3', daysToKeepStr: '1', numToKeepStr: '2']]])");
-        }
+        // TODO structural form of LogRotator is awful; confusion between integer and string types, and failure to handle default values:
+        new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '3', daysToKeepStr: '1', numToKeepStr: '2'))])");
 
         StepConfigTester tester = new StepConfigTester(r);
         properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
@@ -189,9 +172,7 @@ public class JobPropertyStepTest {
     @Test public void useParameter() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile",
-                (HAVE_SYMBOL ?
-                    "properties([parameters([string(name: 'myparam', defaultValue: 'default value')])])\n" :
-                    "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'StringParameterDefinition', name: 'myparam', defaultValue: 'default value']]]])\n") +
+                "properties([parameters([string(name: 'myparam', defaultValue: 'default value')])])\n" +
                 "echo \"received ${params.myparam}\"");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("commit", "--all", "--message=flow");
@@ -206,10 +187,9 @@ public class JobPropertyStepTest {
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new StringParameterValue("myparam", "special value"))));
         assertEquals(2, b2.getNumber());
         r.assertLogContains("received special value", b2);
+
         sampleRepo.write("Jenkinsfile",
-                (HAVE_SYMBOL ?
-                    "properties([parameters([booleanParam(name: 'flag', defaultValue: false)])])\n" :
-                    "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'BooleanParameterDefinition', name: 'flag', defaultValue: false]]]])\n") +
+                "properties([parameters([booleanParam(name: 'flag', defaultValue: false)])])\n" +
                 "echo \"enabled? ${params.flag}\"");
         sampleRepo.git("commit", "--all", "--message=flow");
         sampleRepo.notifyCommit(r);
@@ -219,23 +199,52 @@ public class JobPropertyStepTest {
         WorkflowRun b4 = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new BooleanParameterValue("flag", true))));
         assertEquals(4, b4.getNumber());
         r.assertLogContains("enabled? true", b4);
+
         sampleRepo.write("Jenkinsfile",
-                (HAVE_SYMBOL ?
-                    "properties([parameters([booleanParam(name: 'newflag', defaultValue: false)])])\n" :
-                    "properties([[$class: 'ParametersDefinitionProperty', parameterDefinitions: [[$class: 'BooleanParameterDefinition', name: 'newflag', defaultValue: false]]]])\n") +
+                "properties([parameters([booleanParam(name: 'newflag', defaultValue: false)])])\n" +
                 "echo \"enabled again? ${params.newflag}\"");
         sampleRepo.git("commit", "--all", "--message=flow");
         WorkflowRun b5 = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new BooleanParameterValue("newflag", true))));
         assertEquals(5, b5.getNumber());
         r.assertLogContains("enabled again? true", b5);
+
+        sampleRepo.write("Jenkinsfile",
+                "properties([parameters([choice(name: 'select', choices: 'foo\\nbar\\nbaz')])])\n" +
+                "echo \"value ${params.select}\"");
+        sampleRepo.git("commit", "--all", "--message=flow");
+        sampleRepo.notifyCommit(r);
+        WorkflowRun b6 = p.getLastBuild();
+        assertEquals(6, b6.getNumber());
+        r.assertLogContains("value foo", b6);
+        WorkflowRun b7 = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new StringParameterValue("select", "bar", ""))));
+        assertEquals(7, b7.getNumber());
+        r.assertLogContains("value bar", b7);
+
+        sampleRepo.write("Jenkinsfile",
+                "properties([parameters([choice(name: 'select', choices: ['foo', 'bar', 'baz'] )])])\n" +
+                        "echo \"value ${params.select}\"");
+        sampleRepo.git("commit", "--all", "--message=flow");
+        sampleRepo.notifyCommit(r);
+        WorkflowRun b8 = p.getLastBuild();
+        assertEquals(8, b8.getNumber());
+        r.assertLogContains("value foo", b8);
+        WorkflowRun b9 = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new StringParameterValue("select", "bar", ""))));
+        assertEquals(9, b9.getNumber());
+        r.assertLogContains("value bar", b9);
+    }
+
+    @Issue("JENKINS-26143")
+    @Test
+    public void testChoiceParameterSnippetizer() throws Exception {
+        //new SnippetizerTester(r).assertGenerateSnippet();
+        new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(Arrays.asList(new ParametersDefinitionProperty(new ChoiceParameterDefinition("paramName", new String[] { "foo", "bar", "baz" }, "")))),
+            "properties([parameters([choice(choices: ['foo', 'bar', 'baz'], description: '', name: 'paramName')])])");
     }
 
     @SuppressWarnings("deprecation") // RunList.size
     @Test public void useBuildDiscarder() throws Exception {
         sampleRepo.init();
-        sampleRepo.write("Jenkinsfile", HAVE_SYMBOL ?
-            "properties([buildDiscarder(logRotator(numToKeepStr: '1'))])" :
-            "properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', numToKeepStr: '1']]])");
+        sampleRepo.write("Jenkinsfile", "properties([buildDiscarder(logRotator(numToKeepStr: '1'))])");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("commit", "--all", "--message=flow");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
@@ -268,7 +277,7 @@ public class JobPropertyStepTest {
 
         // Adding a property, make sure the predefined one is still there.
         // TODO Jenkins 2.x use symbols
-        p.setDefinition(new CpsFlowDefinition("properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', numToKeepStr: '1']]])", true));
+        p.setDefinition(new CpsFlowDefinition("properties([buildDiscarder(logRotator(numToKeepStr: '1'))])", true));
 
         r.buildAndAssertSuccess(p);
 
@@ -374,12 +383,8 @@ public class JobPropertyStepTest {
 
         // Now add a trigger.
         p.setDefinition(new CpsFlowDefinition(
-                (HAVE_SYMBOL ?
-                        "properties([pipelineTriggers([\n"
-                                + "  cron('@daily'), [$class: 'MockTrigger']])])\n" :
-                        "properties([pipelineTriggers([[$class: 'TimerTrigger', spec: '@daily'],\n"
-                                + "    [$class: 'MockTrigger']])])\n"
-                ) + "echo 'foo'"));
+                "properties([pipelineTriggers([\n"
+              + "  cron('@daily'), [$class: 'MockTrigger']])])\n" + "echo 'foo'"));
 
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
 
@@ -437,7 +442,7 @@ public class JobPropertyStepTest {
                             + "echo 'foo'", true));
         } else {
             p.setDefinition(new CpsFlowDefinition(
-                    "properties([pipelineTriggers([[$class: 'SCMTrigger', scmpoll_spec: '@daily', ignorePostCommitHooks: true],\n"
+                    "properties([pipelineTriggers([pollSCM(scmpoll_spec: '@daily', ignorePostCommitHooks: true),\n"
                             + "    [$class: 'MockTrigger']])])\n"
                             + "echo 'foo'", true));
         }
@@ -491,7 +496,7 @@ public class JobPropertyStepTest {
 
         // Now add a trigger. Deliberately keeping the old syntax to make sure it still works.
         p.setDefinition(new CpsFlowDefinition(
-                "properties([pipelineTriggers([[$class: 'SCMTrigger', scmpoll_spec: '@daily']])])\n"
+                "properties([pipelineTriggers([pollSCM(scmpoll_spec: '@daily')])])\n"
                         + "echo 'foo'", true));
 
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
@@ -571,13 +576,8 @@ public class JobPropertyStepTest {
                 "  'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',\n" +
                 "  '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
 
-        if (TimerTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class)) {
-            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([cron('@daily')])])", null);
-            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([cron('@daily')])])");
-        } else {
-            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([[$class: 'TimerTrigger', spec: '@daily']])])", null);
-            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([[$class: 'TimerTrigger', spec: '@daily']])])");
-        }
+        new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([cron('@daily')])])", null);
+        new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([cron('@daily')])])");
     }
 
     @Issue("JENKINS-37721")
@@ -593,16 +593,8 @@ public class JobPropertyStepTest {
                 "  'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',\n" +
                 "  '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
 
-        // Looking for core versions 2.21 and later for the proper pollScm symbol, rather than the broken scm symbol.
-        if (SymbolLookup.getSymbolValue(SCMTrigger.class).contains("pollSCM")) {
-            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([pollSCM('@daily')])])", null);
-            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([pollSCM('@daily')])])");
-        } else {
-            /* Snippet generator won't work with SCMTrigger pre-core-2.21, due to lack of a getter for scmpoll_spec.
-            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([[$class: 'SCMTrigger', scmpoll_spec: '@daily']])])", null);
-            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([[$class: 'SCMTrigger', scmpoll_spec: '@daily']])])");
-            */
-        }
+        new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([pollSCM('@daily')])])", null);
+        new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([pollSCM('@daily')])])");
     }
 
     @Issue("JENKINS-34464")
@@ -618,13 +610,8 @@ public class JobPropertyStepTest {
                 "  'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',\n" +
                 "  '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
 
-        if (ReverseBuildTrigger.DescriptorImpl.class.isAnnotationPresent(Symbol.class)) {
-            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([upstream(threshold: 'UNSTABLE', upstreamProjects: 'some-job')])])", null);
-            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([upstream(threshold: 'UNSTABLE', upstreamProjects: 'some-job')])])");
-        } else {
-            new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([[$class: 'ReverseBuildTrigger', threshold: 'UNSTABLE', upstreamProjects: 'some-job']])])", null);
-            new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([[$class: 'ReverseBuildTrigger', threshold: 'UNSTABLE', upstreamProjects: 'some-job']])])");
-        }
+        new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([upstream(threshold: 'UNSTABLE', upstreamProjects: 'some-job')])])", null);
+        new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([upstream(threshold: 'UNSTABLE', upstreamProjects: 'some-job')])])");
     }
 
     @Issue("JENKINS-37005")
@@ -651,9 +638,7 @@ public class JobPropertyStepTest {
         // Now verify that we don't get any messages about removing properties when a property actually gets removed as
         // we add a new one.
         sampleRepo.write("Jenkinsfile", "echo \"branch=${env.BRANCH_NAME}\"\n"
-                + (HAVE_SYMBOL ?
-                "properties([buildDiscarder(logRotator(numToKeepStr: '1'))])" :
-                "properties([[$class: 'BuildDiscarderProperty', strategy: [$class: 'LogRotator', numToKeepStr: '1']]])"));
+                + "properties([buildDiscarder(logRotator(numToKeepStr: '1'))])");
                 sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("commit", "--all", "--message=flow");
 
