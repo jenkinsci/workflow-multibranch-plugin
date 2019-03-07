@@ -31,22 +31,34 @@ import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.TopLevelItem;
 import hudson.scm.SCMDescriptor;
+
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import jenkins.branch.Branch;
 import jenkins.branch.BranchProjectFactory;
+import jenkins.branch.BranchProperty;
+import jenkins.branch.BranchPropertyStrategy;
+import jenkins.branch.BranchSource;
 import jenkins.branch.MultiBranchProject;
 import jenkins.branch.MultiBranchProjectDescriptor;
 import jenkins.model.TransientActionFactory;
+import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
+import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
 import org.jenkinsci.plugins.workflow.cps.Snippetizer;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+
+import javax.annotation.Nonnull;
 
 /**
  * Representation of a set of workflows keyed off of source branches.
@@ -66,6 +78,60 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
 
     @Override public SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
         return ((AbstractWorkflowBranchProjectFactory) getProjectFactory()).getSCMSourceCriteria(source);
+    }
+
+    @Override
+    public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
+        super.onLoad(parent, name);
+        for (WorkflowJob job : items.values()) {
+            if (job.getProperty(BranchJobProperty.class) == null) {
+                //JENKINS-55116 It is highly unlikely that this property shouldn't be there
+                //we only somehow lost the BranchJobProperty so we take the penalty to load a build or two
+                //to see if this is what we think it is, and maybe desperately try to patch it.
+                LOGGER.log(Level.WARNING, String.format("[JENKINS-55116] Found potential broken branch job property on %s, attempting to patch, you'll need to run a full rescan asap.", job.getFullName()));
+                WorkflowRun build = job.getLastBuild();
+                for (int i = 0; i < 3; i++) {
+                    if (build != null) {
+                        SCMRevisionAction action = build.getAction(SCMRevisionAction.class);
+                        if (action != null) {
+                            BranchJobProperty p = reconstructBranchJobProperty(job, action);
+                            if (p != null) {
+                                try {
+                                    job.addProperty(p);
+                                    LOGGER.log(Level.WARNING, String.format("[JENKINS-55116] Reconstructed branch job property on %s from %s, you'll need to run a full rescan asap.", job.getFullName(), build.getNumber()));
+                                    break;
+                                } catch (IOException e) {
+                                    LOGGER.log(Level.SEVERE, String.format("[JENKINS-55116] Failed storing reconstructed branch job property on %s from %s", job.getFullName(), build.getNumber()), e);
+                                }
+                            }
+                        }
+                        build = build.getPreviousBuild();
+                    }
+                }
+            }
+        }
+    }
+
+    private BranchJobProperty reconstructBranchJobProperty(@Nonnull WorkflowJob job, @Nonnull SCMRevisionAction action) {
+        String sourceId = action.getSourceId();
+        if (StringUtils.isEmpty(sourceId)) {
+            return null;
+        }
+        SCMHead head = action.getRevision().getHead();
+        BranchSource source = null;
+        for (BranchSource s : ((WorkflowMultiBranchProject) job.getParent()).getSources()) {
+            if (sourceId.equals(s.getSource().getId())) {
+                source = s;
+                break;
+            }
+        }
+        if (source == null) {
+            return null;
+        }
+
+        final BranchPropertyStrategy strategy = source.getStrategy();
+        return new BranchJobProperty(new Branch(sourceId, head, source.getSource().build(head),
+                strategy != null ? strategy.getPropertiesFor(head) : Collections.<BranchProperty>emptyList()));
     }
 
     @Extension public static class DescriptorImpl extends MultiBranchProjectDescriptor implements IconSpec {
