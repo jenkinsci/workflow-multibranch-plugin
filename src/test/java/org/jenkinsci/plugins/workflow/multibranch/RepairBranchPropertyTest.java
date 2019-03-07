@@ -23,9 +23,12 @@
  */
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
 import hudson.model.Actionable;
 import hudson.model.Cause;
 import hudson.model.Job;
+import hudson.model.Queue;
+import hudson.model.Result;
 import hudson.model.TopLevelItem;
 import jenkins.branch.MultiBranchProject;
 import jenkins.branch.OrganizationFolder;
@@ -56,7 +59,11 @@ public class RepairBranchPropertyTest {
 
     @Before
     public void setUp() throws IOException {
-        controller = MockSCMController.create();
+        setup(MockSCMController.create());
+    }
+
+    void setup(MockSCMController co) throws IOException {
+        controller = co;
         controller.createRepository("repo");
         controller.createBranch("repo", "master");
         controller.addFile("repo", "master", "First!", WorkflowBranchProjectFactory.SCRIPT,
@@ -131,6 +138,8 @@ public class RepairBranchPropertyTest {
 
     @Test @LocalData @Issue("JENKINS-55116")
     public void removedPropertyAtStartup() throws Exception {
+        MockSCMController cont = MockSCMController.recreate("9ea2ef21-aa07-4973-a942-6c4c4c7851d1");
+        setup(cont);
         OrganizationFolder org = j.jenkins.getItem("org", j.jenkins, OrganizationFolder.class);
         assertNotNull(org);
         MultiBranchProject repo = org.getItem("repo");
@@ -140,5 +149,18 @@ public class RepairBranchPropertyTest {
         assertNotNull(master.getProperty(BranchJobProperty.class));
         assertTrue(((WorkflowMultiBranchProject)master.getParent()).getProjectFactory().isProject(master));
         assertTrue(repo.getPrimaryView().contains(master));
+
+        //Can it be scanned successfully afterwards
+        final Queue.Item item = repo.scheduleBuild2(0);
+        assertNotNull(item);
+        final Queue.Executable executable = item.getFuture().get();
+        assertNotNull(executable);
+        FolderComputation computation = (FolderComputation) executable;
+        computation.writeWholeLogTo(System.out);
+        assertEquals(Result.SUCCESS, computation.getResult());
+        //Since the new controller has new "commits" a build of master should have been scheduled
+        j.waitUntilNoActivity();
+        assertEquals(2, master.getBuilds().size());
+        j.assertBuildStatusSuccess(master.getBuildByNumber(2));
     }
 }
