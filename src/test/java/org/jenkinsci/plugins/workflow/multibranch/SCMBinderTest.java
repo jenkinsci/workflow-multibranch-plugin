@@ -258,6 +258,7 @@ public class SCMBinderTest {
         assertEquals(1, b.getNumber());
         assertRevisionAction(b);
         r.assertBuildStatusSuccess(b);
+        r.assertLogContains(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis("Jenkinsfile"), b);
         r.assertLogContains("subsequent content", b);
         r.assertLogContains("not trusting", b);
     }
