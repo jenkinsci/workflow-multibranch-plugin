@@ -196,7 +196,7 @@ public class JobPropertyStep extends AbstractStepImpl {
                     } catch (ClassNotFoundException x) {
                         throw new FormException(x, "propertiesMap");
                     }
-                    JobPropertyDescriptor d = (JobPropertyDescriptor) Jenkins.getActiveInstance().getDescriptorOrDie(itemType);
+                    JobPropertyDescriptor d = (JobPropertyDescriptor) Jenkins.get().getDescriptorOrDie(itemType);
                     JSONObject more = (JSONObject) e.getValue();
                     JobProperty property = d.newInstance(req, more);
                     if (property != null) {
