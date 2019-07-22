@@ -81,7 +81,7 @@ public class WorkflowMultiBranchProjectFactoryTest {
         assertEquals(1, sources.size());
         assertEquals("GitSCMSource", sources.get(0).getClass().getSimpleName());
         // Verify permissions:
-        Authentication admin = User.get("admin").impersonate();
+        Authentication admin = User.getById("admin", true).impersonate();
         ACL acl = one.getACL();
         assertTrue(acl.hasPermission(ACL.SYSTEM, Item.CONFIGURE));
         assertTrue(acl.hasPermission(ACL.SYSTEM, Item.DELETE));
