@@ -276,7 +276,7 @@ public class SCMBinderTest {
             }
         }
         @Override public SCMSourceDescriptor getDescriptor() {
-            return Jenkins.getInstance().getDescriptorByType(GitSCMSource.DescriptorImpl.class);
+            return Jenkins.get().getDescriptorByType(GitSCMSource.DescriptorImpl.class);
         }
     }
 
