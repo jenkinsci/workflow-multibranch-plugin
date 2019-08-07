@@ -24,6 +24,8 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import com.cloudbees.hudson.plugins.folder.computed.ComputedFolder;
+import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
 import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Descriptor;
@@ -58,6 +60,7 @@ import org.jenkinsci.plugins.workflow.cps.Snippetizer;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 /**
@@ -192,6 +195,13 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
         }
     }
 
+    @Override
+    public void onDeleted(WorkflowJob item) throws IOException {
+        super.onDeleted(item);
+    }
+
+
+
     @Extension public static class PerFolderAdder extends TransientActionFactory<WorkflowMultiBranchProject> {
 
         @Override public Class<WorkflowMultiBranchProject> type() {
@@ -207,5 +217,6 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
         }
 
     }
+
 
 }
