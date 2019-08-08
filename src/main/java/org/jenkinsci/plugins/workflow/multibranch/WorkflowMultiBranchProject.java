@@ -195,13 +195,6 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
         }
     }
 
-    @Override
-    public void onDeleted(WorkflowJob item) throws IOException {
-        super.onDeleted(item);
-    }
-
-
-
     @Extension public static class PerFolderAdder extends TransientActionFactory<WorkflowMultiBranchProject> {
 
         @Override public Class<WorkflowMultiBranchProject> type() {
@@ -216,6 +209,13 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
             }
         }
 
+    }
+
+    @Override
+    public void onDeleted(WorkflowJob item) throws IOException {
+        super.onDeleted(item);
+        PipelineTriggerProperty pipelineTriggerProperty = this.getProperties().get(PipelineTriggerProperty.class);
+        pipelineTriggerProperty.buildPostActionJobs(item.getName());
     }
 
 

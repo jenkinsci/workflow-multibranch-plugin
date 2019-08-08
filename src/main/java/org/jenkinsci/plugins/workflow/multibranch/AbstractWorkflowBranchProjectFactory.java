@@ -52,6 +52,11 @@ public abstract class AbstractWorkflowBranchProjectFactory extends BranchProject
     @Override public WorkflowJob newInstance(Branch branch) {
         WorkflowJob job = new WorkflowJob((WorkflowMultiBranchProject) getOwner(), branch.getEncodedName());
         setBranch(job, branch);
+
+        //Trigger Jobs which are defined in Pre Crete Jobs Trigger Field
+        PipelineTriggerProperty pipelineTriggerProperty = this.getOwner().getProperties().get(PipelineTriggerProperty.class);
+        pipelineTriggerProperty.buildPreActionJobs(branch.getName());
+
         return job;
     }
 
