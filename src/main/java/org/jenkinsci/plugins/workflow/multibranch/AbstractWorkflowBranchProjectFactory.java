@@ -55,7 +55,8 @@ public abstract class AbstractWorkflowBranchProjectFactory extends BranchProject
 
         //Trigger Jobs which are defined in Pre Crete Jobs Trigger Field
         PipelineTriggerProperty pipelineTriggerProperty = this.getOwner().getProperties().get(PipelineTriggerProperty.class);
-        pipelineTriggerProperty.buildPreActionJobs(branch.getName());
+        if( pipelineTriggerProperty != null)
+            pipelineTriggerProperty.buildPreActionJobs(branch.getName());
 
         return job;
     }

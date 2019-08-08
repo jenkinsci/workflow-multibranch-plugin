@@ -215,7 +215,8 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
     public void onDeleted(WorkflowJob item) throws IOException {
         super.onDeleted(item);
         PipelineTriggerProperty pipelineTriggerProperty = this.getProperties().get(PipelineTriggerProperty.class);
-        pipelineTriggerProperty.buildPostActionJobs(item.getName());
+        if( pipelineTriggerProperty != null)
+            pipelineTriggerProperty.buildPostActionJobs(item.getName());
     }
 
 
