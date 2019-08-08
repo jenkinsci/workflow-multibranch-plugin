@@ -211,6 +211,11 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
 
     }
 
+    /**
+     * This is triggered when a pipeline is deleted by branch indexing.
+     * @param item @{@link WorkflowJob} which will be deleted
+     * @throws IOException
+     */
     @Override
     public void onDeleted(WorkflowJob item) throws IOException {
         super.onDeleted(item);
