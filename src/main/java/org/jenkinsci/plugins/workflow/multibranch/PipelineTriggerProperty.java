@@ -33,10 +33,10 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     private String preActionJobsToTrigger;
     private String postActionJobsToTrigger;
-    private transient List<Job> preActionJobs;
+    private transient LisJavaDoc written.t<Job> preActionJobs;
     private transient List<Job> postActionJobs;
     private final int quitePeriod = 0;
-    private final String projectNameParameterKey = "SOURCE_PROJECT_NAME";
+    public static final String projectNameParameterKey = "SOURCE_PROJECT_NAME";
 
     /**
      * @See @{@link DataBoundConstructor}
@@ -200,7 +200,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
                     if (addSourceProjectNameStringParameter) {
                         //Try to add job property. If fails do not stop just log warning.
                         try {
-                            job.addProperty(new ParametersDefinitionProperty(new StringParameterDefinition(this.projectNameParameterKey, "", "Added by Multibranch Pipeline Plugin")));
+                            job.addProperty(new ParametersDefinitionProperty(new StringParameterDefinition(PipelineTriggerProperty.projectNameParameterKey, "", "Added by Multibranch Pipeline Plugin")));
                         } catch (Exception ex) {
                             LOGGER.log(Level.WARNING, "Could not set String Parameter Definition. This may affect jobs which are triggered from Multibranch Pipeline Plugin.", ex);
                         }
@@ -248,7 +248,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
      */
     private void buildJobs(String projectName, List<Job> jobsToBuild) {
         List<ParameterValue> parameterValues = new ArrayList<>();
-        parameterValues.add(new StringParameterValue(this.projectNameParameterKey, projectName, "Set by Multibranch Pipeline Plugin"));
+        parameterValues.add(new StringParameterValue(PipelineTriggerProperty.projectNameParameterKey, projectName, "Set by Multibranch Pipeline Plugin"));
         ParametersAction parametersAction = new ParametersAction(parameterValues);
         for (Job job : jobsToBuild) {
 
