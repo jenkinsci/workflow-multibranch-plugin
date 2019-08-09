@@ -39,9 +39,9 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
     public static final String projectNameParameterKey = "SOURCE_PROJECT_NAME";
 
     /**
-     * @See @{@link DataBoundConstructor}
-     * @param preActionJobsToTrigger @{@link String} Full names of the jobs in comma separated format which are defined in the field
-     * @param postActionJobsToTrigger @{@link String} Full names of the jobs in comma separated format which are defined in the field
+     * @see DataBoundConstructor
+     * @param preActionJobsToTrigger  Full names of the jobs in comma separated format which are defined in the field
+     * @param postActionJobsToTrigger  Full names of the jobs in comma separated format which are defined in the field
      */
     @DataBoundConstructor
     public PipelineTriggerProperty(String preActionJobsToTrigger, String postActionJobsToTrigger) {
@@ -51,7 +51,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Getter method for @preActionJobsToTrigger
-     * @return @{@link String} Full names of the jobs in comma separated format
+     * @return  Full names of the jobs in comma separated format
      */
     public String getPreActionJobsToTrigger() {
         return preActionJobsToTrigger;
@@ -59,7 +59,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Setter method for @preActionJobsToTrigger
-     * Additionally. this methods parses job names from @preActionJobsToTrigger, convert to @{@link List} of @{@link Job} and store in @preActionJobs for later use.
+     * Additionally. this methods parses job names from @preActionJobsToTrigger, convert to List of Job and store in @preActionJobs for later use.
      * @param preActionJobsToTrigger Full names of the jobs in comma separated format which are defined in the field
      */
     @DataBoundSetter
@@ -70,7 +70,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Getter method for @postActionJobsToTrigger
-     * @return @{@link String} Full names of the jobs in comma-separated format
+     * @return  Full names of the jobs in comma-separated format
      */
     public String getPostActionJobsToTrigger() {
         return postActionJobsToTrigger;
@@ -78,7 +78,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Setter method for @postActionJobsToTrigger
-     * Additionally. this methods parses job names from @postActionJobsToTrigger, convert to @{@link List} of @{@link Job} and store in @postActionJobs for later use.
+     * Additionally. this methods parses job names from @postActionJobsToTrigger, convert to List of Job and store in @postActionJobs for later use.
      * @param postActionJobsToTrigger Full names of the jobs in comma-separated format which are defined in the field
      */
     @DataBoundSetter
@@ -89,7 +89,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Getter method for @preActionJobs
-     * @return @{@link List} of @{@link Job} for Pre Action
+     * @return List of Job for Pre Action
      */
     public List<Job> getPreActionJobs() {
         return preActionJobs;
@@ -97,7 +97,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Setter method for @preActionJobs
-     * @param preActionJobs @{@link List} of @{@link Job} for Pre Action
+     * @param preActionJobs List of Job for Pre Action
      */
     public void setPreActionJobs(List<Job> preActionJobs) {
         this.preActionJobs = preActionJobs;
@@ -105,7 +105,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Getter method for @postActionJobs
-     * @return @{@link List} of @{@link Job} for Post Action
+     * @return List of Job for Post Action
      */
     public List<Job> getPostActionJobs() {
         return postActionJobs;
@@ -113,21 +113,21 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Setter method for @preActionJobs
-     * @param postActionJobs @{@link List} of @{@link Job} for Post Action
+     * @param postActionJobs List of Job for Post Action
      */
     public void setPostActionJobs(List<Job> postActionJobs) {
         this.postActionJobs = postActionJobs;
     }
 
     /**
-     * @see @{@link AbstractFolderPropertyDescriptor}
+     * @see AbstractFolderPropertyDescriptor
      */
     @Extension
     public static class DescriptorImpl extends AbstractFolderPropertyDescriptor {
 
         /**
-         * @see @{@link AbstractFolderPropertyDescriptor}
-         * @return @{@link String} Property Name
+         * @see AbstractFolderPropertyDescriptor
+         * @return  Property Name
          */
         @Nonnull
         @Override
@@ -137,8 +137,8 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
         /**
          * Return true if calling class is @{@link MultiBranchProject}
-         * @see @{@link AbstractFolderPropertyDescriptor}
-         * @param containerType @see @{@link AbstractFolder}
+         * @see AbstractFolderPropertyDescriptor
+         * @param containerType See AbstractFolder
          * @return @boolean
          */
         @Override
@@ -148,7 +148,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
         /**
          * Auto complete methods @preActionJobsToTrigger field.
-         * @param value @{@link String} Value to search in @{@link Job} Full Names
+         * @param value  Value to search in Job Full Names
          * @return @{@link AutoCompletionCandidates}
          */
         public AutoCompletionCandidates doAutoCompletePreActionJobsToTrigger(@QueryParameter String value) {
@@ -157,7 +157,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
         /**
          * Auto complete methods @postActionJobsToTrigger field.
-         * @param value @{@link String} Value to search in @{@link Job} Full Namesif
+         * @param value  Value to search in Job Full Namesif
          * @return @{@link AutoCompletionCandidates}
          */
         public AutoCompletionCandidates doAutoCompletePostActionJobsToTrigger(@QueryParameter String value) {
@@ -165,9 +165,9 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
         }
 
         /**
-         * Get all @{@link Job} items in Jenkins. Filter them if they contain @value in @{@link Job} Full names.
-         * Also filter @{@link Job}s which have @Item.BUILD and @Item.READ permissions.
-         * @param value @{@link String} Value to search in @{@link Job} Full Names
+         * Get all Job items in Jenkins. Filter them if they contain @value in Job Full names.
+         * Also filter Jobs which have @Item.BUILD and @Item.READ permissions.
+         * @param value  Value to search in Job Full Names
          * @return @{@link AutoCompletionCandidates}
          */
         private AutoCompletionCandidates autoCompleteCandidates(String value) {
@@ -183,11 +183,11 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
     }
 
     /**
-     * Find and check @{@link Job}s which are defined in @actionJobsToTrigger in comma-separated format.
-     * Additionally, create @{@link StringParameterDefinition} in @{@link Job}s to pass @projectNameParameterKey as build value.
-     * @param actionJobsToTrigger Full names of the @{@link Job}s in comma-separated format which are defined in the field
-     * @param addSourceProjectNameStringParameter If set True, create @{@link StringParameterDefinition} in @{@link Job}
-     * @return @{@link List} of @{@link Job}
+     * Find and check Jobs which are defined in @actionJobsToTrigger in comma-separated format.
+     * Additionally, create StringParameterDefinition in Jobs to pass @projectNameParameterKey as build value.
+     * @param actionJobsToTrigger Full names of the Jobs in comma-separated format which are defined in the field
+     * @param addSourceProjectNameStringParameter If set True, create StringParameterDefinition in Job
+     * @return List of Job
      */
     private List<Job> validateJobs(String actionJobsToTrigger, boolean addSourceProjectNameStringParameter) {
         List<Job> jobs = Jenkins.getInstanceOrNull().getAllItems(Job.class);
@@ -213,9 +213,9 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
     }
 
     /**
-     * Get full names of @{@link Job}s and return in comma separated format.
-     * @param jobs @{@link List} of @{@link Job}
-     * @return @{@link String} Full names of the jobs in comma separated format
+     * Get full names Jobs and return in comma separated format.
+     * @param jobs List of Job
+     * @return  Full names of the jobs in comma separated format
      */
     private String convertJobsToCommaSeparatedString(List<Job> jobs) {
         List<String> jobFullNames = jobs.stream().map(job -> job.getFullName()).collect(Collectors.toList());
@@ -223,18 +223,18 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
     }
 
     /**
-     * Build @{@link Job}s which are defined in the @preActionJobsToTrigger field.
+     * Build Jobs which are defined in the @preActionJobsToTrigger field.
      * @param projectName @String Name of the project. This will be branch name which is found in branch indexing.
-     *                    Also this value will be passed as @{@link StringParameterDefinition}
+     *                    Also this value will be passed as StringParameterDefinition
      */
     public void buildPreActionJobs(String projectName) {
         this.buildJobs(projectName, this.validateJobs(this.getPreActionJobsToTrigger(), false));
     }
 
     /**
-     * Build @{@link Job}s which are defined in the @postActionJobsToTrigger field.
+     * Build Jobs which are defined in the @postActionJobsToTrigger field.
      * @param projectName @String Name of the project. This will be branch name which is found in branch indexing.
-     *                    Also this value will be passed as @{@link StringParameterDefinition}
+     *                    Also this value will be passed as StringParameterDefinition
      */
     public void buildPostActionJobs(String projectName) {
         this.buildJobs(projectName, this.validateJobs(this.getPostActionJobsToTrigger(), false));
@@ -242,9 +242,9 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
 
     /**
-     * Build @{@link Job}s and pass parameter to @{@link Build}
-     * @param projectName @String Name of the project. This value will be passed as @{@link StringParameterDefinition}
-     * @param jobsToBuild @{@link List} of @{@link Job}s to build
+     * Build Jobs and pass parameter to Build
+     * @param projectName @String Name of the project. This value will be passed as StringParameterDefinition
+     * @param jobsToBuild List of Jobs to build
      */
     private void buildJobs(String projectName, List<Job> jobsToBuild) {
         List<ParameterValue> parameterValues = new ArrayList<>();
