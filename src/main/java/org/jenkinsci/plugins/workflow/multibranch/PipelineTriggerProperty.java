@@ -33,7 +33,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     private String preActionJobsToTrigger;
     private String postActionJobsToTrigger;
-    private transient LisJavaDoc written.t<Job> preActionJobs;
+    private transient List<Job> preActionJobs;
     private transient List<Job> postActionJobs;
     private final int quitePeriod = 0;
     public static final String projectNameParameterKey = "SOURCE_PROJECT_NAME";
