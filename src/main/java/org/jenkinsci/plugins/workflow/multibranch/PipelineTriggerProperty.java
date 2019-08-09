@@ -136,10 +136,10 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
         }
 
         /**
-         * Return true if calling class is @{@link MultiBranchProject}
+         * Return true if calling class is MultiBranchProject
          * @see AbstractFolderPropertyDescriptor
          * @param containerType See AbstractFolder
-         * @return @boolean
+         * @return boolean
          */
         @Override
         public boolean isApplicable(Class<? extends AbstractFolder> containerType) {
@@ -149,7 +149,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
         /**
          * Auto complete methods @preActionJobsToTrigger field.
          * @param value  Value to search in Job Full Names
-         * @return @{@link AutoCompletionCandidates}
+         * @return AutoCompletionCandidates
          */
         public AutoCompletionCandidates doAutoCompletePreActionJobsToTrigger(@QueryParameter String value) {
             return this.autoCompleteCandidates(value);
@@ -158,7 +158,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
         /**
          * Auto complete methods @postActionJobsToTrigger field.
          * @param value  Value to search in Job Full Namesif
-         * @return @{@link AutoCompletionCandidates}
+         * @return AutoCompletionCandidates
          */
         public AutoCompletionCandidates doAutoCompletePostActionJobsToTrigger(@QueryParameter String value) {
             return this.autoCompleteCandidates(value);
@@ -168,7 +168,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
          * Get all Job items in Jenkins. Filter them if they contain @value in Job Full names.
          * Also filter Jobs which have @Item.BUILD and @Item.READ permissions.
          * @param value  Value to search in Job Full Names
-         * @return @{@link AutoCompletionCandidates}
+         * @return AutoCompletionCandidates
          */
         private AutoCompletionCandidates autoCompleteCandidates(String value) {
             AutoCompletionCandidates candidates = new AutoCompletionCandidates();
@@ -224,7 +224,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Build Jobs which are defined in the @preActionJobsToTrigger field.
-     * @param projectName @String Name of the project. This will be branch name which is found in branch indexing.
+     * @param projectName Name of the project. This will be branch name which is found in branch indexing.
      *                    Also this value will be passed as StringParameterDefinition
      */
     public void buildPreActionJobs(String projectName) {
@@ -233,7 +233,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Build Jobs which are defined in the @postActionJobsToTrigger field.
-     * @param projectName @String Name of the project. This will be branch name which is found in branch indexing.
+     * @param projectName Name of the project. This will be branch name which is found in branch indexing.
      *                    Also this value will be passed as StringParameterDefinition
      */
     public void buildPostActionJobs(String projectName) {
@@ -243,7 +243,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Build Jobs and pass parameter to Build
-     * @param projectName @String Name of the project. This value will be passed as StringParameterDefinition
+     * @param projectName Name of the project. This value will be passed as StringParameterDefinition
      * @param jobsToBuild List of Jobs to build
      */
     private void buildJobs(String projectName, List<Job> jobsToBuild) {
