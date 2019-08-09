@@ -36,12 +36,12 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
     private transient List<Job> preActionJobs;
     private transient List<Job> postActionJobs;
     private final int quitePeriod = 0;
-    public static final String projectNameParameterKey = "SOURCE_PROJECT_NAME";
+    static final String projectNameParameterKey = "SOURCE_PROJECT_NAME";
 
     /**
-     * @see DataBoundConstructor
      * @param preActionJobsToTrigger  Full names of the jobs in comma separated format which are defined in the field
-     * @param postActionJobsToTrigger  Full names of the jobs in comma separated format which are defined in the field
+     * @param postActionJobsToTrigger Full names of the jobs in comma separated format which are defined in the field
+     * @see DataBoundConstructor
      */
     @DataBoundConstructor
     public PipelineTriggerProperty(String preActionJobsToTrigger, String postActionJobsToTrigger) {
@@ -51,7 +51,8 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Getter method for @preActionJobsToTrigger
-     * @return  Full names of the jobs in comma separated format
+     *
+     * @return Full names of the jobs in comma separated format
      */
     public String getPreActionJobsToTrigger() {
         return preActionJobsToTrigger;
@@ -60,6 +61,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
     /**
      * Setter method for @preActionJobsToTrigger
      * Additionally. this methods parses job names from @preActionJobsToTrigger, convert to List of Job and store in @preActionJobs for later use.
+     *
      * @param preActionJobsToTrigger Full names of the jobs in comma separated format which are defined in the field
      */
     @DataBoundSetter
@@ -70,7 +72,8 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Getter method for @postActionJobsToTrigger
-     * @return  Full names of the jobs in comma-separated format
+     *
+     * @return Full names of the jobs in comma-separated format
      */
     public String getPostActionJobsToTrigger() {
         return postActionJobsToTrigger;
@@ -79,6 +82,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
     /**
      * Setter method for @postActionJobsToTrigger
      * Additionally. this methods parses job names from @postActionJobsToTrigger, convert to List of Job and store in @postActionJobs for later use.
+     *
      * @param postActionJobsToTrigger Full names of the jobs in comma-separated format which are defined in the field
      */
     @DataBoundSetter
@@ -89,6 +93,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Getter method for @preActionJobs
+     *
      * @return List of Job for Pre Action
      */
     public List<Job> getPreActionJobs() {
@@ -97,6 +102,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Setter method for @preActionJobs
+     *
      * @param preActionJobs List of Job for Pre Action
      */
     public void setPreActionJobs(List<Job> preActionJobs) {
@@ -105,6 +111,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Getter method for @postActionJobs
+     *
      * @return List of Job for Post Action
      */
     public List<Job> getPostActionJobs() {
@@ -113,6 +120,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Setter method for @preActionJobs
+     *
      * @param postActionJobs List of Job for Post Action
      */
     public void setPostActionJobs(List<Job> postActionJobs) {
@@ -126,8 +134,8 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
     public static class DescriptorImpl extends AbstractFolderPropertyDescriptor {
 
         /**
+         * @return Property Name
          * @see AbstractFolderPropertyDescriptor
-         * @return  Property Name
          */
         @Nonnull
         @Override
@@ -137,9 +145,10 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
         /**
          * Return true if calling class is MultiBranchProject
-         * @see AbstractFolderPropertyDescriptor
+         *
          * @param containerType See AbstractFolder
          * @return boolean
+         * @see AbstractFolderPropertyDescriptor
          */
         @Override
         public boolean isApplicable(Class<? extends AbstractFolder> containerType) {
@@ -148,7 +157,8 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
         /**
          * Auto complete methods @preActionJobsToTrigger field.
-         * @param value  Value to search in Job Full Names
+         *
+         * @param value Value to search in Job Full Names
          * @return AutoCompletionCandidates
          */
         public AutoCompletionCandidates doAutoCompletePreActionJobsToTrigger(@QueryParameter String value) {
@@ -157,7 +167,8 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
         /**
          * Auto complete methods @postActionJobsToTrigger field.
-         * @param value  Value to search in Job Full Namesif
+         *
+         * @param value Value to search in Job Full Namesif
          * @return AutoCompletionCandidates
          */
         public AutoCompletionCandidates doAutoCompletePostActionJobsToTrigger(@QueryParameter String value) {
@@ -167,12 +178,13 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
         /**
          * Get all Job items in Jenkins. Filter them if they contain @value in Job Full names.
          * Also filter Jobs which have @Item.BUILD and @Item.READ permissions.
-         * @param value  Value to search in Job Full Names
+         *
+         * @param value Value to search in Job Full Names
          * @return AutoCompletionCandidates
          */
         private AutoCompletionCandidates autoCompleteCandidates(String value) {
             AutoCompletionCandidates candidates = new AutoCompletionCandidates();
-            List<Job> jobs = Jenkins.getInstanceOrNull().getAllItems(Job.class);
+            List<Job> jobs = Jenkins.getInstance().getItems(Job.class);
             for (Job job : jobs) {
                 String jobName = job.getFullName();
                 if (jobName.contains(value.trim()) && job.hasPermission(Item.BUILD) && job.hasPermission(Item.READ))
@@ -185,12 +197,13 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
     /**
      * Find and check Jobs which are defined in @actionJobsToTrigger in comma-separated format.
      * Additionally, create StringParameterDefinition in Jobs to pass @projectNameParameterKey as build value.
-     * @param actionJobsToTrigger Full names of the Jobs in comma-separated format which are defined in the field
+     *
+     * @param actionJobsToTrigger                 Full names of the Jobs in comma-separated format which are defined in the field
      * @param addSourceProjectNameStringParameter If set True, create StringParameterDefinition in Job
      * @return List of Job
      */
     private List<Job> validateJobs(String actionJobsToTrigger, boolean addSourceProjectNameStringParameter) {
-        List<Job> jobs = Jenkins.getInstanceOrNull().getAllItems(Job.class);
+        List<Job> jobs = Jenkins.getInstance().getAllItems(Job.class);
         List<Job> validatedJobs = new ArrayList<>();
         StringTokenizer tokenizer = new StringTokenizer(Util.fixNull(Util.fixEmptyAndTrim(actionJobsToTrigger)), ",");
         while (tokenizer.hasMoreTokens()) {
@@ -214,16 +227,18 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Get full names Jobs and return in comma separated format.
+     *
      * @param jobs List of Job
-     * @return  Full names of the jobs in comma separated format
+     * @return Full names of the jobs in comma separated format
      */
     private String convertJobsToCommaSeparatedString(List<Job> jobs) {
-        List<String> jobFullNames = jobs.stream().map(job -> job.getFullName()).collect(Collectors.toList());
+        List<String> jobFullNames = jobs.stream().map(AbstractItem::getFullName).collect(Collectors.toList());
         return String.join(",", jobFullNames);
     }
 
     /**
      * Build Jobs which are defined in the @preActionJobsToTrigger field.
+     *
      * @param projectName Name of the project. This will be branch name which is found in branch indexing.
      *                    Also this value will be passed as StringParameterDefinition
      */
@@ -233,6 +248,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Build Jobs which are defined in the @postActionJobsToTrigger field.
+     *
      * @param projectName Name of the project. This will be branch name which is found in branch indexing.
      *                    Also this value will be passed as StringParameterDefinition
      */
@@ -243,6 +259,7 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
 
     /**
      * Build Jobs and pass parameter to Build
+     *
      * @param projectName Name of the project. This value will be passed as StringParameterDefinition
      * @param jobsToBuild List of Jobs to build
      */
@@ -261,4 +278,5 @@ public class PipelineTriggerProperty extends AbstractFolderProperty<MultiBranchP
             }
         }
     }
+
 }
