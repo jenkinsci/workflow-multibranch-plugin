@@ -134,6 +134,12 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
                 strategy != null ? strategy.getPropertiesFor(head) : Collections.<BranchProperty>emptyList()));
     }
 
+    // Expose folders disabling feature - acts only as a proxy here because parent is a protected method
+    @Override
+    public boolean supportsMakeDisabled() {
+        return super.supportsMakeDisabled();
+    }
+
     @Extension public static class DescriptorImpl extends MultiBranchProjectDescriptor implements IconSpec {
 
         @Override public String getDisplayName() {
