@@ -73,8 +73,9 @@ public class DurabilityHintBranchProperty extends BranchProperty {
         }
 
         /**
-         * Dynamically fetch the property with each build, because the {@link BranchPropertyStrategy} does not re-evaluate,
-         * resulting in {@see <a href="https://issues.jenkins-ci.org/browse/JENKINS-48826">JENKINS-48826</a>}. */
+         * Dynamically fetch the property with each build, because the {@link BranchPropertyStrategy} does not re-evaluate.
+         * @see <a href="https://issues.jenkins-ci.org/browse/JENKINS-48826">JENKINS-48826</a>
+         */
         @CheckForNull
         @Override
         public FlowDurabilityHint suggestFor(@Nonnull Item x) {
