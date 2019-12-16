@@ -327,7 +327,7 @@ public class JobPropertyStepTest {
     @Test public void concurrentBuildProperty() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         // Verify the base case behavior.
-        p.setDefinition(new CpsFlowDefinition("semaphore 'hang'"));
+        p.setDefinition(new CpsFlowDefinition("semaphore 'hang'", true));
 
         assertTrue(p.isConcurrentBuild());
 
@@ -346,7 +346,7 @@ public class JobPropertyStepTest {
 
         // Verify that the property successfully disables concurrent builds.
         p.setDefinition(new CpsFlowDefinition("properties([disableConcurrentBuilds()])\n"
-                + "semaphore 'hang'"));
+                + "semaphore 'hang'", true));
 
         assertTrue(p.isConcurrentBuild());
 
@@ -372,7 +372,7 @@ public class JobPropertyStepTest {
     @Test public void triggersProperty() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         // Verify the base case behavior.
-        p.setDefinition(new CpsFlowDefinition("echo 'foo'"));
+        p.setDefinition(new CpsFlowDefinition("echo 'foo'", true));
 
         assertTrue(p.getTriggers().isEmpty());
 
@@ -384,7 +384,8 @@ public class JobPropertyStepTest {
         // Now add a trigger.
         p.setDefinition(new CpsFlowDefinition(
                 "properties([pipelineTriggers([\n"
-              + "  cron('@daily'), [$class: 'MockTrigger']])])\n" + "echo 'foo'"));
+              + "  cron('@daily'), [$class: 'MockTrigger']])])\n" + "echo 'foo'",
+                true));
 
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
 
@@ -409,7 +410,7 @@ public class JobPropertyStepTest {
         // Now run a properties step with a different property and verify that we still have a
         // PipelineTriggersJobProperty, but with no triggers in it.
         p.setDefinition(new CpsFlowDefinition("properties([disableConcurrentBuilds()])\n"
-                + "echo 'foo'"));
+                + "echo 'foo'", true));
 
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
 
@@ -424,7 +425,7 @@ public class JobPropertyStepTest {
     @Test public void scmTriggerProperty() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         // Verify the base case behavior.
-        p.setDefinition(new CpsFlowDefinition("echo 'foo'"));
+        p.setDefinition(new CpsFlowDefinition("echo 'foo'", true));
 
         assertTrue(p.getTriggers().isEmpty());
 
@@ -471,7 +472,7 @@ public class JobPropertyStepTest {
         // Now run a properties step with a different property and verify that we still have a
         // PipelineTriggersJobProperty, but with no triggers in it.
         p.setDefinition(new CpsFlowDefinition("properties([disableConcurrentBuilds()])\n"
-                + "echo 'foo'"));
+                + "echo 'foo'", true));
 
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
 
@@ -485,7 +486,7 @@ public class JobPropertyStepTest {
     @Test public void scmAndEmptyTriggersProperty() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         // Verify the base case behavior.
-        p.setDefinition(new CpsFlowDefinition("echo 'foo'"));
+        p.setDefinition(new CpsFlowDefinition("echo 'foo'", true));
 
         assertTrue(p.getTriggers().isEmpty());
 
@@ -514,7 +515,7 @@ public class JobPropertyStepTest {
         // Now run a properties step with an empty triggers property and verify that we still have a
         // PipelineTriggersJobProperty, but with no triggers in it.
         p.setDefinition(new CpsFlowDefinition("properties([pipelineTriggers()])\n"
-                + "echo 'foo'"));
+                + "echo 'foo'", true));
 
         WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
 

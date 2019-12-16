@@ -61,7 +61,7 @@ public class ResolveScmStepTest {
                     + "targets:['foo']\n"
                     + "  checkout tests\n"
                     + "  if (!fileExists('new-file.txt')) { error 'wrong branch checked out' }\n"
-                    + "}"));
+                    + "}", true));
             j.buildAndAssertSuccess(job);
         } finally {
             c.close();
@@ -81,7 +81,7 @@ public class ResolveScmStepTest {
                     + "', repository:'repo', traits: [discoverBranches()]), "
                     + "targets:['bar'], ignoreErrors: true\n"
                     + "  if (tests != null) { error \"resolved as ${tests}\"}\n"
-                    + "}"));
+                    + "}", true));
             j.buildAndAssertSuccess(job);
         } finally {
             c.close();
@@ -105,7 +105,7 @@ public class ResolveScmStepTest {
                     + "    ok = false\n"
                     + "  } catch (e) {}\n"
                     + "  if (!ok) { error 'abort not thrown' }\n"
-                    + "}"));
+                    + "}", true));
             j.buildAndAssertSuccess(job);
         } finally {
             c.close();
@@ -127,7 +127,7 @@ public class ResolveScmStepTest {
                     + "targets:['bar', 'manchu']\n"
                     + "  checkout tests\n"
                     + "  if (!fileExists('new-file.txt')) { error 'wrong branch checked out' }\n"
-                    + "}"));
+                    + "}", true));
             j.buildAndAssertSuccess(job);
         } finally {
             c.close();
