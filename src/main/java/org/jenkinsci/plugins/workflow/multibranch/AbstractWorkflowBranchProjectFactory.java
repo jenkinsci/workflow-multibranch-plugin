@@ -50,7 +50,7 @@ public abstract class AbstractWorkflowBranchProjectFactory extends BranchProject
     protected abstract SCMSourceCriteria getSCMSourceCriteria(SCMSource source);
 
     @Override public WorkflowJob newInstance(Branch branch) {
-        WorkflowJob job = new WorkflowJob((WorkflowMultiBranchProject) getOwner(), branch.getEncodedName());
+        WorkflowJob job = new WorkflowJob(getOwner(), branch.getEncodedName());
         setBranch(job, branch);
         return job;
     }
