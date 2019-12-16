@@ -54,7 +54,7 @@ public class SCMVarTest {
     @Rule public RestartableJenkinsRule story = new RestartableJenkinsRule();
     @Rule public GitSampleRepoRule sampleGitRepo = new GitSampleRepoRule();
 
-    @Test public void scmPickle() throws Exception {
+    @Test public void scmPickle() {
         story.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
                 sampleGitRepo.init();
