@@ -65,7 +65,7 @@ public class DurabilityHintBranchPropertyWorkflowTest {
         mp.getSourcesList().add(bs);
         bs.setStrategy(new DefaultBranchPropertyStrategy(new BranchProperty[]{new DurabilityHintBranchProperty(FlowDurabilityHint.SURVIVABLE_NONATOMIC)}));
         r.configRoundtrip(mp);
-        DefaultBranchPropertyStrategy strat = (DefaultBranchPropertyStrategy)(mp.getBranchPropertyStrategy(mp.getSCMSources().get(0)));
+        DefaultBranchPropertyStrategy strat = (DefaultBranchPropertyStrategy) mp.getBranchPropertyStrategy(mp.getSCMSources().get(0));
         DurabilityHintBranchProperty prop = null;
         for (BranchProperty bp : strat.getProps()) {
             if (bp instanceof  DurabilityHintBranchProperty) {

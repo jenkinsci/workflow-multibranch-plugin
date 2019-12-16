@@ -80,7 +80,7 @@ public class DurabilityHintBranchProperty extends BranchProperty {
         public FlowDurabilityHint suggestFor(@Nonnull Item x) {
             // BranchJobProperty *should* be present if it's a child of a MultiBranchProject but we double-check for safety
             if (x instanceof WorkflowJob && x.getParent() instanceof MultiBranchProject && ((WorkflowJob)x).getProperty(BranchJobProperty.class) != null) {
-                MultiBranchProject mp  = (MultiBranchProject)(x.getParent());
+                MultiBranchProject mp = (MultiBranchProject) x.getParent();
                 WorkflowJob job = (WorkflowJob)x;
                 BranchJobProperty bjp = job.getProperty(BranchJobProperty.class);
 
