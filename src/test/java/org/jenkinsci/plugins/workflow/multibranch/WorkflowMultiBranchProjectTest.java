@@ -143,11 +143,11 @@ public class WorkflowMultiBranchProjectTest {
         }
         // RateLimitBranchProperty & BuildRetentionBranchProperty hidden by JobPropertyStep.HideSuperfluousBranchProperties.
         // UntrustedBranchProperty hidden because it applies only to Project.
-        assert propertyTypes.contains(NoTriggerBranchProperty.class);
-        assert propertyTypes.contains(DurabilityHintBranchProperty.class);
-        assert !propertyTypes.contains(BuildRetentionBranchProperty.class);
-        assert !propertyTypes.contains(RateLimitBranchProperty.class);
-        assert !propertyTypes.contains(UntrustedBranchProperty.class);
+        assertTrue(propertyTypes.contains(NoTriggerBranchProperty.class));
+        assertTrue(propertyTypes.contains(DurabilityHintBranchProperty.class));
+        assertFalse(propertyTypes.contains(BuildRetentionBranchProperty.class));
+        assertFalse(propertyTypes.contains(RateLimitBranchProperty.class));
+        assertFalse(propertyTypes.contains(UntrustedBranchProperty.class));
 
         Set<Class<? extends BranchPropertyStrategy>> strategyTypes = new HashSet<>();
         for (BranchPropertyStrategyDescriptor d : r.jenkins.getDescriptorByType(BranchSource.DescriptorImpl.class).propertyStrategyDescriptors(p, r.jenkins.getDescriptorByType(SingleSCMSource.DescriptorImpl.class))) {
@@ -201,7 +201,7 @@ public class WorkflowMultiBranchProjectTest {
 
         r.waitForCompletion(p.getLastBuild());
         Thread.sleep(1000);
-        assert !p.isBuilding();
+        assertFalse(p.isBuilding());
         WorkflowRun b1 = p.getLastBuild();
         assertEquals(1, b1.getNumber());
         Queue.Item it = mp.scheduleBuild2(0);
