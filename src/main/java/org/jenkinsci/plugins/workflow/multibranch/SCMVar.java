@@ -78,8 +78,8 @@ import org.jenkinsci.plugins.workflow.support.pickles.XStreamPickle;
                 }
             }
             throw new AbortException("‘checkout scm’ is only available when using “" +
-                Jenkins.getActiveInstance().getDescriptorByType(WorkflowMultiBranchProject.DescriptorImpl.class).getDisplayName() +
-                "” or “" + Jenkins.getActiveInstance().getDescriptorByType(CpsScmFlowDefinition.DescriptorImpl.class).getDisplayName() + "”");
+                Jenkins.get().getDescriptorByType(WorkflowMultiBranchProject.DescriptorImpl.class).getDisplayName() +
+                "” or “" + Jenkins.get().getDescriptorByType(CpsScmFlowDefinition.DescriptorImpl.class).getDisplayName() + "”");
         }
         Branch branch = property.getBranch();
         ItemGroup<?> parent = job.getParent();

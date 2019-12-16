@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.workflow.multibranch;
 import hudson.model.Item;
 import hudson.model.User;
 import hudson.security.ACL;
+import hudson.security.ACLContext;
 import java.io.File;
 import java.util.Collections;
 import jenkins.branch.BranchProperty;
@@ -149,11 +150,9 @@ public class ReplayActionTest {
     }
     private static boolean canReplay(WorkflowRun b, String user) {
         final ReplayAction a = b.getAction(ReplayAction.class);
-        return ACL.impersonate(User.get(user).impersonate(), new NotReallyRoleSensitiveCallable<Boolean,RuntimeException>() {
-            @Override public Boolean call() throws RuntimeException {
-                return a.isEnabled();
-            }
-        });
+        try (ACLContext context = ACL.as(User.getById(user, true))) {
+            return a.isEnabled();
+        }
     }
 
 }

@@ -207,7 +207,7 @@ public class SCMBinderTest {
         r.waitUntilNoActivity();
         WorkflowRun b1 = p.getLastBuild();
         assertEquals(1, b1.getNumber());
-        Authentication auth = User.get("dev").impersonate();
+        Authentication auth = User.getById("dev", true).impersonate();
         assertFalse(p.getACL().hasPermission(auth, Item.DELETE));
         assertTrue(p.isBuildable());
         sampleGitRepo.git("checkout", "master");
@@ -276,7 +276,7 @@ public class SCMBinderTest {
             }
         }
         @Override public SCMSourceDescriptor getDescriptor() {
-            return Jenkins.getInstance().getDescriptorByType(GitSCMSource.DescriptorImpl.class);
+            return Jenkins.get().getDescriptorByType(GitSCMSource.DescriptorImpl.class);
         }
     }
 

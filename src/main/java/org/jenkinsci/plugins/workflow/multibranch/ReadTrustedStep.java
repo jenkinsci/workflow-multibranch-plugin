@@ -116,11 +116,11 @@ public class ReadTrustedStep extends AbstractStepImpl {
                 }
                 if (!ok) { // wrong definition or job type
                     throw new AbortException("‘readTrusted’ is only available when using “" +
-                        Jenkins.getActiveInstance().getDescriptorByType(WorkflowMultiBranchProject.DescriptorImpl.class).getDisplayName() +
-                        "” or “" + Jenkins.getActiveInstance().getDescriptorByType(CpsScmFlowDefinition.DescriptorImpl.class).getDisplayName() + "”");
+                        Jenkins.get().getDescriptorByType(WorkflowMultiBranchProject.DescriptorImpl.class).getDisplayName() +
+                        "” or “" + Jenkins.get().getDescriptorByType(CpsScmFlowDefinition.DescriptorImpl.class).getDisplayName() + "”");
                 }
             }
-            Node node = Jenkins.getActiveInstance();
+            Node node = Jenkins.get();
             FilePath dir;
             if (job instanceof TopLevelItem) {
                 FilePath baseWorkspace = node.getWorkspaceFor((TopLevelItem) job);
