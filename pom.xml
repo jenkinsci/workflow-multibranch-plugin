@@ -28,7 +28,7 @@ THE SOFTWARE.
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.25</version>
+        <version>3.54</version>
         <relativePath />
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -36,7 +36,7 @@ THE SOFTWARE.
     <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
     <name>Pipeline: Multibranch</name>
-    <url>https://wiki.jenkins.io/display/JENKINS/Pipeline+Multibranch+Plugin</url>
+    <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
     <description>Enhances Pipeline plugin to handle branches better by automatically grouping builds from different branches</description>
     <licenses>
         <license>
