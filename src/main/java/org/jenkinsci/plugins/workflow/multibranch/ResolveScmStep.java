@@ -269,6 +269,7 @@ public class ResolveScmStep extends Step {
         /**
          * {@inheritDoc}
          */
+        @Override
         protected SCM run() throws Exception {
             StepContext context = getContext();
             TaskListener listener = context.get(TaskListener.class);

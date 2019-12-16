@@ -140,11 +140,11 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
             return Messages.WorkflowMultiBranchProject_DisplayName();
         }
 
-        public String getDescription() {
+        @Override public String getDescription() {
             return Messages.WorkflowMultiBranchProject_Description();
         }
 
-        public String getIconFilePathPattern() {
+        @Override public String getIconFilePathPattern() {
             return "plugin/workflow-multibranch/images/:size/pipelinemultibranchproject.png";
         }
 
