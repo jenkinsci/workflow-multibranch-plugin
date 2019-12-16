@@ -26,7 +26,7 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.Nonnull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
@@ -73,13 +73,13 @@ public class ResolveScmStep extends Step {
     /**
      * The {@link SCMSource}
      */
-    @NonNull
+    @Nonnull
     private final SCMSource source;
 
     /**
      * The {@link SCMSource}
      */
-    @NonNull
+    @Nonnull
     private final List<String> targets;
 
     /**
@@ -95,7 +95,7 @@ public class ResolveScmStep extends Step {
      * @param targets The {@link SCMSource}
      */
     @DataBoundConstructor
-    public ResolveScmStep(@NonNull SCMSource source, @NonNull List<String> targets) {
+    public ResolveScmStep(@Nonnull SCMSource source, @Nonnull List<String> targets) {
         this.source = source;
         this.targets = new ArrayList<String>(targets);
     }
@@ -105,7 +105,7 @@ public class ResolveScmStep extends Step {
      *
      * @return the {@link SCMSource} to resolve from.
      */
-    @NonNull
+    @Nonnull
     public SCMSource getSource() {
         return source;
     }
@@ -115,7 +115,7 @@ public class ResolveScmStep extends Step {
      *
      * @return the {@link SCMHead} names to try and resolve.
      */
-    @NonNull
+    @Nonnull
     public List<String> getTargets() {
         return Collections.unmodifiableList(targets);
     }
@@ -190,7 +190,7 @@ public class ResolveScmStep extends Step {
         }
 
         @Override
-        public Step newInstance(@CheckForNull StaplerRequest req, @NonNull JSONObject formData)
+        public Step newInstance(@CheckForNull StaplerRequest req, @Nonnull JSONObject formData)
                 throws FormException {
             assert req != null : "see contract for method, it's never null but has to claim it could be";
             // roll our own because we want the groovy api to be easier than the jelly form binding would have us
@@ -238,13 +238,13 @@ public class ResolveScmStep extends Step {
         /**
          * The {@link SCMSource}
          */
-        @NonNull
+        @Nonnull
         private transient final SCMSource source;
 
         /**
          * The {@link SCMSource}
          */
-        @NonNull
+        @Nonnull
         private final List<String> targets;
 
         /**
@@ -304,7 +304,7 @@ public class ResolveScmStep extends Step {
          *
          * @param heads the {@link SCMHead#getName()} to get the {@link SCMRevision} of.
          */
-        public ObserverImpl(@NonNull List<String> heads) {
+        public ObserverImpl(@Nonnull List<String> heads) {
             heads.getClass(); // fail fast if null
             for (String head : heads) {
                 if (StringUtils.isNotBlank(head)) {
@@ -332,7 +332,7 @@ public class ResolveScmStep extends Step {
          * {@inheritDoc}
          */
         @Override
-        public void observe(@NonNull SCMHead head, @NonNull SCMRevision revision) {
+        public void observe(@Nonnull SCMHead head, @Nonnull SCMRevision revision) {
             if (this.revision.containsKey(head.getName())) {
                 this.revision.put(head.getName(), revision);
             }
