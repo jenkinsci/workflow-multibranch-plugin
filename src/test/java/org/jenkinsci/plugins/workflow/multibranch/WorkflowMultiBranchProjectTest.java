@@ -159,7 +159,7 @@ public class WorkflowMultiBranchProjectTest {
     @SuppressWarnings("rawtypes")
     @Test public void applicableSCMs() throws Exception {
         final WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        List<Class> scmTypes = new ArrayList<Class>();
+        List<Class> scmTypes = new ArrayList<>();
         List<SCMDescriptor<?>> scmDescriptors = SingleSCMSource.DescriptorImpl.getSCMDescriptors(mp);
         for (SCMDescriptor<?> scmDescriptor : scmDescriptors) {
             scmTypes.add(scmDescriptor.clazz);

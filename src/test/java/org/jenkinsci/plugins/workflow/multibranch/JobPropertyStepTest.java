@@ -527,7 +527,7 @@ public class JobPropertyStepTest {
     @Issue("JENKINS-37477")
     @Test
     public void generateHelpTrigger() throws Exception {
-        DescribableModel<?> model = new DescribableModel(PipelineTriggersJobProperty.class);
+        DescribableModel<?> model = new DescribableModel<>(PipelineTriggersJobProperty.class);
 
         assertNotNull(model);
 

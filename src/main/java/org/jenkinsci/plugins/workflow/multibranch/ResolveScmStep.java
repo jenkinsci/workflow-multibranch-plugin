@@ -97,7 +97,7 @@ public class ResolveScmStep extends Step {
     @DataBoundConstructor
     public ResolveScmStep(@Nonnull SCMSource source, @Nonnull List<String> targets) {
         this.source = source;
-        this.targets = new ArrayList<String>(targets);
+        this.targets = new ArrayList<>(targets);
     }
 
     /**
@@ -297,7 +297,7 @@ public class ResolveScmStep extends Step {
         /**
          * The heads we are looking for
          */
-        private final Map<String, SCMRevision> revision = new LinkedHashMap<String, SCMRevision>();
+        private final Map<String, SCMRevision> revision = new LinkedHashMap<>();
 
         /**
          * Constructor.
