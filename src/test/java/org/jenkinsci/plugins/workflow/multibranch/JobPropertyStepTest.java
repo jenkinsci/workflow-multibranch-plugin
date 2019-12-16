@@ -108,7 +108,7 @@ public class JobPropertyStepTest {
 
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripParameters() throws Exception {
-        List<JobProperty> properties = Collections.<JobProperty>singletonList(new ParametersDefinitionProperty(new BooleanParameterDefinition("flag", true, null)));
+        List<JobProperty> properties = Collections.singletonList(new ParametersDefinitionProperty(new BooleanParameterDefinition("flag", true, null)));
         // TODO *ParameterDefinition.description ought to be defaulted to null:
         new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([parameters([booleanParam(defaultValue: true, name: 'flag')])])");
 
@@ -123,7 +123,7 @@ public class JobPropertyStepTest {
         assertEquals("flag", bpd.getName());
         assertTrue(bpd.isDefaultValue());
 
-        List<JobProperty> emptyInput = tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties();
+        List<JobProperty> emptyInput = tester.configRoundTrip(new JobPropertyStep(Collections.emptyList())).getProperties();
 
         assertEquals(Collections.emptyList(), removeTriggerProperty(emptyInput));
     }
@@ -149,7 +149,7 @@ public class JobPropertyStepTest {
 
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripBuildDiscarder() throws Exception {
-        List<JobProperty> properties = Collections.<JobProperty>singletonList(new BuildDiscarderProperty(new LogRotator(1, 2, -1, 3)));
+        List<JobProperty> properties = Collections.singletonList(new BuildDiscarderProperty(new LogRotator(1, 2, -1, 3)));
 
         // TODO structural form of LogRotator is awful; confusion between integer and string types, and failure to handle default values:
         new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '3', daysToKeepStr: '1', numToKeepStr: '2'))])");
@@ -567,7 +567,7 @@ public class JobPropertyStepTest {
     @Issue("JENKINS-37477")
     @Test
     public void configRoundTripTrigger() throws Exception {
-        List<JobProperty> properties = Collections.<JobProperty>singletonList(new PipelineTriggersJobProperty(Collections.<Trigger>singletonList(new TimerTrigger("@daily"))));
+        List<JobProperty> properties = Collections.singletonList(new PipelineTriggersJobProperty(Collections.singletonList(new TimerTrigger("@daily"))));
         String snippetJson = "{'propertiesMap': {\n" +
                 "    'stapler-class-bag': 'true',\n" +
                 "    'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'triggers': {\n" +
@@ -584,7 +584,7 @@ public class JobPropertyStepTest {
     @Issue("JENKINS-37721")
     @Test
     public void configRoundTripSCMTrigger() throws Exception {
-        List<JobProperty> properties = Collections.<JobProperty>singletonList(new PipelineTriggersJobProperty(Collections.<Trigger>singletonList(new SCMTrigger("@daily"))));
+        List<JobProperty> properties = Collections.singletonList(new PipelineTriggersJobProperty(Collections.singletonList(new SCMTrigger("@daily"))));
         String snippetJson = "{'propertiesMap': {\n" +
                 "    'stapler-class-bag': 'true',\n" +
                 "    'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'triggers': {\n" +
@@ -601,7 +601,7 @@ public class JobPropertyStepTest {
     @Issue("JENKINS-34464")
     @Test
     public void configRoundTripReverseBuildTrigger() throws Exception {
-        List<JobProperty> properties = Collections.<JobProperty>singletonList(new PipelineTriggersJobProperty(Collections.<Trigger>singletonList(new ReverseBuildTrigger("some-job", Result.UNSTABLE))));
+        List<JobProperty> properties = Collections.singletonList(new PipelineTriggersJobProperty(Collections.singletonList(new ReverseBuildTrigger("some-job", Result.UNSTABLE))));
         String snippetJson = "{'propertiesMap': {\n" +
                 "    'stapler-class-bag': 'true',\n" +
                 "    'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'triggers': {\n" +

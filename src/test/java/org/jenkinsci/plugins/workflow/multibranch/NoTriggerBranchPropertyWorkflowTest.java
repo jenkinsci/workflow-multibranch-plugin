@@ -99,7 +99,7 @@ public class NoTriggerBranchPropertyWorkflowTest {
         round1();
         OrganizationFolder top = r.jenkins.createProject(OrganizationFolder.class, "top");
         top.getProperties().add(new NoTriggerOrganizationFolderProperty("(?!release.*).*"));
-        top.getNavigators().add(new SingleSCMNavigator("p", Collections.<SCMSource>singletonList(new GitSCMSource("source-id", sampleRepo.toString(), "", "*", "", false))));
+        top.getNavigators().add(new SingleSCMNavigator("p", Collections.singletonList(new GitSCMSource("source-id", sampleRepo.toString(), "", "*", "", false))));
         top.scheduleBuild2(0).getFuture().get();
         r.waitUntilNoActivity();
         top.getComputation().writeWholeLogTo(System.out);

@@ -131,7 +131,7 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
 
         final BranchPropertyStrategy strategy = source.getStrategy();
         return new BranchJobProperty(new Branch(sourceId, head, source.getSource().build(head),
-                strategy != null ? strategy.getPropertiesFor(head) : Collections.<BranchProperty>emptyList()));
+                strategy != null ? strategy.getPropertiesFor(head) : Collections.emptyList()));
     }
 
     @Extension public static class DescriptorImpl extends MultiBranchProjectDescriptor implements IconSpec {

@@ -170,7 +170,7 @@ public class ResolveScmStep extends Step {
          */
         @Override
         public Set<Class<?>> getRequiredContext() {
-            return Collections.<Class<?>>singleton(TaskListener.class);
+            return Collections.singleton(TaskListener.class);
         }
 
         /**
