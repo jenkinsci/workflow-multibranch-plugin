@@ -14,6 +14,7 @@ import org.jenkinsci.plugins.workflow.flow.DurabilityHintProvider;
 import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
 import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.properties.DurabilityHintJobProperty;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -66,7 +67,7 @@ public class DurabilityHintBranchProperty extends BranchProperty {
             return GlobalDefaultFlowDurabilityLevel.getDefaultDurabilityHint();
         }
 
-        /** Lower ordinal than {@link org.jenkinsci.plugins.workflow.job.properties.DurabilityHintJobProperty} so those can override. */
+        /** Lower ordinal than {@link DurabilityHintJobProperty} so those can override. */
         @Override
         public int ordinal() {
             return 200;
