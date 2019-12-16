@@ -66,17 +66,17 @@ public class DurabilityHintBranchProperty extends BranchProperty {
             return GlobalDefaultFlowDurabilityLevel.getDefaultDurabilityHint();
         }
 
-        @Override
         /** Lower ordinal than {@link org.jenkinsci.plugins.workflow.job.properties.DurabilityHintJobProperty} so those can override. */
+        @Override
         public int ordinal() {
             return 200;
         }
 
-        @CheckForNull
-        @Override
         /**
          * Dynamically fetch the property with each build, because the {@link BranchPropertyStrategy} does not re-evaluate,
          * resulting in {@see <a href="https://issues.jenkins-ci.org/browse/JENKINS-48826">JENKINS-48826</a>}. */
+        @CheckForNull
+        @Override
         public FlowDurabilityHint suggestFor(@Nonnull Item x) {
             // BranchJobProperty *should* be present if it's a child of a MultiBranchProject but we double-check for safety
             if (x instanceof WorkflowJob && x.getParent() instanceof MultiBranchProject && ((WorkflowJob)x).getProperty(BranchJobProperty.class) != null) {
