@@ -142,7 +142,7 @@ public class RepairBranchPropertyTest {
         setup(cont);
         OrganizationFolder org = j.jenkins.getItem("org", j.jenkins, OrganizationFolder.class);
         assertNotNull(org);
-        MultiBranchProject repo = org.getItem("repo");
+        MultiBranchProject<?, ?> repo = org.getItem("repo");
         assertNotNull(repo);
         WorkflowJob master = (WorkflowJob)repo.getItem("master");
         assertNotNull(master);
@@ -155,7 +155,7 @@ public class RepairBranchPropertyTest {
         assertNotNull(item);
         final Queue.Executable executable = item.getFuture().get();
         assertNotNull(executable);
-        FolderComputation computation = (FolderComputation) executable;
+        FolderComputation<?> computation = (FolderComputation<?>) executable;
         computation.writeWholeLogTo(System.out);
         assertEquals(Result.SUCCESS, computation.getResult());
         //Since the new controller has new "commits" a build of master should have been scheduled

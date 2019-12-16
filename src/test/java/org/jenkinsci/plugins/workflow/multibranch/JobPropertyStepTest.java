@@ -702,8 +702,8 @@ public class JobPropertyStepTest {
         new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([overrideIndexTriggers(true)])", null);
     }
 
-    private <T extends Trigger> T getTriggerFromList(Class<T> clazz, List<Trigger<?>> triggers) {
-        for (Trigger t : triggers) {
+    private <T extends Trigger<?>> T getTriggerFromList(Class<T> clazz, List<Trigger<?>> triggers) {
+        for (Trigger<?> t : triggers) {
             if (clazz.isInstance(t)) {
                 return clazz.cast(t);
             }
