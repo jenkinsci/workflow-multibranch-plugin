@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.workflow.multibranch;
 import hudson.ExtensionList;
 import hudson.model.RootAction;
 import java.io.File;
+import java.nio.file.Files;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
@@ -91,7 +92,7 @@ public class SCMVarTest {
                 // Set up a standardJob definition:
                 WorkflowLibRepository repo = ExtensionList.lookup(RootAction.class).get(WorkflowLibRepository.class);
                 File vars = new File(repo.workspace, /*UserDefinedGlobalVariable.PREFIX*/ "vars");
-                vars.mkdirs();
+                Files.createDirectories(vars.toPath());
                 FileUtils.writeStringToFile(new File(vars, "standardJob.groovy"),
                     "def call(body) {\n" +
                     "  def config = [:]\n" +
