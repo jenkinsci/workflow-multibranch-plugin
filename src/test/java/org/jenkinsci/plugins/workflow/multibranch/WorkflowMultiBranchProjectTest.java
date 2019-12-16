@@ -25,7 +25,6 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
-import hudson.ExtensionList;
 import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Item;
 import hudson.model.Queue;
@@ -36,7 +35,6 @@ import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;

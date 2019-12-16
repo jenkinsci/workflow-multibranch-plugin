@@ -27,23 +27,19 @@ package org.jenkinsci.plugins.workflow.multibranch;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
 import hudson.model.Descriptor;
-import hudson.model.Executor;
 import hudson.model.TaskListener;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import java.io.PrintStream;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import jenkins.model.CauseOfInterruption;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
@@ -60,8 +56,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-
-import static hudson.model.Result.ABORTED;
 
 /**
  * Resolves an {@link SCM} from a {@link SCMSource} using a priority list of target branch names.

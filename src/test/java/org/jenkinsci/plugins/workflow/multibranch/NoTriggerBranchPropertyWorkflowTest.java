@@ -34,7 +34,6 @@ import jenkins.branch.NoTriggerOrganizationFolderProperty;
 import jenkins.branch.OrganizationFolder;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
-import jenkins.scm.api.SCMSource;
 import jenkins.scm.impl.SingleSCMNavigator;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;

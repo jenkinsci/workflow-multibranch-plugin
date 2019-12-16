@@ -40,7 +40,6 @@ import java.util.logging.Logger;
 
 import jenkins.branch.Branch;
 import jenkins.branch.BranchProjectFactory;
-import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchPropertyStrategy;
 import jenkins.branch.BranchSource;
 import jenkins.branch.MultiBranchProject;
