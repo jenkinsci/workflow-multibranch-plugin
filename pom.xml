@@ -28,7 +28,7 @@ THE SOFTWARE.
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.25</version>
+        <version>3.54</version>
         <relativePath />
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -66,7 +66,7 @@ THE SOFTWARE.
         <revision>2.22</revision>
         <changelist>-SNAPSHOT</changelist>
         <java.level>8</java.level>
-        <jenkins.version>2.121.1</jenkins.version>
+        <jenkins.version>2.138.4</jenkins.version>
         <scm-api.version>2.2.7</scm-api.version>
         <no-test-jar>false</no-test-jar>
         <workflow-step-api.version>2.13</workflow-step-api.version>
