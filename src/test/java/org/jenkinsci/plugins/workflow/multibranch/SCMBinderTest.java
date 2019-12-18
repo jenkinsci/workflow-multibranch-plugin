@@ -48,6 +48,7 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSourceDescriptor;
+import jenkins.scm.impl.subversion.SubversionSCMFileSystem;
 import jenkins.scm.impl.subversion.SubversionSCMSource;
 import static org.hamcrest.Matchers.*;
 
@@ -129,6 +130,9 @@ public class SCMBinderTest {
         }
     }
 
+    static {
+        System.setProperty(SubversionSCMFileSystem.DISABLE_PROPERTY, "true");
+    }
     @Test public void exactRevisionSubversion() throws Exception {
         sampleSvnRepo.init();
         ScriptApproval sa = ScriptApproval.get();
@@ -164,7 +168,7 @@ public class SCMBinderTest {
         assertTrue(iterator.hasNext());
         ChangeLogSet.Entry entry = iterator.next();
         assertEquals("tweaked", entry.getMsg());
-        assertEquals("[/prj/trunk/Jenkinsfile, /prj/trunk/file]", new TreeSet<>(entry.getAffectedPaths()).toString());
+        assertEquals("[Jenkinsfile, file]", new TreeSet<>(entry.getAffectedPaths()).toString());
         assertFalse(iterator.hasNext());
     }
 
