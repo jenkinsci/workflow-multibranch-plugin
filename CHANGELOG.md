@@ -2,25 +2,13 @@
 
 ### 2.21 (Mar 7, 2019)
 
--   [
-    JENKINS-43194](https://issues.jenkins-ci.org/browse/JENKINS-43194) -
-    Getting issue details... STATUS  Make SCMBinder try to abort builds
-    in which Jenkinsfile has been modified by an untrusted contributor
-    ([PR
-    \#69](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/69))
--   Migrate Chinese localization to another plugin ([PR
-    \#80](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/80))
--   [
-    JENKINS-55116](https://issues.jenkins-ci.org/browse/JENKINS-55116) -
-    Getting issue details... STATUS  Workaround Hack patch fix to allow
-    at least a rescan to work when it happens ([PR
-    \#83](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/83))
--   [ JENKINS-2111](https://issues.jenkins-ci.org/browse/JENKINS-2111) -
-    Getting issue details... STATUS  Integration test of new workspace
-    naming strategy ([PR
-    \#82](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/82))
--   Add gitDirectory symbol to GitDirectorySCMNavigator ([PR
-    \#79](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/79))
+-   [JENKINS-43194](https://issues.jenkins-ci.org/browse/JENKINS-43194) - Make SCMBinder try to abort builds in which Jenkinsfile has       been modified by an untrusted contributor ([PR #69](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/69))
+-   Migrate Chinese localization to another plugin ([PR #80](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/80))
+-   [JENKINS-55116](https://issues.jenkins-ci.org/browse/JENKINS-55116) - Workaround Hack patch fix to allow
+    at least a rescan to work when it happens ([PR #83](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/83))
+-   [ JENKINS-2111](https://issues.jenkins-ci.org/browse/JENKINS-2111) - Integration test of new workspace
+    naming strategy ([PR #82](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/82))
+-   Add gitDirectory symbol to GitDirectorySCMNavigator ([PR #79](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/79))
 
 ### 2.20 (July 9, 2018)
 

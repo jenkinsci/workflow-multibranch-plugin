@@ -9,9 +9,6 @@ Subversion branch, a GitHub Pull Request etc.
 See this blog post for more
 info:<https://jenkins.io/blog/2015/12/03/pipeline-as-code-with-multibranch-workflows-in-jenkins/>
 
-A component of the [Pipeline
-Plugin](https://wiki.jenkins.io/display/JENKINS/Pipeline+Plugin).
-
 ## Notes
 
 To determine the branch being built - use the environment variable
