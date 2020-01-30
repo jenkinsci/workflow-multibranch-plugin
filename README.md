@@ -1,3 +1,5 @@
+# Pipeline: Multibranch
+
 Enhances Pipeline plugin to handle branches better by automatically
 grouping builds from different branches.
 
