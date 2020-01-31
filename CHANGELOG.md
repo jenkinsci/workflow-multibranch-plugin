@@ -12,25 +12,33 @@
     naming strategy ([PR #82](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/82))
 -   Add gitDirectory symbol to GitDirectorySCMNavigator ([PR #79](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/79))
 
-### 2.20 (July 9, 2018)
+### 2.20 
+
+Release date: 2019-07-03
 
 -   Test fixes.
 
-### 2.19 (May 17, 2018)
+### 2.19 
+
+Release date: 2018-05-17
 
 -   Bugfix: builds failing upon running a JobPropertyStep with error
     "did not yet start" if previous build was hard-killed or failed
     before Pipeline began running
     ([JENKINS-51290](https://issues.jenkins-ci.org/browse/JENKINS-51290))
 
-### 2.18 (Apr 20, 2018)
+### 2.18 
+
+Release date: 2018-04-20
 
 -   Correct small bug from the improper use of the
     FlowExecutionOwner.getOrNull() call for getting the previous
     Properties for a step (visible as a result of
     [JENKINS-50784](https://issues.jenkins-ci.org/browse/JENKINS-50784))
 
-### 2.17 (Jan 22, 2018)
+### 2.17 
+
+Release date: 2018-01-22
 
 -   Provide a BranchProperty to support setting configuring durability
     per-branch (supports
@@ -39,17 +47,23 @@
 -   Bugfix: [JENKINS-42817](https://issues.jenkins-ci.org/browse/JENKINS-42817)
     readTrusted Pipeline from SCM only works in \*/master
 
-### 2.16 (Jun 19, 2017)
+### 2.16
+
+Release date: 2017-06-19
 
 -   Bugfix: Stop removing JobProperties defined outside a step
     ([JENKINS-44848](https://issues.jenkins-ci.org/browse/JENKINS-44848))
 
-### 2.15 (Jun 01, 2017)
+### 2.15
+
+Release date: 2017-06-01
 
 -   [JENKINS-34561](https://issues.jenkins-ci.org/browse/JENKINS-34561) Option
     to select a script name/path other than `Jenkinsfile`.
 
-### 2.14 (Mar 10, 2017)
+### 2.14
+
+Release date: 2017-03-10
 
 -   [JENKINS-40558](https://issues.jenkins-ci.org/browse/JENKINS-40558) Replace
     in-line help references of "pipeline script" with "pipeline" to
@@ -57,7 +71,9 @@
     Plugin](https://plugins.jenkins.io/pipeline-model-definition) works
     with multibranch
 
-### 2.13 (Mar 03, 2017)
+### 2.13
+
+Release date: 2017-03-03
 
 -   [JENKINS-33273](https://issues.jenkins-ci.org/browse/JENKINS-33273)
     Load `Jenkinsfile` (or any file requested in `loadTrusted`) directly
@@ -78,12 +94,16 @@ that you will not get an SCM changelog from a lightweight checkout of
 This behavior change can be suppressed in case of emergency using
 `-Dorg.jenkinsci.plugins.workflow.multibranch.SCMBinder.USE_HEAVYWEIGHT_CHECKOUT=true`.
 
-### 2.12 (Feb 02, 2017)
+### 2.12
+
+Release date: 2017-02-02
 
 -   [JENKINS-40906](https://issues.jenkins-ci.org/browse/JENKINS-40906) Add
     missing help text and configuration UI
 
-### 2.10 (Jan 16, 2017)
+### 2.10
+
+Release date: 2017-01-16
 
 -   ![(warning)](docs/images/warning.svg)
       Please read [this Blog
@@ -107,23 +127,31 @@ This behavior change can be suppressed in case of emergency using
     TopLevelItemDescriptor.getIconFilePathPattern() and
     TopLevelItemDescriptor.getIconFile(String)
 
-### 2.10-beta-1 (Dec 16, 2016)
+### 2.10-beta-1
+
+Release date: 2016-12-16
 
 -   Updated to use new multibranch-related APIs.
 -   More robust handling of invalid revisions.
 
-### 2.9.2 (Nov 09, 2016)
+### 2.9.2 
+
+Release date: 2016-12-09
 
 -   2.9.1 was corrupt.
 
-### 2.9.1 (Nov 09, 2016)
+### 2.9.1
+
+Release date: 2016-11-09
 
 -   In cases where the SCM source does not recognize a branch and fails
     to determine its tip revision, fail with a clearer message.
 
 Do not use. Use 2.9.2 instead.
 
-### 2.9 (Sep 23, 2016)
+### 2.9
+
+Release date: 2016-08-23
 
 -   [JENKINS-37005](https://issues.jenkins-ci.org/browse/JENKINS-37005)
     Warn about use of the `properties` step from a non-multibranch
@@ -134,18 +162,24 @@ Do not use. Use 2.9.2 instead.
 
 ### 2.8 (Jun 15, 2016)
 
+Release date: 2016-06-15
+
 -   [JENKINS-31386](https://issues.jenkins-ci.org/browse/JENKINS-31386) +
     [JENKINS-34596](https://issues.jenkins-ci.org/browse/JENKINS-34596):
     allow use of `readTrusted` inside a single-branch *Pipeline Script
     from SCM*.
 
-### 2.7 (Jun 09, 2016)
+### 2.7
+
+Release date: 2016-06-09
 
 -   [JENKINS-34246](https://issues.jenkins-ci.org/browse/JENKINS-34246)
     Integration of upstream fix to orphan or modify multibranch projects
     inside an organization folder as project recognizers dictate.
 
-### 2.6 (Jun 02, 2016)
+### 2.6
+
+Release date: 2016-06-02
 
 -   [JENKINS-34596](https://issues.jenkins-ci.org/browse/JENKINS-34596)
     Added `readTrusted` step to provide greater flexibility when
@@ -153,7 +187,9 @@ Do not use. Use 2.9.2 instead.
 -   Internal refactoring to expose multibranch functionality to other
     plugins.
 
-### 2.5 (Jun 01, 2016)
+### 2.5
+
+Release date: 2016-07-02
 
 -   [JENKINS-32396](https://issues.jenkins-ci.org/browse/JENKINS-32396)
     Pick up dependency with new feature to suppress automatic triggers
@@ -162,28 +198,38 @@ Do not use. Use 2.9.2 instead.
     Failure to update branch projects with modified configuration (only
     affecting newly introduced trigger suppression property).
 
-### 2.4 (May 23, 2016)
+### 2.4
+
+Release date: 2016-05-23
 
 -   [JENKINS-31831](https://issues.jenkins-ci.org/browse/JENKINS-31831)
     Make new *Pipeline Syntax* link appear on multibranch Pipeline
     projects, and organization folders configured with the Pipeline
     factory.
 
-### 2.3 (Apr 14, 2016)
+### 2.3
+
+Release date: 2016-04-14
 
 -   [JENKINS-34235](https://issues.jenkins-ci.org/browse/JENKINS-34235)
     Pipeline Multibranch project icon not found in the New Item page.
 
-### 2.2 (Apr 14, 2016)
+### 2.2
+
+Release date: 2016-04-14
 
 -   **Wrong release**.
 
-### 2.1 (Apr 13, 2016)
+### 2.1
+
+Release date: 2016-04-13
 
 -   [JENKINS-31162](https://issues.jenkins-ci.org/browse/JENKINS-31162)
     Support for Item categorization.
 
-### 2.0 (Apr 05, 2016)
+### 2.0
+
+Release date: 2016-04-05
 
 -   First release under per-plugin versioning scheme. See [1.x
     changelog](https://github.com/jenkinsci/workflow-plugin/blob/82e7defa37c05c5f004f1ba01c93df61ea7868a5/CHANGES.md)
