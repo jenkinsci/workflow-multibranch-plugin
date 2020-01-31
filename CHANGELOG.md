@@ -105,8 +105,7 @@ Release date: 2017-02-02
 
 Release date: 2017-01-16
 
--   ![(warning)](docs/images/warning.svg)
-      Please read [this Blog
+    **Please read**[this Blog
     Post](https://jenkins.io/blog/2017/01/17/scm-api-2/) before
     upgrading
 -   [JENKINS-40906](https://issues.jenkins-ci.org/browse/JENKINS-40906) Resolve
