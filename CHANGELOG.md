@@ -1,6 +1,8 @@
 ## Changelog
 
-### 2.21 (Mar 7, 2019)
+### 2.21
+
+ Release date: 2019-03-07
 
 -   [JENKINS-43194](https://issues.jenkins-ci.org/browse/JENKINS-43194) - Make SCMBinder try to abort builds in which Jenkinsfile has       been modified by an untrusted contributor ([PR #69](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/69))
 -   Migrate Chinese localization to another plugin ([PR #80](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/80))
@@ -52,7 +54,7 @@
 -   [JENKINS-40558](https://issues.jenkins-ci.org/browse/JENKINS-40558) Replace
     in-line help references of "pipeline script" with "pipeline" to
     clarify that [Pipeline Model Definition
-    Plugin](https://wiki.jenkins.io/display/JENKINS/Pipeline+Model+Definition+Plugin) works
+    Plugin](https://plugins.jenkins.io/pipeline-model-definition) works
     with multibranch
 
 ### 2.13 (Mar 03, 2017)
