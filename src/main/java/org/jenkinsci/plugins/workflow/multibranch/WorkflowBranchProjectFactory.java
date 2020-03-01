@@ -69,37 +69,7 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
     }
 
     @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
-        return new SCMSourceCriteria() {
-            @Override public boolean isHead(SCMSourceCriteria.Probe probe, TaskListener listener) throws IOException {
-                SCMProbeStat stat = probe.stat(scriptPath);
-                switch (stat.getType()) {
-                    case NONEXISTENT:
-                        if (stat.getAlternativePath() != null) {
-                            listener.getLogger().format("      ‘%s’ not found (but found ‘%s’, search is case sensitive)%n", scriptPath, stat.getAlternativePath());
-                        } else {
-                            listener.getLogger().format("      ‘%s’ not found%n", scriptPath);
-                        }
-                        return false;
-                    case DIRECTORY:
-                        listener.getLogger().format("      ‘%s’ found but is a directory not a file%n", scriptPath);
-                        return false;
-                    default:
-                        listener.getLogger().format("      ‘%s’ found%n", scriptPath);
-                        return true;
-
-                }
-            }
-
-            @Override
-            public int hashCode() {
-                return getClass().hashCode();
-            }
-
-            @Override
-            public boolean equals(Object obj) {
-                return getClass().isInstance(obj);
-            }
-        };
+        return new FileExistsSCMSourceCriteria(scriptPath);
     }
 
     @Extension public static class DescriptorImpl extends AbstractWorkflowBranchProjectFactoryDescriptor {

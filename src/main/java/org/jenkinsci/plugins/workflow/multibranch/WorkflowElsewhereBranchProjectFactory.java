@@ -27,9 +27,7 @@ package org.jenkinsci.plugins.workflow.multibranch;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
-import hudson.model.TaskListener;
 import jenkins.model.Jenkins;
-import jenkins.scm.api.SCMProbeStat;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
 import org.apache.commons.lang.StringUtils;
@@ -37,7 +35,6 @@ import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
-import java.io.IOException;
 import java.util.Collection;
 
 /**
@@ -86,37 +83,7 @@ public class WorkflowElsewhereBranchProjectFactory extends AbstractWorkflowBranc
     }
 
     @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
-        return new SCMSourceCriteria() {
-            @Override public boolean isHead(Probe probe, TaskListener listener) throws IOException {
-                SCMProbeStat stat = probe.stat(markerPath);
-                switch (stat.getType()) {
-                    case NONEXISTENT:
-                        if (stat.getAlternativePath() != null) {
-                            listener.getLogger().format("      ‘%s’ not found (but found ‘%s’, search is case sensitive)%n", markerPath, stat.getAlternativePath());
-                        } else {
-                            listener.getLogger().format("      ‘%s’ not found%n", markerPath);
-                        }
-                        return false;
-                    case DIRECTORY:
-                        listener.getLogger().format("      ‘%s’ found but is a directory not a file%n", markerPath);
-                        return false;
-                    default:
-                        listener.getLogger().format("      ‘%s’ found%n", markerPath);
-                        return true;
-
-                }
-            }
-
-            @Override
-            public int hashCode() {
-                return getClass().hashCode();
-            }
-
-            @Override
-            public boolean equals(Object obj) {
-                return getClass().isInstance(obj);
-            }
-        };
+        return new FileExistsSCMSourceCriteria(markerPath);
     }
 
     @Extension public static class DescriptorImpl extends AbstractWorkflowBranchProjectFactoryDescriptor {
