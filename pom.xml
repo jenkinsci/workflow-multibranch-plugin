@@ -68,6 +68,7 @@ THE SOFTWARE.
         <java.level>8</java.level>
         <jenkins.version>2.176.4</jenkins.version>
         <no-test-jar>false</no-test-jar>
+        <no-test-jar>false</no-test-jar>
         <workflow-job-plugin.version>2.39</workflow-job-plugin.version> <!-- TODO: Remove after https://github.com/jenkinsci/bom/pull/264 is released. -->
         <subversion-plugin.version>2.13.0</subversion-plugin.version>
     </properties>
@@ -107,6 +108,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>scm-api</artifactId>
+            <version>2.6.4-20200525.215035-2</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -131,6 +133,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>scm-api</artifactId>
+            <version>2.6.4-20200525.215035-2</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
