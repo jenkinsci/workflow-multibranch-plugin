@@ -48,8 +48,7 @@ public class ResolveScmStepTest {
 
     @Test
     public void given_existingHeadName_when_invoked_then_existingHeadNameReturned() throws Exception {
-        MockSCMController c = MockSCMController.create();
-        try {
+        try (MockSCMController c = MockSCMController.create()) {
             c.createRepository("repo");
             c.createBranch("repo", "foo");
             c.addFile("repo", "foo", "Add file", "new-file.txt", "content".getBytes());
@@ -63,15 +62,12 @@ public class ResolveScmStepTest {
                     + "  if (!fileExists('new-file.txt')) { error 'wrong branch checked out' }\n"
                     + "}", true));
             j.buildAndAssertSuccess(job);
-        } finally {
-            c.close();
         }
     }
 
     @Test
     public void given_nonExistingHeadName_when_invokedIgnoringErrors_then_nullReturned() throws Exception {
-        MockSCMController c = MockSCMController.create();
-        try {
+        try (MockSCMController c = MockSCMController.create()) {
             c.createRepository("repo");
             c.createBranch("repo", "foo");
             WorkflowJob job = j.jenkins.createProject(WorkflowJob.class, "workflow");
@@ -83,15 +79,12 @@ public class ResolveScmStepTest {
                     + "  if (tests != null) { error \"resolved as ${tests}\"}\n"
                     + "}", true));
             j.buildAndAssertSuccess(job);
-        } finally {
-            c.close();
         }
     }
 
     @Test
     public void given_nonExistingHeadName_when_invoked_then_abortThrown() throws Exception {
-        MockSCMController c = MockSCMController.create();
-        try {
+        try (MockSCMController c = MockSCMController.create()) {
             c.createRepository("repo");
             c.createBranch("repo", "foo");
             WorkflowJob job = j.jenkins.createProject(WorkflowJob.class, "workflow");
@@ -107,15 +100,12 @@ public class ResolveScmStepTest {
                     + "  if (!ok) { error 'abort not thrown' }\n"
                     + "}", true));
             j.buildAndAssertSuccess(job);
-        } finally {
-            c.close();
         }
     }
 
     @Test
     public void given_nonExistingHeadName_when_invokedWithDefault_then_defaultReturned() throws Exception {
-        MockSCMController c = MockSCMController.create();
-        try {
+        try (MockSCMController c = MockSCMController.create()) {
             c.createRepository("repo");
             c.createBranch("repo", "manchu");
             c.addFile("repo", "manchu", "Add file", "new-file.txt", "content".getBytes());
@@ -129,8 +119,6 @@ public class ResolveScmStepTest {
                     + "  if (!fileExists('new-file.txt')) { error 'wrong branch checked out' }\n"
                     + "}", true));
             j.buildAndAssertSuccess(job);
-        } finally {
-            c.close();
         }
     }
 }

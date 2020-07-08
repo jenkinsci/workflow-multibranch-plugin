@@ -24,7 +24,6 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Extension;
@@ -56,7 +55,6 @@ import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
 import org.jenkinsci.plugins.workflow.graphanalysis.NodeStepTypePredicate;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousStepExecution;
@@ -184,7 +182,7 @@ public class JobPropertyStep extends AbstractStepImpl {
             // A modified version of RequestImpl.TypePair.convertJSON.
             // Works around the fact that Stapler does not call back into Descriptor.newInstance for nested objects (JENKINS-31458);
             // and propertiesMap virtual field name; and null values for unselected properties.
-            List<JobProperty> properties = new ArrayList<JobProperty>();
+            List<JobProperty> properties = new ArrayList<>();
             ClassLoader cl = req.getStapler().getWebApp().getClassLoader();
             @SuppressWarnings("unchecked") Set<Map.Entry<String,Object>> entrySet = formData.getJSONObject("propertiesMap").entrySet();
             for (Map.Entry<String,Object> e : entrySet) {
@@ -209,7 +207,7 @@ public class JobPropertyStep extends AbstractStepImpl {
 
         @Restricted(DoNotUse.class) // f:repeatableHeteroProperty
         public Collection<? extends Descriptor<?>> getPropertyDescriptors() {
-            List<Descriptor<?>> result = new ArrayList<Descriptor<?>>();
+            List<Descriptor<?>> result = new ArrayList<>();
             for (JobPropertyDescriptor p : ExtensionList.lookup(JobPropertyDescriptor.class)) {
                 if (p.isApplicable(WorkflowJob.class)) {
                     result.add(p);

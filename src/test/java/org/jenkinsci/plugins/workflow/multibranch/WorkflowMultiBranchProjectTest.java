@@ -25,7 +25,6 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
-import hudson.ExtensionList;
 import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Item;
 import hudson.model.Queue;
@@ -36,7 +35,6 @@ import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -143,11 +141,11 @@ public class WorkflowMultiBranchProjectTest {
         }
         // RateLimitBranchProperty & BuildRetentionBranchProperty hidden by JobPropertyStep.HideSuperfluousBranchProperties.
         // UntrustedBranchProperty hidden because it applies only to Project.
-        assert propertyTypes.contains(NoTriggerBranchProperty.class);
-        assert propertyTypes.contains(DurabilityHintBranchProperty.class);
-        assert !propertyTypes.contains(BuildRetentionBranchProperty.class);
-        assert !propertyTypes.contains(RateLimitBranchProperty.class);
-        assert !propertyTypes.contains(UntrustedBranchProperty.class);
+        assertTrue(propertyTypes.contains(NoTriggerBranchProperty.class));
+        assertTrue(propertyTypes.contains(DurabilityHintBranchProperty.class));
+        assertFalse(propertyTypes.contains(BuildRetentionBranchProperty.class));
+        assertFalse(propertyTypes.contains(RateLimitBranchProperty.class));
+        assertFalse(propertyTypes.contains(UntrustedBranchProperty.class));
 
         Set<Class<? extends BranchPropertyStrategy>> strategyTypes = new HashSet<>();
         for (BranchPropertyStrategyDescriptor d : r.jenkins.getDescriptorByType(BranchSource.DescriptorImpl.class).propertyStrategyDescriptors(p, r.jenkins.getDescriptorByType(SingleSCMSource.DescriptorImpl.class))) {
@@ -159,7 +157,7 @@ public class WorkflowMultiBranchProjectTest {
     @SuppressWarnings("rawtypes")
     @Test public void applicableSCMs() throws Exception {
         final WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        List<Class> scmTypes = new ArrayList<Class>();
+        List<Class> scmTypes = new ArrayList<>();
         List<SCMDescriptor<?>> scmDescriptors = SingleSCMSource.DescriptorImpl.getSCMDescriptors(mp);
         for (SCMDescriptor<?> scmDescriptor : scmDescriptors) {
             scmTypes.add(scmDescriptor.clazz);
@@ -201,7 +199,7 @@ public class WorkflowMultiBranchProjectTest {
 
         r.waitForCompletion(p.getLastBuild());
         Thread.sleep(1000);
-        assert !p.isBuilding();
+        assertFalse(p.isBuilding());
         WorkflowRun b1 = p.getLastBuild();
         assertEquals(1, b1.getNumber());
         Queue.Item it = mp.scheduleBuild2(0);

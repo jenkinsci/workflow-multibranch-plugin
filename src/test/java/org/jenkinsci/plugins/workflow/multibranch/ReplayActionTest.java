@@ -39,7 +39,6 @@ import jenkins.model.Jenkins;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
-import jenkins.security.NotReallyRoleSensitiveCallable;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.replay.ReplayAction;
@@ -77,7 +76,7 @@ public class ReplayActionTest {
         sampleRepo.git("add", "file");
         sampleRepo.git("commit", "--message=next");
         // Replaying with a modified main script; checkout scm will get branch head.
-        b = (WorkflowRun) b.getAction(ReplayAction.class).run("node {checkout scm; echo \"this time loaded ${readFile 'file'}\"}", Collections.<String,String>emptyMap()).get();
+        b = (WorkflowRun) b.getAction(ReplayAction.class).run("node {checkout scm; echo \"this time loaded ${readFile 'file'}\"}", Collections.emptyMap()).get();
         assertEquals(2, b.number);
         r.assertLogContains("this time loaded subsequent content", b);
     }
@@ -100,7 +99,7 @@ public class ReplayActionTest {
         sampleRepo.git("add", "file");
         sampleRepo.git("commit", "--message=next");
         // Replaying main script with some upcasing.
-        WorkflowRun b2 = (WorkflowRun) b1.getAction(ReplayAction.class).run("node {checkout scm; echo readFile('file').toUpperCase()}", Collections.<String,String>emptyMap()).get();
+        WorkflowRun b2 = (WorkflowRun) b1.getAction(ReplayAction.class).run("node {checkout scm; echo readFile('file').toUpperCase()}", Collections.emptyMap()).get();
         assertEquals(2, b2.number);
         // For a multibranch project, we expect checkout scm to retrieve the same repository revision as the (original) Jenkinsfile.
         r.assertLogContains("INITIAL CONTENT", b2);

@@ -24,7 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.Nonnull;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.Proc;
@@ -60,7 +60,7 @@ public class GitDirectorySCMNavigator extends SCMNavigator {
         return directory;
     }
 
-    @NonNull
+    @Nonnull
     @Override
     protected String id() {
         return directory;

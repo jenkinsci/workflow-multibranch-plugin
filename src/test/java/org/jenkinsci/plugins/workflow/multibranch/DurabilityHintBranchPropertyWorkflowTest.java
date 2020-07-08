@@ -39,15 +39,12 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.job.properties.DurabilityHintJobProperty;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 /**
  * Integration test for {@link NoTriggerBranchProperty} and {@link NoTriggerOrganizationFolderProperty}.
@@ -65,7 +62,7 @@ public class DurabilityHintBranchPropertyWorkflowTest {
         mp.getSourcesList().add(bs);
         bs.setStrategy(new DefaultBranchPropertyStrategy(new BranchProperty[]{new DurabilityHintBranchProperty(FlowDurabilityHint.SURVIVABLE_NONATOMIC)}));
         r.configRoundtrip(mp);
-        DefaultBranchPropertyStrategy strat = (DefaultBranchPropertyStrategy)(mp.getBranchPropertyStrategy(mp.getSCMSources().get(0)));
+        DefaultBranchPropertyStrategy strat = (DefaultBranchPropertyStrategy) mp.getBranchPropertyStrategy(mp.getSCMSources().get(0));
         DurabilityHintBranchProperty prop = null;
         for (BranchProperty bp : strat.getProps()) {
             if (bp instanceof  DurabilityHintBranchProperty) {

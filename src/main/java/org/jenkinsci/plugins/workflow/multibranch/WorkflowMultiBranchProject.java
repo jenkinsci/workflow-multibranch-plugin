@@ -40,7 +40,6 @@ import java.util.logging.Logger;
 
 import jenkins.branch.Branch;
 import jenkins.branch.BranchProjectFactory;
-import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchPropertyStrategy;
 import jenkins.branch.BranchSource;
 import jenkins.branch.MultiBranchProject;
@@ -131,7 +130,7 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
 
         final BranchPropertyStrategy strategy = source.getStrategy();
         return new BranchJobProperty(new Branch(sourceId, head, source.getSource().build(head),
-                strategy != null ? strategy.getPropertiesFor(head) : Collections.<BranchProperty>emptyList()));
+                strategy != null ? strategy.getPropertiesFor(head) : Collections.emptyList()));
     }
 
     @Extension public static class DescriptorImpl extends MultiBranchProjectDescriptor implements IconSpec {
@@ -140,11 +139,11 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
             return Messages.WorkflowMultiBranchProject_DisplayName();
         }
 
-        public String getDescription() {
+        @Override public String getDescription() {
             return Messages.WorkflowMultiBranchProject_Description();
         }
 
-        public String getIconFilePathPattern() {
+        @Override public String getIconFilePathPattern() {
             return "plugin/workflow-multibranch/images/:size/pipelinemultibranchproject.png";
         }
 

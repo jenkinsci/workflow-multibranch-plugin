@@ -14,6 +14,7 @@ import org.jenkinsci.plugins.workflow.flow.DurabilityHintProvider;
 import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
 import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.properties.DurabilityHintJobProperty;
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -68,21 +69,22 @@ public class DurabilityHintBranchProperty extends BranchProperty {
             return GlobalDefaultFlowDurabilityLevel.getDefaultDurabilityHint();
         }
 
+        /** Lower ordinal than {@link DurabilityHintJobProperty} so those can override. */
         @Override
-        /** Lower ordinal than {@link org.jenkinsci.plugins.workflow.job.properties.DurabilityHintJobProperty} so those can override. */
         public int ordinal() {
             return 200;
         }
 
+        /**
+         * Dynamically fetch the property with each build, because the {@link BranchPropertyStrategy} does not re-evaluate.
+         * @see <a href="https://issues.jenkins-ci.org/browse/JENKINS-48826">JENKINS-48826</a>
+         */
         @CheckForNull
         @Override
-        /**
-         * Dynamically fetch the property with each build, because the {@link BranchPropertyStrategy} does not re-evaluate,
-         * resulting in {@see <a href="https://issues.jenkins-ci.org/browse/JENKINS-48826">JENKINS-48826</a>}. */
         public FlowDurabilityHint suggestFor(@Nonnull Item x) {
             // BranchJobProperty *should* be present if it's a child of a MultiBranchProject but we double-check for safety
             if (x instanceof WorkflowJob && x.getParent() instanceof MultiBranchProject && ((WorkflowJob)x).getProperty(BranchJobProperty.class) != null) {
-                MultiBranchProject mp  = (MultiBranchProject)(x.getParent());
+                MultiBranchProject mp = (MultiBranchProject) x.getParent();
                 WorkflowJob job = (WorkflowJob)x;
                 BranchJobProperty bjp = job.getProperty(BranchJobProperty.class);
 

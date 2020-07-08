@@ -37,7 +37,6 @@ import hudson.tasks.LogRotator;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -108,7 +107,7 @@ public class JobPropertyStepTest {
 
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripParameters() throws Exception {
-        List<JobProperty> properties = Collections.<JobProperty>singletonList(new ParametersDefinitionProperty(new BooleanParameterDefinition("flag", true, null)));
+        List<JobProperty> properties = Collections.singletonList(new ParametersDefinitionProperty(new BooleanParameterDefinition("flag", true, null)));
         // TODO *ParameterDefinition.description ought to be defaulted to null:
         new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([parameters([booleanParam(defaultValue: true, name: 'flag')])])");
 
@@ -123,7 +122,7 @@ public class JobPropertyStepTest {
         assertEquals("flag", bpd.getName());
         assertTrue(bpd.isDefaultValue());
 
-        List<JobProperty> emptyInput = tester.configRoundTrip(new JobPropertyStep(Collections.<JobProperty>emptyList())).getProperties();
+        List<JobProperty> emptyInput = tester.configRoundTrip(new JobPropertyStep(Collections.emptyList())).getProperties();
 
         assertEquals(Collections.emptyList(), removeTriggerProperty(emptyInput));
     }
@@ -149,7 +148,7 @@ public class JobPropertyStepTest {
 
     @SuppressWarnings("rawtypes")
     @Test public void configRoundTripBuildDiscarder() throws Exception {
-        List<JobProperty> properties = Collections.<JobProperty>singletonList(new BuildDiscarderProperty(new LogRotator(1, 2, -1, 3)));
+        List<JobProperty> properties = Collections.singletonList(new BuildDiscarderProperty(new LogRotator(1, 2, -1, 3)));
 
         // TODO structural form of LogRotator is awful; confusion between integer and string types, and failure to handle default values:
         new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '3', daysToKeepStr: '1', numToKeepStr: '2'))])");
@@ -237,7 +236,7 @@ public class JobPropertyStepTest {
     @Test
     public void testChoiceParameterSnippetizer() throws Exception {
         //new SnippetizerTester(r).assertGenerateSnippet();
-        new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(Arrays.asList(new ParametersDefinitionProperty(new ChoiceParameterDefinition("paramName", new String[] { "foo", "bar", "baz" }, "")))),
+        new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(Collections.singletonList(new ParametersDefinitionProperty(new ChoiceParameterDefinition("paramName", new String[]{"foo", "bar", "baz"}, "")))),
             "properties([parameters([choice(choices: ['foo', 'bar', 'baz'], description: '', name: 'paramName')])])");
     }
 
@@ -527,7 +526,7 @@ public class JobPropertyStepTest {
     @Issue("JENKINS-37477")
     @Test
     public void generateHelpTrigger() throws Exception {
-        DescribableModel<?> model = new DescribableModel(PipelineTriggersJobProperty.class);
+        DescribableModel<?> model = new DescribableModel<>(PipelineTriggersJobProperty.class);
 
         assertNotNull(model);
 
@@ -567,7 +566,7 @@ public class JobPropertyStepTest {
     @Issue("JENKINS-37477")
     @Test
     public void configRoundTripTrigger() throws Exception {
-        List<JobProperty> properties = Collections.<JobProperty>singletonList(new PipelineTriggersJobProperty(Collections.<Trigger>singletonList(new TimerTrigger("@daily"))));
+        List<JobProperty> properties = Collections.singletonList(new PipelineTriggersJobProperty(Collections.singletonList(new TimerTrigger("@daily"))));
         String snippetJson = "{'propertiesMap': {\n" +
                 "    'stapler-class-bag': 'true',\n" +
                 "    'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'triggers': {\n" +
@@ -584,7 +583,7 @@ public class JobPropertyStepTest {
     @Issue("JENKINS-37721")
     @Test
     public void configRoundTripSCMTrigger() throws Exception {
-        List<JobProperty> properties = Collections.<JobProperty>singletonList(new PipelineTriggersJobProperty(Collections.<Trigger>singletonList(new SCMTrigger("@daily"))));
+        List<JobProperty> properties = Collections.singletonList(new PipelineTriggersJobProperty(Collections.singletonList(new SCMTrigger("@daily"))));
         String snippetJson = "{'propertiesMap': {\n" +
                 "    'stapler-class-bag': 'true',\n" +
                 "    'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'triggers': {\n" +
@@ -601,7 +600,7 @@ public class JobPropertyStepTest {
     @Issue("JENKINS-34464")
     @Test
     public void configRoundTripReverseBuildTrigger() throws Exception {
-        List<JobProperty> properties = Collections.<JobProperty>singletonList(new PipelineTriggersJobProperty(Collections.<Trigger>singletonList(new ReverseBuildTrigger("some-job", Result.UNSTABLE))));
+        List<JobProperty> properties = Collections.singletonList(new PipelineTriggersJobProperty(Collections.singletonList(new ReverseBuildTrigger("some-job", Result.UNSTABLE))));
         String snippetJson = "{'propertiesMap': {\n" +
                 "    'stapler-class-bag': 'true',\n" +
                 "    'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'triggers': {\n" +
@@ -702,8 +701,8 @@ public class JobPropertyStepTest {
         new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([overrideIndexTriggers(true)])", null);
     }
 
-    private <T extends Trigger> T getTriggerFromList(Class<T> clazz, List<Trigger<?>> triggers) {
-        for (Trigger t : triggers) {
+    private <T extends Trigger<?>> T getTriggerFromList(Class<T> clazz, List<Trigger<?>> triggers) {
+        for (Trigger<?> t : triggers) {
             if (clazz.isInstance(t)) {
                 return clazz.cast(t);
             }

@@ -25,25 +25,21 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import hudson.AbortException;
 import hudson.Extension;
 import hudson.model.Descriptor;
-import hudson.model.Executor;
 import hudson.model.TaskListener;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import java.io.PrintStream;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import jenkins.model.CauseOfInterruption;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
@@ -61,8 +57,6 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
-import static hudson.model.Result.ABORTED;
-
 /**
  * Resolves an {@link SCM} from a {@link SCMSource} using a priority list of target branch names.
  *
@@ -73,13 +67,13 @@ public class ResolveScmStep extends Step {
     /**
      * The {@link SCMSource}
      */
-    @NonNull
+    @Nonnull
     private final SCMSource source;
 
     /**
      * The {@link SCMSource}
      */
-    @NonNull
+    @Nonnull
     private final List<String> targets;
 
     /**
@@ -95,9 +89,9 @@ public class ResolveScmStep extends Step {
      * @param targets The {@link SCMSource}
      */
     @DataBoundConstructor
-    public ResolveScmStep(@NonNull SCMSource source, @NonNull List<String> targets) {
+    public ResolveScmStep(@Nonnull SCMSource source, @Nonnull List<String> targets) {
         this.source = source;
-        this.targets = new ArrayList<String>(targets);
+        this.targets = new ArrayList<>(targets);
     }
 
     /**
@@ -105,7 +99,7 @@ public class ResolveScmStep extends Step {
      *
      * @return the {@link SCMSource} to resolve from.
      */
-    @NonNull
+    @Nonnull
     public SCMSource getSource() {
         return source;
     }
@@ -115,7 +109,7 @@ public class ResolveScmStep extends Step {
      *
      * @return the {@link SCMHead} names to try and resolve.
      */
-    @NonNull
+    @Nonnull
     public List<String> getTargets() {
         return Collections.unmodifiableList(targets);
     }
@@ -170,7 +164,7 @@ public class ResolveScmStep extends Step {
          */
         @Override
         public Set<Class<?>> getRequiredContext() {
-            return Collections.<Class<?>>singleton(TaskListener.class);
+            return Collections.singleton(TaskListener.class);
         }
 
         /**
@@ -190,7 +184,7 @@ public class ResolveScmStep extends Step {
         }
 
         @Override
-        public Step newInstance(@CheckForNull StaplerRequest req, @NonNull JSONObject formData)
+        public Step newInstance(@CheckForNull StaplerRequest req, @Nonnull JSONObject formData)
                 throws FormException {
             assert req != null : "see contract for method, it's never null but has to claim it could be";
             // roll our own because we want the groovy api to be easier than the jelly form binding would have us
@@ -238,13 +232,13 @@ public class ResolveScmStep extends Step {
         /**
          * The {@link SCMSource}
          */
-        @NonNull
+        @Nonnull
         private transient final SCMSource source;
 
         /**
          * The {@link SCMSource}
          */
-        @NonNull
+        @Nonnull
         private final List<String> targets;
 
         /**
@@ -269,6 +263,7 @@ public class ResolveScmStep extends Step {
         /**
          * {@inheritDoc}
          */
+        @Override
         protected SCM run() throws Exception {
             StepContext context = getContext();
             TaskListener listener = context.get(TaskListener.class);
@@ -297,14 +292,14 @@ public class ResolveScmStep extends Step {
         /**
          * The heads we are looking for
          */
-        private final Map<String, SCMRevision> revision = new LinkedHashMap<String, SCMRevision>();
+        private final Map<String, SCMRevision> revision = new LinkedHashMap<>();
 
         /**
          * Constructor.
          *
          * @param heads the {@link SCMHead#getName()} to get the {@link SCMRevision} of.
          */
-        public ObserverImpl(@NonNull List<String> heads) {
+        public ObserverImpl(@Nonnull List<String> heads) {
             heads.getClass(); // fail fast if null
             for (String head : heads) {
                 if (StringUtils.isNotBlank(head)) {
@@ -332,7 +327,7 @@ public class ResolveScmStep extends Step {
          * {@inheritDoc}
          */
         @Override
-        public void observe(@NonNull SCMHead head, @NonNull SCMRevision revision) {
+        public void observe(@Nonnull SCMHead head, @Nonnull SCMRevision revision) {
             if (this.revision.containsKey(head.getName())) {
                 this.revision.put(head.getName(), revision);
             }
