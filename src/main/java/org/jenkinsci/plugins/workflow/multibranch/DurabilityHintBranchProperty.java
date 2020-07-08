@@ -15,6 +15,7 @@ import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
 import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.properties.DurabilityHintJobProperty;
+import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -52,6 +53,7 @@ public class DurabilityHintBranchProperty extends BranchProperty {
         return null;
     }
 
+    @Symbol("durabilityHint")
     @Extension
     public static class DescriptorImpl extends BranchPropertyDescriptor implements DurabilityHintProvider {
         @Override

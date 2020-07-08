@@ -36,7 +36,7 @@ THE SOFTWARE.
     <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
     <name>Pipeline: Multibranch</name>
-    <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
+    <url>https://github.com/jenkinsci/workflow-multibranch-plugin</url>
     <description>Enhances Pipeline plugin to handle branches better by automatically grouping builds from different branches</description>
     <licenses>
         <license>
