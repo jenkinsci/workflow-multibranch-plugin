@@ -254,8 +254,10 @@ public class JobPropertyStepTest {
         r.waitUntilNoActivity(); // #1 built automatically
         assertEquals(1, p.getBuilds().size());
         r.assertBuildStatusSuccess(p.scheduleBuild2(0)); // #2
+        Thread.sleep(500L); // WorkflowRun performs log rotation asynchronously.
         assertEquals(1, p.getBuilds().size());
         r.assertBuildStatusSuccess(p.scheduleBuild2(0)); // #3
+        Thread.sleep(500L); // WorkflowRun performs log rotation asynchronously.
         assertEquals(1, p.getBuilds().size());
         WorkflowRun b3 = p.getLastBuild();
         assertEquals(3, b3.getNumber());
