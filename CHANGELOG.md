@@ -1,8 +1,21 @@
 ## Changelog
 
+### 2.22
+
+Release date: 2020-08-03
+
+- Improvement: Add `durabilityHint` symbol to `DurabilityHintBranchProperty` for use in data binding ([PR 97](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/97))
+- Improvement: Add French localization ([PR 95](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/95))
+- Internal: Update minimum required Jenkins version to 2.176.4, update parent POM, and update dependencies ([PR 100](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/100), [PR 92](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/92))
+- Internal: Migrate documentation from wiki to plugins.jenkins.io ([PR 93](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/93))
+- Internal: Miscellaneous code cleanup (use try-with-resources, remove redundant casts, use NIO, use type inference, etc.) ([PR 89](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/89))
+- Internal: Update `workflow-scm-step` dependency past 2.6 to fix PCT issues ([PR 86](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/86))
+- Internal: Replace usage of deprecated APIs with nondeprecated equivalents ([PR 85](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/85))
+- Internal: Use the Groovy sandbox consistently in tests ([PR 84](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/84))
+
 ### 2.21
 
- Release date: 2019-03-07
+Release date: 2019-03-07
 
 -   [JENKINS-43194](https://issues.jenkins-ci.org/browse/JENKINS-43194) - Make SCMBinder try to abort builds in which Jenkinsfile has       been modified by an untrusted contributor ([PR #69](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/69))
 -   Migrate Chinese localization to another plugin ([PR #80](https://github.com/jenkinsci/workflow-multibranch-plugin/pull/80))
