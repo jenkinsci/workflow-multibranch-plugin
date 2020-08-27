@@ -194,7 +194,7 @@ public class WorkflowMultiBranchProjectTest {
         mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
         mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
         WorkflowJob p = scheduleAndFindBranchProject(mp, "master");
-        mp.getIndexing().writeWholeLogTo(System.out);
+        r.waitUntilNoActivity();
         assertEquals(1, mp.getItems().size());
 
         r.waitForCompletion(p.getLastBuild());
