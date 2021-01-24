@@ -1,0 +1,19 @@
+<?jelly escape-by-default='true'?>
+<st:compress xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
+    <li class="content-block">
+        <a href="https://www.jenkins.io/doc/book/pipeline/" class="content-block__link content-block__help-link">
+            <span>Creating a Jenkins Pipeline</span>
+            <span class="trailing-icon">
+                <l:svgIcon class="icon-sm" href="${imagesURL}/material-icons/svg-sprite-content-symbol.svg#ic_link_24px" />
+            </span>
+        </a>
+    </li>
+    <li class="content-block">
+        <a href="https://www.jenkins.io/doc/book/pipeline/multibranch/" class="content-block__link content-block__help-link">
+            <span>Creating Multibranch Projects</span>
+            <span class="trailing-icon">
+                <l:svgIcon class="icon-sm" href="${imagesURL}/material-icons/svg-sprite-content-symbol.svg#ic_link_24px" />
+            </span>
+        </a>
+    </li>
+</st:compress>
