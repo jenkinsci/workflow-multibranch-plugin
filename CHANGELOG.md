@@ -1,5 +1,7 @@
 ## Changelog
 
+For version 2.23 and beyond, see the [GitHub releases](https://github.com/jenkinsci/workflow-multibranch-plugin/releases) list.
+
 ### 2.22
 
 Release date: 2020-08-03
