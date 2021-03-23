@@ -68,7 +68,7 @@ THE SOFTWARE.
         <java.level>8</java.level>
         <jenkins.version>2.176.4</jenkins.version>
         <no-test-jar>false</no-test-jar>
-        <workflow-job-plugin.version>2.39</workflow-job-plugin.version> <!-- TODO: Remove after https://github.com/jenkinsci/bom/pull/264 is released. -->
+        <workflow-job-plugin.version>2.40</workflow-job-plugin.version> <!-- TODO: Remove after https://github.com/jenkinsci/bom/pull/264 is released. -->
         <subversion-plugin.version>2.13.0</subversion-plugin.version>
     </properties>
     <dependencyManagement>
