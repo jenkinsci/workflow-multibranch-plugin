@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Functions;
 import hudson.MarkupText;
@@ -74,6 +75,7 @@ class SCMBinder extends FlowDefinition {
         this.scriptPath = scriptPath;
     }
 
+    @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification="FB thinks fs is known to be nonnull, but this seems like a FB bug")
     @Override public FlowExecution create(FlowExecutionOwner handle, TaskListener listener, List<? extends Action> actions) throws Exception {
         Queue.Executable exec = handle.getExecutable();
         if (!(exec instanceof WorkflowRun)) {
