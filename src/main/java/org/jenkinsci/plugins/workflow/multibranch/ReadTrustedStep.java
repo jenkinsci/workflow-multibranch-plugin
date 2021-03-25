@@ -98,7 +98,7 @@ public class ReadTrustedStep extends AbstractStepImpl {
                     if (defn instanceof CpsScmFlowDefinition) {
                         // JENKINS-31386: retrofit to work with standalone projects, without doing any trust checks.
                         standaloneSCM = ((CpsScmFlowDefinition) defn).getScm();
-                        try (SCMFileSystem fs = SCMBinder.USE_HEAVYWEIGHT_CHECKOUT ? null : SCMFileSystem.of(job, standaloneSCM)) {
+                        try (SCMFileSystem fs = SCMBinder.USE_HEAVYWEIGHT_CHECKOUT ? null : SCMFileSystem.of(build, standaloneSCM)) {
                             if (fs != null) { // JENKINS-33273
                                 try {
                                     String text = fs.child(step.path).contentAsString();
