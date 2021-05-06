@@ -23,6 +23,6 @@
  -->
 <?jelly escape-by-default='true'?>
 <st:compress xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form">
-  Pipeline Branch projects support building branches within a repository containing a pipeline script. Per default it uses
+  Pipeline Branch projects support building branches within a repository containing a pipeline script. By default it uses
   a file named <code>Jenkinsfile</code> in the root directory.
 </st:compress>
