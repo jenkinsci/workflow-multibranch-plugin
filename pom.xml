@@ -28,7 +28,7 @@ THE SOFTWARE.
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.15</version>
+        <version>4.17</version>
         <relativePath />
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -36,7 +36,7 @@ THE SOFTWARE.
     <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
     <name>Pipeline: Multibranch</name>
-    <url>https://github.com/jenkinsci/workflow-multibranch-plugin</url>
+    <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
     <description>Enhances Pipeline plugin to handle branches better by automatically grouping builds from different branches</description>
     <licenses>
         <license>
@@ -45,11 +45,11 @@ THE SOFTWARE.
         </license>
     </licenses>
     <scm>
-        <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
-        <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
-        <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
+        <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
+        <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
+        <url>https://github.com/${gitHubRepo}</url>
         <tag>${scmTag}</tag>
-  </scm>
+    </scm>
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>
@@ -63,10 +63,10 @@ THE SOFTWARE.
         </pluginRepository>
     </pluginRepositories>
     <properties>
-        <revision>2.23</revision>
+        <revision>2.24</revision>
         <changelist>-SNAPSHOT</changelist>
         <java.level>8</java.level>
-        <jenkins.version>2.264</jenkins.version>
+        <jenkins.version>2.277.1</jenkins.version>
         <no-test-jar>false</no-test-jar>
         <subversion-plugin.version>2.14.0</subversion-plugin.version>
     </properties>
@@ -74,10 +74,15 @@ THE SOFTWARE.
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.263.x</artifactId>
-                <version>21</version>
+                <artifactId>bom-2.277.x</artifactId>
+                <version>807.v6d348e44c987</version>
                 <scope>import</scope>
                 <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>com.google.errorprone</groupId>
+                <artifactId>error_prone_annotations</artifactId>
+                <version>2.4.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -122,13 +127,6 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>script-security</artifactId>
-            <exclusions>
-                <!-- TODO remove after https://github.com/jenkinsci/script-security-plugin/pull/323 is released -->
-                <exclusion>
-                    <groupId>com.google.errorprone</groupId>
-                    <artifactId>error_prone_annotations</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
