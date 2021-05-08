@@ -236,8 +236,8 @@ public class JobPropertyStepTest {
     @Test
     public void testChoiceParameterSnippetizer() throws Exception {
         //new SnippetizerTester(r).assertGenerateSnippet();
-        new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(Collections.singletonList(new ParametersDefinitionProperty(new ChoiceParameterDefinition("paramName", new String[]{"foo", "bar", "baz"}, "")))),
-            "properties([parameters([choice(choices: ['foo', 'bar', 'baz'], description: '', name: 'paramName')])])");
+        new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(Collections.singletonList(new ParametersDefinitionProperty(new ChoiceParameterDefinition("paramName", new String[]{"foo", "bar", "baz"}, "test")))),
+                "properties([parameters([choice(choices: ['foo', 'bar', 'baz'], description: 'test', name: 'paramName')])])");
     }
 
     @SuppressWarnings("deprecation") // RunList.size
