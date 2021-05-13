@@ -66,7 +66,7 @@ THE SOFTWARE.
         <revision>2.25</revision>
         <changelist>-SNAPSHOT</changelist>
         <java.level>8</java.level>
-        <jenkins.version>2.277.1</jenkins.version>
+        <jenkins.version>2.277.4</jenkins.version>
         <no-test-jar>false</no-test-jar>
         <subversion-plugin.version>2.14.0</subversion-plugin.version>
     </properties>
@@ -110,7 +110,6 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>branch-api</artifactId>
-            <version>2.6.4</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
