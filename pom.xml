@@ -68,7 +68,7 @@ THE SOFTWARE.
         <java.level>8</java.level>
         <jenkins.version>2.277.4</jenkins.version>
         <no-test-jar>false</no-test-jar>
-        <subversion-plugin.version>2.14.0</subversion-plugin.version>
+        <subversion-plugin.version>2.14.3</subversion-plugin.version>
     </properties>
     <dependencyManagement>
         <dependencies>
