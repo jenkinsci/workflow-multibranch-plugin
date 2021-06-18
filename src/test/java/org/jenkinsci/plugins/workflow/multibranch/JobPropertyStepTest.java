@@ -155,7 +155,7 @@ public class JobPropertyStepTest {
 
         StepConfigTester tester = new StepConfigTester(r);
         properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
-        assertEquals(1, properties.size());
+        assertFalse(properties.isEmpty());
         BuildDiscarderProperty bdp = getPropertyFromList(BuildDiscarderProperty.class, properties);
         assertNotNull(bdp);
         BuildDiscarder strategy = bdp.getStrategy();
