@@ -25,6 +25,7 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Item;
 import hudson.model.Queue;
@@ -38,7 +39,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchPropertyDescriptor;
 import jenkins.branch.BranchPropertyStrategy;
@@ -111,12 +111,12 @@ public class WorkflowMultiBranchProjectTest {
     // TODO regular polling works on branch projects
     // TODO changelog shows per-branch changes
 
-    public static @Nonnull WorkflowJob scheduleAndFindBranchProject(@Nonnull WorkflowMultiBranchProject mp, @Nonnull String name) throws Exception {
+    public static @NonNull WorkflowJob scheduleAndFindBranchProject(@NonNull WorkflowMultiBranchProject mp, @NonNull String name) throws Exception {
         mp.scheduleBuild2(0).getFuture().get();
         return findBranchProject(mp, name);
     }
 
-    public static @Nonnull WorkflowJob findBranchProject(@Nonnull WorkflowMultiBranchProject mp, @Nonnull String name) throws Exception {
+    public static @NonNull WorkflowJob findBranchProject(@NonNull WorkflowMultiBranchProject mp, @NonNull String name) throws Exception {
         WorkflowJob p = mp.getItem(name);
         showIndexing(mp);
         if (p == null) {
@@ -125,7 +125,7 @@ public class WorkflowMultiBranchProjectTest {
         return p;
     }
 
-    static void showIndexing(@Nonnull WorkflowMultiBranchProject mp) throws Exception {
+    static void showIndexing(@NonNull WorkflowMultiBranchProject mp) throws Exception {
         FolderComputation<?> indexing = mp.getIndexing();
         System.out.println("---%<--- " + indexing.getUrl());
         indexing.writeWholeLogTo(System.out);
@@ -178,6 +178,7 @@ public class WorkflowMultiBranchProjectTest {
             public DescriptorImpl() {
                 super(null);
             }
+            @NonNull
             @Override public String getDisplayName() {
                 return "OldSCM";
             }

@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.TaskListener;
 import java.io.IOException;
@@ -70,7 +71,7 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
 
     @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
         return new SCMSourceCriteria() {
-            @Override public boolean isHead(SCMSourceCriteria.Probe probe, TaskListener listener) throws IOException {
+            @Override public boolean isHead(@NonNull SCMSourceCriteria.Probe probe, @NonNull TaskListener listener) throws IOException {
                 SCMProbeStat stat = probe.stat(scriptPath);
                 switch (stat.getType()) {
                     case NONEXISTENT:
@@ -104,6 +105,7 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
 
     @Extension public static class DescriptorImpl extends AbstractWorkflowBranchProjectFactoryDescriptor {
 
+        @NonNull
         @Override public String getDisplayName() {
             return "by " + SCRIPT;
         }

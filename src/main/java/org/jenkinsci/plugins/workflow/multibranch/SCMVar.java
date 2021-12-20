@@ -25,6 +25,7 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import com.thoughtworks.xstream.converters.Converter;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.Extension;
 import hudson.model.ItemGroup;
@@ -57,11 +58,13 @@ import org.jenkinsci.plugins.workflow.support.pickles.XStreamPickle;
  */
 @Extension public class SCMVar extends GlobalVariable {
 
+    @NonNull
     @Override public String getName() {
         return "scm";
     }
 
-    @Override public SCM getValue(CpsScript script) throws Exception {
+    @NonNull
+    @Override public SCM getValue(@NonNull CpsScript script) throws Exception {
         Run<?,?> build = script.$build();
         // TODO some code overlap with SCMBinder.create, but not obvious how to factor out common parts
         if (!(build instanceof WorkflowRun)) {
@@ -117,7 +120,8 @@ import org.jenkinsci.plugins.workflow.support.pickles.XStreamPickle;
      */
     @Extension public static class Pickler extends SingleTypedPickleFactory<SCM> {
 
-        @Override protected Pickle pickle(SCM scm) {
+        @NonNull
+        @Override protected Pickle pickle(@NonNull SCM scm) {
             return new XStreamPickle(scm);
         }
 
