@@ -155,7 +155,7 @@ public class JobPropertyStepTest {
 
         StepConfigTester tester = new StepConfigTester(r);
         properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
-        assertEquals(1, properties.size());
+        assertFalse(properties.isEmpty());
         BuildDiscarderProperty bdp = getPropertyFromList(BuildDiscarderProperty.class, properties);
         assertNotNull(bdp);
         BuildDiscarder strategy = bdp.getStrategy();
@@ -168,6 +168,7 @@ public class JobPropertyStepTest {
         assertEquals(3, lr.getArtifactNumToKeep());
     }
 
+    @Issue("JENKINS-35698")
     @Test public void useParameter() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile",
@@ -230,6 +231,13 @@ public class JobPropertyStepTest {
         WorkflowRun b9 = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new StringParameterValue("select", "bar", ""))));
         assertEquals(9, b9.getNumber());
         r.assertLogContains("value bar", b9);
+    }
+
+    @Issue({"JENKINS-27295", "https://www.jenkins.io/security/advisory/2016-05-11/#arbitrary-build-parameters-are-passed-to-build-scripts-as-environment-variables"})
+    @Test public void triggerWithParameter() throws Exception {
+        WorkflowJob p = r.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition("properties([parameters([string(name: 'myparam')])]); echo(/got $params.myparam though the env var is $env.myparam/)", true));
+        r.assertLogContains("got the value though the env var is null", r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new StringParameterValue("myparam", "the value")))));
     }
 
     @Issue("JENKINS-26143")
