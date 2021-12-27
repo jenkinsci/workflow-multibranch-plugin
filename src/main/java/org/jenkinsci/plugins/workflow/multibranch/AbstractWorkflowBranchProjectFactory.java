@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Item;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -55,11 +56,13 @@ public abstract class AbstractWorkflowBranchProjectFactory extends BranchProject
         return job;
     }
 
-    @Override public Branch getBranch(WorkflowJob project) {
+    @NonNull
+    @Override public Branch getBranch(@NonNull WorkflowJob project) {
         return project.getProperty(BranchJobProperty.class).getBranch();
     }
 
-    @Override public WorkflowJob setBranch(WorkflowJob project, Branch branch) {
+    @NonNull
+    @Override public WorkflowJob setBranch(@NonNull WorkflowJob project, @NonNull Branch branch) {
         project.setDefinition(createDefinition());
         BranchJobProperty property = project.getProperty(BranchJobProperty.class);
         try {

@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
@@ -236,6 +237,7 @@ public class ReadTrustedStep extends AbstractStepImpl {
             return "readTrusted";
         }
 
+        @NonNull
         @Override public String getDisplayName() {
             return "Read trusted file from SCM";
         }

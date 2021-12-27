@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import jenkins.branch.MultiBranchProjectFactory;
 import jenkins.branch.MultiBranchProjectFactoryDescriptor;
@@ -60,7 +61,7 @@ public class WorkflowMultiBranchProjectFactory extends AbstractWorkflowMultiBran
 
     @DataBoundConstructor public WorkflowMultiBranchProjectFactory() { }
 
-    @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
+    @Override protected SCMSourceCriteria getSCMSourceCriteria(@NonNull SCMSource source) {
         return newProjectFactory().getSCMSourceCriteria(source);
     }
 
@@ -76,6 +77,7 @@ public class WorkflowMultiBranchProjectFactory extends AbstractWorkflowMultiBran
             return new WorkflowMultiBranchProjectFactory();
         }
 
+        @NonNull
         @Override public String getDisplayName() {
             return "Pipeline " + WorkflowBranchProjectFactory.SCRIPT;
         }

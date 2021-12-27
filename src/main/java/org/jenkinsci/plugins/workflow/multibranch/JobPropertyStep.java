@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.BulkChange;
 import hudson.Extension;
@@ -171,11 +172,12 @@ public class JobPropertyStep extends AbstractStepImpl {
             return "properties";
         }
 
+        @NonNull
         @Override public String getDisplayName() {
             return "Set job properties";
         }
 
-        @Override public Step newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+        @Override public Step newInstance(@NonNull StaplerRequest req, @NonNull JSONObject formData) throws FormException {
             if (req == null) { // should not happen
                 return super.newInstance(null, formData);
             }
@@ -220,7 +222,7 @@ public class JobPropertyStep extends AbstractStepImpl {
 
     @Extension public static class HideSuperfluousBranchProperties extends DescriptorVisibilityFilter {
 
-        @Override public boolean filter(Object context, Descriptor descriptor) {
+        @Override public boolean filter(Object context, @NonNull Descriptor descriptor) {
             if (context instanceof WorkflowMultiBranchProject && (descriptor.clazz == RateLimitBranchProperty.class || descriptor.clazz == BuildRetentionBranchProperty.class)) {
                 // These are both adequately handled by declarative job properties.
                 return false;

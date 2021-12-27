@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.AbstractItem;
 import hudson.model.Item;
@@ -31,7 +32,6 @@ import hudson.model.JobPropertyDescriptor;
 import hudson.security.ACL;
 import hudson.security.Permission;
 import hudson.util.AlternativeUiTextProvider;
-import javax.annotation.Nonnull;
 import jenkins.branch.Branch;
 import org.acegisecurity.Authentication;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -45,25 +45,26 @@ import org.kohsuke.stapler.export.ExportedBean;
 @ExportedBean
 public class BranchJobProperty extends WorkflowJobProperty {
 
-    private @Nonnull Branch branch;
+    private @NonNull Branch branch;
 
-    BranchJobProperty(@Nonnull Branch branch) {
+    BranchJobProperty(@NonNull Branch branch) {
         this.branch = branch;
     }
 
     @Exported
-    public synchronized @Nonnull Branch getBranch() {
+    public synchronized @NonNull Branch getBranch() {
         return branch;
     }
 
-    synchronized void setBranch(@Nonnull Branch branch) {
+    synchronized void setBranch(@NonNull Branch branch) {
         branch.getClass();
         this.branch = branch;
     }
 
-    @Override public ACL decorateACL(final ACL acl) {
+    @NonNull
+    @Override public ACL decorateACL(@NonNull final ACL acl) {
         return new ACL() {
-            @Override public boolean hasPermission(Authentication a, Permission permission) {
+            @Override public boolean hasPermission(@NonNull Authentication a, @NonNull Permission permission) {
                 // This project is managed by its parent and may not be directly configured or deleted by users.
                 // Note that Item.EXTENDED_READ may still be granted, so you can still see Snippet Generator, etc.
                 if (ACL.SYSTEM.equals(a)) {
@@ -89,6 +90,7 @@ public class BranchJobProperty extends WorkflowJobProperty {
 
     @Extension public static class DescriptorImpl extends JobPropertyDescriptor {
 
+        @NonNull
         @Override public String getDisplayName() {
             return "Based on branch";
         }

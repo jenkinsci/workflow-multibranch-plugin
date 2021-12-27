@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Functions;
@@ -146,6 +147,7 @@ class SCMBinder extends FlowDefinition {
 
     @Extension public static class DescriptorImpl extends FlowDefinitionDescriptor {
 
+        @NonNull
         @Override public String getDisplayName() {
             return "Pipeline from multibranch configuration";
         }
@@ -156,7 +158,7 @@ class SCMBinder extends FlowDefinition {
     @Extension public static class HideMeElsewhere extends DescriptorVisibilityFilter {
 
         @SuppressWarnings("rawtypes")
-        @Override public boolean filter(Object context, Descriptor descriptor) {
+        @Override public boolean filter(Object context, @NonNull Descriptor descriptor) {
             if (descriptor instanceof DescriptorImpl) {
                 return context instanceof WorkflowJob && ((WorkflowJob) context).getParent() instanceof WorkflowMultiBranchProject;
             }
@@ -175,6 +177,7 @@ class SCMBinder extends FlowDefinition {
         }
 
         @Extension public static final class DescriptorImpl extends ConsoleAnnotationDescriptor {
+            @NonNull
             @Override public String getDisplayName() {
                 return "Multibranch warnings";
             }
