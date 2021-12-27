@@ -33,7 +33,7 @@ THE SOFTWARE.
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
     <artifactId>workflow-multibranch</artifactId>
-    <version>${revision}${changelist}</version>
+    <version>${changelist}</version>
     <packaging>hpi</packaging>
     <name>Pipeline: Multibranch</name>
     <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
@@ -63,8 +63,7 @@ THE SOFTWARE.
         </pluginRepository>
     </pluginRepositories>
     <properties>
-        <revision>2.27</revision>
-        <changelist>-SNAPSHOT</changelist>
+        <changelist>999999-SNAPSHOT</changelist>
         <java.level>8</java.level>
         <jenkins.version>2.277.4</jenkins.version>
         <no-test-jar>false</no-test-jar>
