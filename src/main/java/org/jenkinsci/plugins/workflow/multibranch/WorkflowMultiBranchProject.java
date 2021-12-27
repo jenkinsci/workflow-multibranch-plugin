@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Descriptor;
@@ -57,8 +58,6 @@ import org.jenkinsci.plugins.workflow.cps.Snippetizer;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 
-import javax.annotation.Nonnull;
-
 /**
  * Representation of a set of workflows keyed off of source branches.
  */
@@ -71,11 +70,12 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
         super(parent, name);
     }
 
+    @NonNull
     @Override protected BranchProjectFactory<WorkflowJob,WorkflowRun> newProjectFactory() {
         return new WorkflowBranchProjectFactory();
     }
 
-    @Override public SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
+    @Override public SCMSourceCriteria getSCMSourceCriteria(@NonNull SCMSource source) {
         return ((AbstractWorkflowBranchProjectFactory) getProjectFactory()).getSCMSourceCriteria(source);
     }
 
@@ -111,7 +111,7 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
         }
     }
 
-    private BranchJobProperty reconstructBranchJobProperty(@Nonnull WorkflowJob job, @Nonnull SCMRevisionAction action) {
+    private BranchJobProperty reconstructBranchJobProperty(@NonNull WorkflowJob job, @NonNull SCMRevisionAction action) {
         String sourceId = action.getSourceId();
         if (StringUtils.isEmpty(sourceId)) {
             return null;
@@ -135,10 +135,12 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
 
     @Extension public static class DescriptorImpl extends MultiBranchProjectDescriptor implements IconSpec {
 
+        @NonNull
         @Override public String getDisplayName() {
             return Messages.WorkflowMultiBranchProject_DisplayName();
         }
 
+        @NonNull
         @Override public String getDescription() {
             return Messages.WorkflowMultiBranchProject_Description();
         }
@@ -197,7 +199,8 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
             return WorkflowMultiBranchProject.class;
         }
 
-        @Override public Collection<? extends Action> createFor(WorkflowMultiBranchProject target) {
+        @NonNull
+        @Override public Collection<? extends Action> createFor(@NonNull WorkflowMultiBranchProject target) {
             if (target.hasPermission(Item.EXTENDED_READ)) {
                 return Collections.singleton(new Snippetizer.LocalAction());
             } else {

@@ -25,6 +25,7 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import com.cloudbees.hudson.plugins.folder.computed.DefaultOrphanedItemStrategy;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
 import hudson.model.Item;
 import hudson.model.Result;
@@ -270,7 +271,7 @@ public class SCMBinderTest {
         public WarySource(String id, String remote, String credentialsId, String includes, String excludes, boolean ignoreOnPushNotifications) {
             super(id, remote, credentialsId, includes, excludes, ignoreOnPushNotifications);
         }
-        @Override public SCMRevision getTrustedRevision(SCMRevision revision, TaskListener listener) throws IOException, InterruptedException {
+        @Override public SCMRevision getTrustedRevision(@NonNull SCMRevision revision, @NonNull TaskListener listener) throws IOException, InterruptedException {
             String branch = revision.getHead().getName();
             if (branch.equals("master")) {
                 return revision;
