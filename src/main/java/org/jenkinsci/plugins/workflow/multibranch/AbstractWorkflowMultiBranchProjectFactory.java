@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Item;
@@ -44,13 +45,14 @@ import org.jenkinsci.plugins.workflow.cps.Snippetizer;
  */
 public abstract class AbstractWorkflowMultiBranchProjectFactory extends MultiBranchProjectFactory.BySCMSourceCriteria {
 
-    @Override protected final WorkflowMultiBranchProject doCreateProject(ItemGroup<?> parent, String name, Map<String,Object> attributes) throws IOException, InterruptedException {
+    @NonNull
+    @Override protected final WorkflowMultiBranchProject doCreateProject(@NonNull ItemGroup<?> parent, @NonNull String name, @NonNull Map<String,Object> attributes) throws IOException, InterruptedException {
         WorkflowMultiBranchProject project = new WorkflowMultiBranchProject(parent, name);
         customize(project);
         return project;
     }
 
-    @Override public final void updateExistingProject(MultiBranchProject<?, ?> project, Map<String, Object> attributes, TaskListener listener) throws IOException, InterruptedException {
+    @Override public final void updateExistingProject(@NonNull MultiBranchProject<?, ?> project, @NonNull Map<String, Object> attributes, @NonNull TaskListener listener) throws IOException, InterruptedException {
         if (project instanceof WorkflowMultiBranchProject) {
             customize((WorkflowMultiBranchProject) project);
         } // otherwise got recognized by something else before, oh well
@@ -64,7 +66,8 @@ public abstract class AbstractWorkflowMultiBranchProjectFactory extends MultiBra
             return OrganizationFolder.class;
         }
 
-        @Override public Collection<? extends Action> createFor(OrganizationFolder target) {
+        @NonNull
+        @Override public Collection<? extends Action> createFor(@NonNull OrganizationFolder target) {
             if (target.getProjectFactories().get(AbstractWorkflowMultiBranchProjectFactory.class) != null && target.hasPermission(Item.EXTENDED_READ)) {
                 return Collections.singleton(new Snippetizer.LocalAction());
             } else {

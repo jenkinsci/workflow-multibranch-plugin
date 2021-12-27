@@ -24,7 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.Proc;
@@ -60,7 +60,7 @@ public class GitDirectorySCMNavigator extends SCMNavigator {
         return directory;
     }
 
-    @Nonnull
+    @NonNull
     @Override
     protected String id() {
         return directory;
@@ -108,6 +108,7 @@ public class GitDirectorySCMNavigator extends SCMNavigator {
     @Extension @Symbol("gitDirectory")
     public static class DescriptorImpl extends SCMNavigatorDescriptor {
 
+        @NonNull
         @Override public String getDisplayName() {
             return "Directory of Git checkouts";
         }

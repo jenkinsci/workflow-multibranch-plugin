@@ -1,10 +1,10 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Descriptor;
 import hudson.model.InvisibleAction;
 import hudson.model.JobProperty;
 
-import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -20,7 +20,7 @@ public class JobPropertyTrackerAction extends InvisibleAction {
      */
     private final Set<String> jobPropertyDescriptors = new HashSet<>();
 
-    public JobPropertyTrackerAction(@Nonnull List<JobProperty> jobProperties) {
+    public JobPropertyTrackerAction(@NonNull List<JobProperty> jobProperties) {
         for (JobProperty j : jobProperties) {
             jobPropertyDescriptors.add(j.getDescriptor().getId());
         }

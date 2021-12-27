@@ -1,5 +1,7 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.model.Job;
@@ -20,8 +22,6 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.util.Optional;
 
 /**
@@ -43,7 +43,7 @@ public class DurabilityHintBranchProperty extends BranchProperty {
     }
 
     @DataBoundConstructor
-    public DurabilityHintBranchProperty(@Nonnull FlowDurabilityHint hint) {
+    public DurabilityHintBranchProperty(@NonNull FlowDurabilityHint hint) {
         this.hint = hint;
     }
 
@@ -56,6 +56,7 @@ public class DurabilityHintBranchProperty extends BranchProperty {
     @Symbol("durabilityHint")
     @Extension
     public static class DescriptorImpl extends BranchPropertyDescriptor implements DurabilityHintProvider {
+        @NonNull
         @Override
         public String getDisplayName() {
             return "Pipeline branch speed/durability override";
@@ -81,7 +82,7 @@ public class DurabilityHintBranchProperty extends BranchProperty {
          */
         @CheckForNull
         @Override
-        public FlowDurabilityHint suggestFor(@Nonnull Item x) {
+        public FlowDurabilityHint suggestFor(@NonNull Item x) {
             // BranchJobProperty *should* be present if it's a child of a MultiBranchProject but we double-check for safety
             if (x instanceof WorkflowJob && x.getParent() instanceof MultiBranchProject && ((WorkflowJob)x).getProperty(BranchJobProperty.class) != null) {
                 MultiBranchProject mp = (MultiBranchProject) x.getParent();
