@@ -113,7 +113,6 @@ public class JobPropertyStepTest {
 
         StepConfigTester tester = new StepConfigTester(r);
         properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
-        assertEquals(1, properties.size());
         ParametersDefinitionProperty pdp = getPropertyFromList(ParametersDefinitionProperty.class, properties);
         assertNotNull(pdp);
         assertEquals(1, pdp.getParameterDefinitions().size());
@@ -123,8 +122,8 @@ public class JobPropertyStepTest {
         assertTrue(bpd.isDefaultValue());
 
         List<JobProperty> emptyInput = tester.configRoundTrip(new JobPropertyStep(Collections.emptyList())).getProperties();
-
-        assertEquals(Collections.emptyList(), removeTriggerProperty(emptyInput));
+        pdp = getPropertyFromList(ParametersDefinitionProperty.class, emptyInput);
+        assertNull(pdp);
     }
 
     @Issue("JENKINS-51290")
@@ -155,7 +154,6 @@ public class JobPropertyStepTest {
 
         StepConfigTester tester = new StepConfigTester(r);
         properties = tester.configRoundTrip(new JobPropertyStep(properties)).getProperties();
-        assertFalse(properties.isEmpty());
         BuildDiscarderProperty bdp = getPropertyFromList(BuildDiscarderProperty.class, properties);
         assertNotNull(bdp);
         BuildDiscarder strategy = bdp.getStrategy();
@@ -731,14 +729,4 @@ public class JobPropertyStepTest {
         return null;
     }
 
-    private List<JobProperty> removeTriggerProperty(List<JobProperty> originalProps) {
-        List<JobProperty> returnList = new ArrayList<>();
-        for (JobProperty p : originalProps) {
-            if (!(p instanceof PipelineTriggersJobProperty)) {
-                returnList.add(p);
-            }
-        }
-
-        return returnList;
-    }
 }
