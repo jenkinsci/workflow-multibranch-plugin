@@ -122,8 +122,8 @@ public class JobPropertyStepTest {
         assertTrue(bpd.isDefaultValue());
 
         List<JobProperty> emptyInput = tester.configRoundTrip(new JobPropertyStep(Collections.emptyList())).getProperties();
-
-        assertEquals(Collections.emptyList(), removeTriggerProperty(emptyInput));
+        pdp = getPropertyFromList(ParametersDefinitionProperty.class, emptyInput);
+        assertNull(pdp);
     }
 
     @Issue("JENKINS-51290")
@@ -729,14 +729,4 @@ public class JobPropertyStepTest {
         return null;
     }
 
-    private List<JobProperty> removeTriggerProperty(List<JobProperty> originalProps) {
-        List<JobProperty> returnList = new ArrayList<>();
-        for (JobProperty p : originalProps) {
-            if (!(p instanceof PipelineTriggersJobProperty)) {
-                returnList.add(p);
-            }
-        }
-
-        return returnList;
-    }
 }
