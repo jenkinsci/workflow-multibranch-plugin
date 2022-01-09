@@ -146,7 +146,7 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
         }
 
         @Override public String getIconFilePathPattern() {
-            return "plugin/workflow-multibranch/images/:size/pipelinemultibranchproject.png";
+            return "plugin/workflow-multibranch/images/pipelinemultibranchproject.svg";
         }
 
         @Override
@@ -176,19 +176,19 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
         static {
             IconSet.icons.addIcon(
                     new Icon("icon-pipeline-multibranch-project icon-sm",
-                            "plugin/workflow-multibranch/images/16x16/pipelinemultibranchproject.png",
+                            "plugin/workflow-multibranch/images/pipelinemultibranchproject.svg",
                             Icon.ICON_SMALL_STYLE));
             IconSet.icons.addIcon(
                     new Icon("icon-pipeline-multibranch-project icon-md",
-                            "plugin/workflow-multibranch/images/24x24/pipelinemultibranchproject.png",
+                            "plugin/workflow-multibranch/images/pipelinemultibranchproject.svg",
                             Icon.ICON_MEDIUM_STYLE));
             IconSet.icons.addIcon(
                     new Icon("icon-pipeline-multibranch-project icon-lg",
-                            "plugin/workflow-multibranch/images/32x32/pipelinemultibranchproject.png",
+                            "plugin/workflow-multibranch/images/pipelinemultibranchproject.svg",
                             Icon.ICON_LARGE_STYLE));
             IconSet.icons.addIcon(
                     new Icon("icon-pipeline-multibranch-project icon-xlg",
-                            "plugin/workflow-multibranch/images/48x48/pipelinemultibranchproject.png",
+                            "plugin/workflow-multibranch/images/pipelinemultibranchproject.svg",
                             Icon.ICON_XLARGE_STYLE));
         }
     }
