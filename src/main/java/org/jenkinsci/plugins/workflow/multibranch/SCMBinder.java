@@ -33,20 +33,26 @@ import hudson.console.ConsoleAnnotationDescriptor;
 import hudson.console.ConsoleAnnotator;
 import hudson.console.ConsoleNote;
 import hudson.model.Action;
+import hudson.model.Cause.UpstreamCause;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.ItemGroup;
 import hudson.model.Queue;
+import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.plugins.git.RevisionParameterAction;
 import hudson.scm.SCM;
 import java.io.IOException;
 import java.util.List;
 import jenkins.branch.Branch;
+import jenkins.plugins.git.AbstractGitSCMSource;
+import jenkins.plugins.git.AbstractGitSCMSource.SCMRevisionImpl;
 import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
+import org.jenkinsci.plugins.github_branch_source.PullRequestSCMRevision;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
@@ -89,18 +95,26 @@ class SCMBinder extends FlowDefinition {
             throw new IllegalStateException("inappropriate context");
         }
         Branch branch = property.getBranch();
-        ItemGroup<?> parent = job.getParent();
-        if (!(parent instanceof WorkflowMultiBranchProject)) {
-            throw new IllegalStateException("inappropriate context");
+        SCMSource scmSource = getScmSource(job, branch.getSourceId());
+
+        SCMRevision upstreamRevision = null;
+        if (scmSource instanceof AbstractGitSCMSource) {
+            upstreamRevision = getUpstreamGitScmRevisionForSameRemote(build, branch, (AbstractGitSCMSource) scmSource, listener);
         }
-        SCMSource scmSource = ((WorkflowMultiBranchProject) parent).getSCMSource(branch.getSourceId());
-        if (scmSource == null) {
-            throw new IllegalStateException(branch.getSourceId() + " not found");
+
+        SCMHead head;
+        if (upstreamRevision != null) {
+            head = upstreamRevision.getHead();
+        } else {
+            head = branch.getHead();
         }
-        SCMHead head = branch.getHead();
+
         SCMRevision tip = scmSource.fetch(head, listener);
         SCM scm;
         if (tip != null) {
+            if (upstreamRevision != null) {
+                tip = upstreamRevision;
+            }
             build.addAction(new SCMRevisionAction(scmSource, tip));
             SCMRevision rev = scmSource.getTrustedRevision(tip, listener);
             try (SCMFileSystem fs = USE_HEAVYWEIGHT_CHECKOUT ? null : SCMFileSystem.of(scmSource, head, rev)) {
@@ -143,6 +157,75 @@ class SCMBinder extends FlowDefinition {
             scm = branch.getScm();
         }
         return new CpsScmFlowDefinition(scm, scriptPath).create(handle, listener, actions);
+    }
+
+    private SCMSource getScmSource(WorkflowJob job, String scmSourceId) {
+        ItemGroup<?> parent = job.getParent();
+        if (!(parent instanceof WorkflowMultiBranchProject)) {
+            throw new IllegalStateException("inappropriate context");
+        }
+        SCMSource scmSource = ((WorkflowMultiBranchProject) parent).getSCMSource(scmSourceId);
+        if (scmSource == null) {
+            throw new IllegalStateException(scmSourceId + " not found");
+        }
+        return scmSource;
+    }
+
+    /**
+     * This method will set a {@link RevisionParameterAction} (force the checkout of a specific rev) with the rev of the
+     * upstream as well as return the {@link SCMRevision} of the upstream job, if
+     * <li> the current run is triggered by an {@link UpstreamCause}
+     * <li> the upstream is a {@link WorkflowRun} that has a {@link SCMRevisionAction}
+     * <li> the {@link SCMSource} of that upstream is of the same (git) type as the current one (eg. GitHub - GitHub but
+     * not Git - Github) and they have the same remote URL
+     * <li> the (jenkins) branch names match (eg. PR-42 - PR-42)
+     * <li> the {@link SCMRevision} includes a rev, such as {@link PullRequestSCMRevision} or {@link SCMRevisionImpl}.
+     */
+    private SCMRevision getUpstreamGitScmRevisionForSameRemote(WorkflowRun currentBuild, Branch currentBranch,
+            AbstractGitSCMSource currentGitScmSource, TaskListener listener) {
+        UpstreamCause upstreamCause = currentBuild.getCause(UpstreamCause.class);
+        if (upstreamCause == null) {
+            return null;
+        }
+
+        Run<?, ?> upstreamRun = upstreamCause.getUpstreamRun();
+        if (upstreamRun instanceof WorkflowRun) {
+
+            SCMRevisionAction scmRevisionAction = upstreamRun.getAction(SCMRevisionAction.class);
+            if (scmRevisionAction == null) {
+                return null;
+            }
+
+            WorkflowJob upstreamJob = ((WorkflowRun) upstreamRun).getParent();
+            SCMSource upstreamScmSource;
+            try {
+                upstreamScmSource = getScmSource(upstreamJob, scmRevisionAction.getSourceId());
+            } catch (IllegalStateException e) {
+                return null;
+            }
+            if (!(currentGitScmSource.getClass() == upstreamScmSource.getClass())
+                    || !(currentGitScmSource.getRemote().equalsIgnoreCase(
+                    ((AbstractGitSCMSource) upstreamScmSource).getRemote()))) {
+                return null;
+            }
+
+            SCMRevision upstreamScmRevision = scmRevisionAction.getRevision();
+            if (!currentBranch.getHead().getName().equals(upstreamScmRevision.getHead().getName())) {
+                return null;
+            }
+
+            if (upstreamScmRevision instanceof PullRequestSCMRevision) {
+                listener.getLogger().println("Using upstream PR-revision");
+                currentBuild.addAction(new RevisionParameterAction(((PullRequestSCMRevision) upstreamScmRevision).getPullHash()));
+                return upstreamScmRevision;
+
+            } else if (upstreamScmRevision instanceof SCMRevisionImpl) {
+                listener.getLogger().println("Using upstream git revision");
+                currentBuild.addAction(new RevisionParameterAction(((SCMRevisionImpl) upstreamScmRevision).getHash()));
+                return upstreamScmRevision;
+            }
+        }
+        return null;
     }
 
     @Extension public static class DescriptorImpl extends FlowDefinitionDescriptor {

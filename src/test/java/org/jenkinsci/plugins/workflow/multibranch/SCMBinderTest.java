@@ -27,6 +27,9 @@ package org.jenkinsci.plugins.workflow.multibranch;
 import com.cloudbees.hudson.plugins.folder.computed.DefaultOrphanedItemStrategy;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
+import hudson.model.Cause;
+import hudson.model.Cause.UpstreamCause;
+import hudson.model.CauseAction;
 import hudson.model.Item;
 import hudson.model.Result;
 import hudson.model.TaskListener;
@@ -55,6 +58,7 @@ import static org.hamcrest.Matchers.*;
 
 import jenkins.scm.impl.subversion.SubversionSampleRepoRule;
 import org.acegisecurity.Authentication;
+import org.jenkinsci.plugins.github_branch_source.GitHubSCMSource;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -114,6 +118,39 @@ public class SCMBinderTest {
         assertEquals("tweaked", entry.getMsg());
         assertEquals("[Jenkinsfile, file]", new TreeSet<>(entry.getAffectedPaths()).toString());
         assertFalse(iterator.hasNext());
+    }
+
+    @Test public void upstreamRevisionGit() throws Exception {
+        sampleGitRepo.init();
+        ScriptApproval sa = ScriptApproval.get();
+        sa.approveSignature("staticField hudson.model.Items XSTREAM2");
+        sa.approveSignature("method com.thoughtworks.xstream.XStream toXML java.lang.Object");
+        sa.approveSignature("method org.jenkinsci.plugins.workflow.support.steps.build.RunWrapper getRawBuild");
+        sa.approveSignature("method hudson.model.Run getCauses");
+        sa.approveSignature("staticMethod org.codehaus.groovy.runtime.DefaultGroovyMethods inspect java.lang.Object");
+        sampleGitRepo.write("Jenkinsfile", "echo hudson.model.Items.XSTREAM2.toXML(scm); echo currentBuild.rawBuild.causes.inspect(); semaphore 'wait'; node {checkout scm; echo readFile('file')}");
+        sampleGitRepo.write("file", "initial content");
+        sampleGitRepo.git("add", "Jenkinsfile");
+        sampleGitRepo.git("commit", "--all", "--message=flow");
+        WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+        mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false)));
+        WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
+        SemaphoreStep.waitForStart("wait/1", null);
+        WorkflowRun b1 = p.getLastBuild();
+        assertNotNull(b1);
+        assertEquals(1, b1.getNumber());
+        assertRevisionAction(b1);
+        r.assertLogContains("Obtained Jenkinsfile from ", b1);
+        sampleGitRepo.write("file", "subsequent content");
+        sampleGitRepo.git("commit", "--all", "--message=tweaked");
+        SemaphoreStep.success("wait/1", null);
+        mp.scheduleBuild2(0, new CauseAction(new UpstreamCause(b1))); // this cause is ignored / replaced (?) with BranchIndexingCause
+        SemaphoreStep.waitForStart("wait/2", null);
+        WorkflowRun b2 = p.getLastBuild();
+        assertEquals(2, b2.getNumber());
+        r.assertLogContains("initial content", r.waitForCompletion(b1));
+        r.assertLogContains("initial content", r.waitForCompletion(b2));
+        r.assertLogNotContains("SUBSEQUENT CONTENT", b2);
     }
 
     public static void assertRevisionAction(WorkflowRun build) {
