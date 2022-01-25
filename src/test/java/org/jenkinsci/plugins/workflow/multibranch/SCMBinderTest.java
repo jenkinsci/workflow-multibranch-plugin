@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import jenkins.branch.BranchSource;
 import jenkins.model.Jenkins;
+import jenkins.plugins.git.GitBranchSCMHead;
 import jenkins.plugins.git.GitBranchSCMRevision;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
@@ -49,6 +50,7 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSourceDescriptor;
+import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.impl.subversion.SubversionSCMFileSystem;
 import jenkins.scm.impl.subversion.SubversionSCMSource;
 import static org.hamcrest.Matchers.*;
@@ -114,6 +116,35 @@ public class SCMBinderTest {
         assertEquals("tweaked", entry.getMsg());
         assertEquals("[Jenkinsfile, file]", new TreeSet<>(entry.getAffectedPaths()).toString());
         assertFalse(iterator.hasNext());
+    }
+
+    @Test public void customRevision() throws Exception {
+        sampleGitRepo.init();
+        sampleGitRepo.write("Jenkinsfile", "semaphore 'wait'; node {checkout scm; echo readFile('file')}");
+        sampleGitRepo.write("file", "initial content");
+        sampleGitRepo.git("add", "Jenkinsfile");
+        sampleGitRepo.git("commit", "--all", "--message=flow");
+        String firstCommit = sampleGitRepo.head();
+        sampleGitRepo.write("file", "subsequent content");
+        sampleGitRepo.git("commit", "--all", "--message=tweaked"); // will not be built
+        GitBranchSCMHead head = new GitBranchSCMHead("master");
+        GitBranchSCMRevision firstRevision = new GitBranchSCMRevision(head, firstCommit);
+        WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+        GitSCMSource gitSCMSource = new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false);
+        List<SCMSourceTrait> scmTraits = gitSCMSource.getTraits();
+        scmTraits.add(new FixedSCMRevisionCustomizationTrait(gitSCMSource, firstRevision));
+        gitSCMSource.setTraits(scmTraits);
+        mp.getSourcesList().add(new BranchSource(gitSCMSource));
+        WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
+        SemaphoreStep.waitForStart("wait/1", null);
+        WorkflowRun b1 = p.getLastBuild();
+        assertNotNull(b1);
+        assertEquals(1, b1.getNumber());
+        assertRevisionAction(b1);
+        r.assertLogContains("Obtained Jenkinsfile from ", b1);
+        SemaphoreStep.success("wait/1", null);
+        r.assertLogContains("initial content", r.waitForCompletion(b1));
+        r.assertLogNotContains("SUBSEQUENT CONTENT", b1);
     }
 
     public static void assertRevisionAction(WorkflowRun build) {

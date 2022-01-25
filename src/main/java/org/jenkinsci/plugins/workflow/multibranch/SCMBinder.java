@@ -40,7 +40,10 @@ import hudson.model.Queue;
 import hudson.model.TaskListener;
 import hudson.scm.SCM;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import jenkins.branch.Branch;
 import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
@@ -89,16 +92,26 @@ class SCMBinder extends FlowDefinition {
             throw new IllegalStateException("inappropriate context");
         }
         Branch branch = property.getBranch();
-        ItemGroup<?> parent = job.getParent();
-        if (!(parent instanceof WorkflowMultiBranchProject)) {
-            throw new IllegalStateException("inappropriate context");
+        SCMSource scmSource = getScmSource(job, branch.getSourceId());
+
+        SCMRevision customizedRevision = Optional.ofNullable(scmSource.getTraits())
+                .orElse(Collections.emptyList()).stream()
+                .filter(SCMRevisionCustomizationTrait.class::isInstance)
+                .map(SCMRevisionCustomizationTrait.class::cast)
+                .max(Comparator.comparing(SCMRevisionCustomizationTrait::getPrecedence))
+                .map(trait -> trait.customize(build, listener))
+                .orElse(null);
+
+        SCMHead head;
+        SCMRevision tip;
+        if (customizedRevision != null) {
+            head = customizedRevision.getHead();
+            tip = customizedRevision;
+        } else {
+            head = branch.getHead();
+            tip = scmSource.fetch(head, listener);
         }
-        SCMSource scmSource = ((WorkflowMultiBranchProject) parent).getSCMSource(branch.getSourceId());
-        if (scmSource == null) {
-            throw new IllegalStateException(branch.getSourceId() + " not found");
-        }
-        SCMHead head = branch.getHead();
-        SCMRevision tip = scmSource.fetch(head, listener);
+
         SCM scm;
         if (tip != null) {
             build.addAction(new SCMRevisionAction(scmSource, tip));
@@ -143,6 +156,18 @@ class SCMBinder extends FlowDefinition {
             scm = branch.getScm();
         }
         return new CpsScmFlowDefinition(scm, scriptPath).create(handle, listener, actions);
+    }
+
+    private SCMSource getScmSource(WorkflowJob job, String scmSourceId) {
+        ItemGroup<?> parent = job.getParent();
+        if (!(parent instanceof WorkflowMultiBranchProject)) {
+            throw new IllegalStateException("inappropriate context");
+        }
+        SCMSource scmSource = ((WorkflowMultiBranchProject) parent).getSCMSource(scmSourceId);
+        if (scmSource == null) {
+            throw new IllegalStateException(scmSourceId + " not found");
+        }
+        return scmSource;
     }
 
     @Extension public static class DescriptorImpl extends FlowDefinitionDescriptor {
