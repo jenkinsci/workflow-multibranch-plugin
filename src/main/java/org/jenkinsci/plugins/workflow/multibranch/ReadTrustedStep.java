@@ -39,6 +39,8 @@ import hudson.model.TaskListener;
 import hudson.model.TopLevelItem;
 import hudson.scm.SCM;
 import hudson.slaves.WorkspaceList;
+
+import java.io.File;
 import java.io.IOException;
 import javax.inject.Inject;
 import jenkins.branch.Branch;
@@ -48,6 +50,7 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
+import jenkins.security.HMACConfidentialKey;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.steps.LoadStepExecution;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
@@ -68,6 +71,9 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * at least until {@link LoadStepExecution} has been split into an abstract part that a {@code loadTrusted} step could extend.
  */
 public class ReadTrustedStep extends AbstractStepImpl {
+
+    // Intentionally using the same key as CpsScmFlowDefinition.
+    private static final HMACConfidentialKey CHECKOUT_DIR_KEY = new HMACConfidentialKey(CpsScmFlowDefinition.class, "filePathWithSuffix", 32);
 
     private final String path;
     // TODO encoding
@@ -122,31 +128,31 @@ public class ReadTrustedStep extends AbstractStepImpl {
                 }
             }
             Node node = Jenkins.get();
-            FilePath dir;
+            FilePath baseWorkspace;
             if (job instanceof TopLevelItem) {
-                FilePath baseWorkspace = node.getWorkspaceFor((TopLevelItem) job);
+                baseWorkspace = node.getWorkspaceFor((TopLevelItem) job);
                 if (baseWorkspace == null) {
                     throw new AbortException(node.getDisplayName() + " may be offline");
                 }
-                dir = getFilePathWithSuffix(baseWorkspace);
             } else { // should not happen, but just in case:
                 throw new IllegalStateException(job + " was not top level");
-            }
-            FilePath file = dir.child(step.path);
-            if (!file.absolutize().getRemote().replace('\\', '/').startsWith(dir.absolutize().getRemote().replace('\\', '/') + '/')) { // TODO JENKINS-26838
-                throw new IOException(file + " is not inside " + dir);
             }
             Computer computer = node.toComputer();
             if (computer == null) {
                 throw new IOException(node.getDisplayName() + " may be offline");
             }
             if (standaloneSCM != null) {
+                FilePath dir = getFilePathWithSuffix(baseWorkspace, standaloneSCM);
+                FilePath file = dir.child(step.path);
                 try (WorkspaceList.Lease lease = computer.getWorkspaceList().acquire(dir)) {
+                    dir.withSuffix("-scm-key.txt").write(standaloneSCM.getKey(), "UTF-8");
                     SCMStep delegate = new GenericSCMStep(standaloneSCM);
                     delegate.setPoll(true);
                     delegate.setChangelog(true);
                     delegate.checkout(build, dir, listener, node.createLauncher(listener));
-                    if (!file.exists()) {
+                    if (!isDescendant(file, dir)) {
+                        throw new AbortException(file + " references a file that is not inside " + dir);
+                    } else if (!file.exists()) {
                         throw new AbortException(file + " not found");
                     }
                     return file.readToString();
@@ -187,22 +193,30 @@ public class ReadTrustedStep extends AbstractStepImpl {
                     listener.getLogger().println("Obtained " + step.path + " from " + trusted);
                 } else {
                     listener.getLogger().println("Checking out " + head.getName() + " to read " + step.path);
+                    SCM trustedScm = scmSource.build(head, trusted);
+                    FilePath dir = getFilePathWithSuffix(baseWorkspace, trustedScm);
+                    FilePath file = dir.child(step.path);
                     try (WorkspaceList.Lease lease = computer.getWorkspaceList().acquire(dir)) {
+                        dir.withSuffix("-scm-key.txt").write(trustedScm.getKey(), "UTF-8");
                         if (trustCheck) {
                             SCMStep delegate = new GenericSCMStep(scmSource.build(head, tip));
                             delegate.setPoll(false);
                             delegate.setChangelog(false);
                             delegate.checkout(build, dir, listener, node.createLauncher(listener));
-                            if (!file.exists()) {
+                            if (!isDescendant(file, dir)) {
+                                throw new AbortException(file + " references a file that is not inside " + dir);
+                            } else if (!file.exists()) {
                                 throw new AbortException(file + " not found");
                             }
                             untrustedFile = file.readToString();
                         }
-                        SCMStep delegate = new GenericSCMStep(scmSource.build(head, trusted));
+                        SCMStep delegate = new GenericSCMStep(trustedScm);
                         delegate.setPoll(true);
                         delegate.setChangelog(true);
                         delegate.checkout(build, dir, listener, node.createLauncher(listener));
-                        if (!file.exists()) {
+                        if (!isDescendant(file, dir)) {
+                            throw new AbortException(file + " references a file that is not inside " + dir);
+                        } else if (!file.exists()) {
                             throw new AbortException(file + " not found");
                         }
                         content = file.readToString();
@@ -215,12 +229,26 @@ public class ReadTrustedStep extends AbstractStepImpl {
             return content;
         }
 
-        private FilePath getFilePathWithSuffix(FilePath baseWorkspace) {
-            return baseWorkspace.withSuffix(getFilePathSuffix() + "script");
+        private FilePath getFilePathWithSuffix(FilePath baseWorkspace, SCM scm) {
+            return baseWorkspace.withSuffix(getFilePathSuffix() + "script").child(CHECKOUT_DIR_KEY.mac(scm.getKey()));
         }
 
         private String getFilePathSuffix() {
             return System.getProperty(WorkspaceList.class.getName(), "@");
+        }
+
+        /**
+         * Checks whether a given child path is a descendent of a given parent path using {@link File#getCanonicalFile}.
+         *
+         * If the child path does not exist, this method will canonicalize path elements such as {@code /../} and
+         * {@code /./} before comparing it to the parent path, and it will not throw an exception. If the child path
+         * does exist, symlinks will be resolved before checking whether the child is a descendant of the parent path.
+         */
+        private static boolean isDescendant(FilePath child, FilePath parent) throws IOException, InterruptedException {
+            if (child.isRemote() || parent.isRemote()) {
+                throw new IllegalStateException();
+            }
+            return new File(child.getRemote()).getCanonicalFile().toPath().startsWith(parent.absolutize().getRemote());
         }
 
         private static final long serialVersionUID = 1L;
