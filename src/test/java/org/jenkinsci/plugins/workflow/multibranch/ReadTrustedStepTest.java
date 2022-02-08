@@ -24,7 +24,11 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
+import hudson.Functions;
 import hudson.model.Result;
+import hudson.scm.SubversionSCM;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
 import jenkins.branch.BranchSource;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
@@ -40,11 +44,29 @@ import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import jenkins.plugins.git.GitSCMSource;
+import jenkins.scm.impl.subversion.SubversionSCMSource;
+import jenkins.scm.impl.subversion.SubversionSampleRepoRule;
+import org.apache.commons.io.FileUtils;
+import org.junit.Ignore;
+import org.jvnet.hudson.test.FlagRule;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.io.FileMatchers.anExistingFile;
+import static org.junit.Assume.assumeFalse;
+
 public class ReadTrustedStepTest {
 
     @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
     @Rule public JenkinsRule r = new JenkinsRule();
     @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
+    @Rule public SubversionSampleRepoRule sampleRepoSvn = new SubversionSampleRepoRule();
+    @Rule public FlagRule<Boolean> heavyweightCheckoutFlag = new FlagRule<>(() -> SCMBinder.USE_HEAVYWEIGHT_CHECKOUT, v -> { SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = v; });
 
     @Test public void smokes() throws Exception {
         sampleRepo.init();
@@ -193,4 +215,157 @@ public class ReadTrustedStepTest {
         }
     }
 
+    @Test
+    public void pathTraversalRejected() throws Exception {
+        SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
+        sampleRepo.init();
+        sampleRepo.write("Jenkinsfile", "node { checkout scm; echo \"${readTrusted '../../secrets/master.key'}\"}");
+        Path secrets = Paths.get(sampleRepo.getRoot().getPath(), "secrets");
+        Files.createSymbolicLink(secrets, Paths.get(r.jenkins.getRootDir() + "/secrets"));
+        sampleRepo.git("add", ".");
+        sampleRepo.git("commit", "-m", "init");
+
+        WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+        mp.getSourcesList().add(new BranchSource(new SCMBinderTest.WarySource(null, sampleRepo.toString(), "", "*", "", false)));
+        WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
+        r.waitUntilNoActivity();
+
+        WorkflowRun b = p.getLastBuild();
+        assertEquals(1, b.getNumber());
+        r.assertLogContains("secrets/master.key references a file that is not inside " + r.jenkins.getWorkspaceFor(p).getRemote(), b);
+    }
+
+    @Issue("SECURITY-2491")
+    @Test
+    public void symlinksInReadTrustedCannotEscapeWorkspaceContext() throws Exception {
+        SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
+        sampleRepo.init();
+        sampleRepo.write("Jenkinsfile", "node { checkout scm; echo \"${readTrusted 'secrets/master.key'}\"}");
+        Path secrets = Paths.get(sampleRepo.getRoot().getPath(), "secrets");
+        Files.createSymbolicLink(secrets, Paths.get(r.jenkins.getRootDir() + "/secrets"));
+        sampleRepo.git("add", ".");
+        sampleRepo.git("commit", "-m", "init");
+
+        WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+        mp.getSourcesList().add(new BranchSource(new SCMBinderTest.WarySource(null, sampleRepo.toString(), "", "*", "", false)));
+        WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
+        r.waitUntilNoActivity();
+
+        WorkflowRun run = p.getLastBuild();
+        assertEquals(1, run.getNumber());
+        r.assertLogContains("secrets/master.key references a file that is not inside " + r.jenkins.getWorkspaceFor(p).getRemote(), run);
+    }
+
+    @Issue("SECURITY-2491")
+    @Test
+    public void symlinksInUntrustedRevisionCannotEscapeWorkspace() throws Exception {
+        SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
+        sampleRepo.init();
+        sampleRepo.write("Jenkinsfile", "node { checkout scm; echo \"${readTrusted 'secrets/master.key'}\"}");
+        sampleRepo.write("secrets/master.key", "secret info");
+        sampleRepo.git("add", ".");
+        sampleRepo.git("commit", "-m", "init");
+        sampleRepo.git("checkout", "-b", "feature");
+        Path secrets = Paths.get(sampleRepo.getRoot().getPath(), "secrets");
+        Files.delete(Paths.get(secrets.toString(), "master.key"));
+        Files.delete(secrets);
+        Files.createSymbolicLink(secrets, Paths.get(r.jenkins.getRootDir() + "/secrets"));
+        sampleRepo.git("add", ".");
+        sampleRepo.git("commit", "-m", "now with unsafe symlink");
+
+        WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+        mp.getSourcesList().add(new BranchSource(new SCMBinderTest.WarySource(null, sampleRepo.toString(), "", "*", "", false)));
+        WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "feature");
+        r.waitUntilNoActivity();
+
+        WorkflowRun run = p.getLastBuild();
+        assertEquals(1, run.getNumber());
+        r.assertLogContains("secrets/master.key references a file that is not inside ", run);
+    }
+
+    @Issue("SECURITY-2491")
+    @Test
+    public void symlinksInNonMultibranchCannotEscapeWorkspaceContextViaReadTrusted() throws Exception {
+        SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
+        sampleRepo.init();
+        sampleRepo.write("Jenkinsfile", "echo \"${readTrusted 'master.key'}\"");
+        Path secrets = Paths.get(sampleRepo.getRoot().getPath(), "master.key");
+        Files.createSymbolicLink(secrets, Paths.get(r.jenkins.getRootDir() + "/secrets/master.key"));
+        sampleRepo.git("add", ".");
+        sampleRepo.git("commit", "-m", "init");
+
+        WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
+        GitStep step = new GitStep(sampleRepo.toString());
+        p.setDefinition(new CpsScmFlowDefinition(step.createSCM(), "Jenkinsfile"));
+        WorkflowRun run = r.buildAndAssertStatus(Result.FAILURE, p);
+
+        r.assertLogContains("master.key references a file that is not inside " + r.jenkins.getWorkspaceFor(p), run);
+    }
+
+    @Ignore("There are two checkouts, one from CpsScmFlowDefinition via SCMBinder and one from ReadTrustedStep. Fixing the former requires an updated version of workflow-cps.")
+    @Issue("SECURITY-2463")
+    @Test public void multibranchCheckoutDirectoriesAreNotReusedByDifferentScms() throws Exception {
+        SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
+        assumeFalse(Functions.isWindows()); // Checkout hook is not cross-platform.
+        sampleRepo.init();
+        sampleRepo.git("checkout", "-b", "trunk"); // So we end up using the same project for both SCMs.
+        sampleRepo.write("Jenkinsfile", "echo('git library'); readTrusted('Jenkinsfile')");
+        sampleRepo.git("add", "Jenkinsfile");
+        sampleRepo.git("commit", "--message=init");
+        sampleRepoSvn.init();
+        sampleRepoSvn.write("Jenkinsfile", "echo('svn library'); readTrusted('Jenkinsfile')");
+        // Copy .git folder from the Git repo into the SVN repo as data.
+        File gitDirInSvnRepo = new File(sampleRepoSvn.wc(), ".git");
+        FileUtils.copyDirectory(new File(sampleRepo.getRoot(), ".git"), gitDirInSvnRepo);
+        String jenkinsRootDir = r.jenkins.getRootDir().toString();
+        // Add a Git post-checkout hook to the .git folder in the SVN repo.
+        Files.write(gitDirInSvnRepo.toPath().resolve("hooks/post-checkout"), ("#!/bin/sh\ntouch '" + jenkinsRootDir + "/hook-executed'\n").getBytes(StandardCharsets.UTF_8));
+        sampleRepoSvn.svnkit("add", sampleRepoSvn.wc() + "/Jenkinsfile");
+        sampleRepoSvn.svnkit("add", sampleRepoSvn.wc() + "/.git");
+        sampleRepoSvn.svnkit("propset", "svn:executable", "ON", sampleRepoSvn.wc() + "/.git/hooks/post-checkout");
+        sampleRepoSvn.svnkit("commit", "--message=init", sampleRepoSvn.wc());
+        // Run a build using the SVN repo.
+        WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+        mp.getSourcesList().add(new BranchSource(new SubversionSCMSource("", sampleRepoSvn.prjUrl())));
+        WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "trunk");
+        r.waitUntilNoActivity();
+        // Run a build using the Git repo. It should be checked out to a different directory than the SVN repo.
+        mp.getSourcesList().clear();
+        mp.getSourcesList().add(new BranchSource(new GitSCMSource("", sampleRepo.toString(), "", "*", "", false)));
+        WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "trunk");
+        r.waitUntilNoActivity();
+        assertThat(p.getLastBuild().getNumber(), equalTo(2));
+        assertThat(new File(r.jenkins.getRootDir(), "hook-executed"), not(anExistingFile()));
+    }
+
+    @Ignore("There are two checkouts, one from CpsScmFlowDefinition and one from ReadTrustedStep. Fixing the former requires an updated version of workflow-cps.")
+    @Issue("SECURITY-2463")
+    @Test public void checkoutDirectoriesAreNotReusedByDifferentScms() throws Exception {
+        SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
+        assumeFalse(Functions.isWindows()); // Checkout hook is not cross-platform.
+        sampleRepo.init();
+        sampleRepo.write("Jenkinsfile", "echo('git library'); readTrusted('Jenkinsfile')");
+        sampleRepo.git("add", "Jenkinsfile");
+        sampleRepo.git("commit", "--message=init");
+        sampleRepoSvn.init();
+        sampleRepoSvn.write("Jenkinsfile", "echo('subversion library'); readTrusted('Jenkinsfile')");
+        // Copy .git folder from the Git repo into the SVN repo as data.
+        File gitDirInSvnRepo = new File(sampleRepoSvn.wc(), ".git");
+        FileUtils.copyDirectory(new File(sampleRepo.getRoot(), ".git"), gitDirInSvnRepo);
+        String jenkinsRootDir = r.jenkins.getRootDir().toString();
+        // Add a Git post-checkout hook to the .git folder in the SVN repo.
+        Files.write(gitDirInSvnRepo.toPath().resolve("hooks/post-checkout"), ("#!/bin/sh\ntouch '" + jenkinsRootDir + "/hook-executed'\n").getBytes(StandardCharsets.UTF_8));
+        sampleRepoSvn.svnkit("add", sampleRepoSvn.wc() + "/Jenkinsfile");
+        sampleRepoSvn.svnkit("add", sampleRepoSvn.wc() + "/.git");
+        sampleRepoSvn.svnkit("propset", "svn:executable", "ON", sampleRepoSvn.wc() + "/.git/hooks/post-checkout");
+        sampleRepoSvn.svnkit("commit", "--message=init", sampleRepoSvn.wc());
+        // Run a build using the SVN repo.
+        WorkflowJob p = r.createProject(WorkflowJob.class);
+        p.setDefinition(new CpsScmFlowDefinition(new SubversionSCM(sampleRepoSvn.trunkUrl()), "Jenkinsfile"));
+        r.buildAndAssertSuccess(p);
+        // Run a build using the Git repo. It should be checked out to a different directory than the SVN repo.
+        p.setDefinition(new CpsScmFlowDefinition(new GitStep(sampleRepo.toString()).createSCM(), "Jenkinsfile"));
+        WorkflowRun b2 = r.buildAndAssertSuccess(p);
+        assertThat(new File(r.jenkins.getRootDir(), "hook-executed"), not(anExistingFile()));
+    }
 }
