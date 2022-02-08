@@ -63,7 +63,7 @@ THE SOFTWARE.
         </pluginRepository>
     </pluginRepositories>
     <properties>
-        <revision>2.24</revision>
+        <revision>2.23.1</revision>
         <changelist>-SNAPSHOT</changelist>
         <java.level>8</java.level>
         <jenkins.version>2.222.4</jenkins.version>
