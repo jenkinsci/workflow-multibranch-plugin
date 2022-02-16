@@ -232,12 +232,13 @@ public class ReadTrustedStepTest {
 
         WorkflowRun b = p.getLastBuild();
         assertEquals(1, b.getNumber());
-        r.assertLogContains("secrets/master.key references a file that is not inside " + r.jenkins.getWorkspaceFor(p).getRemote(), b);
+        r.assertLogContains("master.key references a file that is not inside " + r.jenkins.getWorkspaceFor(p).getRemote(), b);
     }
 
     @Issue("SECURITY-2491")
     @Test
     public void symlinksInReadTrustedCannotEscapeWorkspaceContext() throws Exception {
+        assumeFalse(Functions.isWindows()); // On Windows, the symlink is treated as a regular file, so there is no vulnerability, but the behavior is different.
         SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "node { checkout scm; echo \"${readTrusted 'secrets/master.key'}\"}");
@@ -259,6 +260,7 @@ public class ReadTrustedStepTest {
     @Issue("SECURITY-2491")
     @Test
     public void symlinksInUntrustedRevisionCannotEscapeWorkspace() throws Exception {
+        assumeFalse(Functions.isWindows()); // On Windows, the symlink is treated as a regular file, so there is no vulnerability, but the behavior is different.
         SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "node { checkout scm; echo \"${readTrusted 'secrets/master.key'}\"}");
@@ -286,6 +288,7 @@ public class ReadTrustedStepTest {
     @Issue("SECURITY-2491")
     @Test
     public void symlinksInNonMultibranchCannotEscapeWorkspaceContextViaReadTrusted() throws Exception {
+        assumeFalse(Functions.isWindows()); // On Windows, the symlink is treated as a regular file, so there is no vulnerability, but the behavior is different.
         SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "echo \"${readTrusted 'master.key'}\"");
