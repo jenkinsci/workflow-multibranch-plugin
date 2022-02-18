@@ -248,7 +248,7 @@ public class ReadTrustedStep extends AbstractStepImpl {
             if (child.isRemote() || parent.isRemote()) {
                 throw new IllegalStateException();
             }
-            return new File(child.getRemote()).getCanonicalFile().toPath().startsWith(parent.absolutize().getRemote());
+            return new File(child.getRemote()).getCanonicalFile().toPath().startsWith(new File(parent.getRemote()).getCanonicalPath());
         }
 
         private static final long serialVersionUID = 1L;
