@@ -28,7 +28,7 @@ THE SOFTWARE.
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.33</version>
+        <version>4.40</version>
         <relativePath />
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -45,7 +45,7 @@ THE SOFTWARE.
         </license>
     </licenses>
     <scm>
-        <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
+        <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
         <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
         <url>https://github.com/${gitHubRepo}</url>
         <tag>${scmTag}</tag>
@@ -64,8 +64,7 @@ THE SOFTWARE.
     </pluginRepositories>
     <properties>
         <changelist>999999-SNAPSHOT</changelist>
-        <java.level>8</java.level>
-        <jenkins.version>2.277.4</jenkins.version>
+        <jenkins.version>2.289.1</jenkins.version>
         <no-test-jar>false</no-test-jar>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     </properties>
@@ -73,8 +72,8 @@ THE SOFTWARE.
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.277.x</artifactId>
-                <version>984.vb5eaac999a7e</version>
+                <artifactId>bom-2.289.x</artifactId>
+                <version>1289.v5c4b_1c43511b_</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
