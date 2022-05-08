@@ -38,7 +38,7 @@ dir('main'){
 dir('tests'){
     // this will check if there is a branch with the same name as the current branch in
     // https://example.com/example.git and use that for the checkout, but if there is no
-    // branch with the same name it will fall back to the master branch
+    // branch with the same name it will fall back to the controller branch
     checkout resolveScm(source: git('https://example.com/example.git'), targets: [BRANCH_NAME,'master']
 }
 // rest of pipeline
