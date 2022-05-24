@@ -24,21 +24,26 @@
 
 package org.jenkinsci.plugins.workflow.multibranch;
 
-import hudson.ExtensionList;
-import hudson.model.RootAction;
+import hudson.FilePath;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import java.io.File;
 import java.nio.file.Files;
+import java.util.Arrays;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
+import jenkins.model.Jenkins;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
 import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
-import org.jenkinsci.plugins.workflow.cps.global.WorkflowLibRepository;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.libs.GlobalLibraries;
+import org.jenkinsci.plugins.workflow.libs.LibraryConfiguration;
+import org.jenkinsci.plugins.workflow.libs.LibraryRetriever;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -90,8 +95,12 @@ public class SCMVarTest {
         story.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
                 // Set up a standardJob definition:
-                WorkflowLibRepository repo = ExtensionList.lookup(RootAction.class).get(WorkflowLibRepository.class);
-                File vars = new File(repo.workspace, /*UserDefinedGlobalVariable.PREFIX*/ "vars");
+                File lib = new File(Jenkins.get().getRootDir(), "somelib");
+                LibraryConfiguration cfg = new LibraryConfiguration("somelib", new LocalRetriever(lib));
+                cfg.setImplicit(true);
+                cfg.setDefaultVersion("fixed");
+                GlobalLibraries.get().setLibraries(Arrays.asList(cfg));
+                File vars = new File(lib, "vars");
                 Files.createDirectories(vars.toPath());
                 FileUtils.writeStringToFile(new File(vars, "standardJob.groovy"),
                     "def call(body) {\n" +
@@ -119,6 +128,20 @@ public class SCMVarTest {
                 story.j.assertLogContains("loaded resource content", b);
             }
         });
+    }
+
+    // TODO copied from GrapeTest along with body of libroot(); could make sense as a *-tests.jar utility
+    private static final class LocalRetriever extends LibraryRetriever {
+        private final File lib;
+        LocalRetriever(File lib) {
+            this.lib = lib;
+        }
+        @Override public void retrieve(String name, String version, boolean changelog, FilePath target, Run<?, ?> run, TaskListener listener) throws Exception {
+            new FilePath(lib).copyRecursiveTo(target);
+        }
+        @Override public void retrieve(String name, String version, FilePath target, Run<?, ?> run, TaskListener listener) throws Exception {
+            retrieve(name, version, false, target, run, listener);
+        }
     }
 
     @Issue("JENKINS-31386")
