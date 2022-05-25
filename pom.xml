@@ -64,7 +64,7 @@ THE SOFTWARE.
     </pluginRepositories>
     <properties>
         <changelist>999999-SNAPSHOT</changelist>
-        <jenkins.version>2.303.3</jenkins.version>
+        <jenkins.version>2.289.1</jenkins.version>
         <no-test-jar>false</no-test-jar>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     </properties>
@@ -72,7 +72,7 @@ THE SOFTWARE.
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.303.x</artifactId>
+                <artifactId>bom-2.289.x</artifactId>
                 <version>1289.v5c4b_1c43511b_</version>
                 <scope>import</scope>
                 <type>pom</type>
@@ -139,7 +139,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>io.jenkins.plugins</groupId>
             <artifactId>pipeline-groovy-lib</artifactId>
-            <version>589.vb_a_b_4a_a_8c443c</version> <!-- TODO until in BOM -->
+            <version>591.v3a_7f422b_d058</version> <!-- TODO until in BOM -->
             <scope>test</scope>
         </dependency>
         <dependency>
