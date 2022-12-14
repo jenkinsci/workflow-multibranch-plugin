@@ -29,15 +29,22 @@ import hudson.AbortException;
 import hudson.Extension;
 import hudson.Functions;
 import hudson.model.Action;
+import hudson.model.Cause;
 import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.ItemGroup;
 import hudson.model.Queue;
+import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.scm.SCM;
+import hudson.triggers.SCMTrigger;
+import hudson.triggers.TimerTrigger;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import jenkins.branch.Branch;
+import jenkins.branch.BranchEventCause;
+import jenkins.branch.BranchIndexingCause;
 import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
@@ -46,6 +53,7 @@ import jenkins.scm.api.SCMSource;
 import jenkins.util.SystemProperties;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
+import org.jenkinsci.plugins.workflow.cps.replay.ReplayCause;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinitionDescriptor;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
@@ -102,7 +110,7 @@ class SCMBinder extends FlowDefinition {
         SCM scm;
         if (tip != null) {
             build.addAction(new SCMRevisionAction(scmSource, tip));
-            SCMRevision rev = scmSource.getTrustedRevision(tip, listener);
+            SCMRevision rev = getTrustedRevision(scmSource, tip, listener, build);
             try (SCMFileSystem fs = USE_HEAVYWEIGHT_CHECKOUT ? null : SCMFileSystem.of(scmSource, head, rev)) {
                 if (fs != null) { // JENKINS-33273
                     String script = null;
@@ -141,6 +149,24 @@ class SCMBinder extends FlowDefinition {
             scm = branch.getScm();
         }
         return new CpsScmFlowDefinition(scm, scriptPath).create(handle, listener, actions);
+    }
+
+    private static Set<Class<? extends Cause>> passiveCauses = Set.of(
+        BranchIndexingCause.class,
+        BranchEventCause.class,
+        SCMTrigger.SCMTriggerCause.class,
+        TimerTrigger.TimerTriggerCause.class);
+    /**
+     * Like {@link SCMSource#getTrustedRevision} but only for builds with known passive triggers such as {@link BranchIndexingCause}.
+     * Other causes such as {@link Cause.UserIdCause} or {@link ReplayCause} or {@code CheckRunGHEventSubscriber.GitHubChecksRerunActionCause}
+     * are assumed trusted and so the tip revision is returned as is without consulting the SCM.
+     */
+    static SCMRevision getTrustedRevision(SCMSource source, SCMRevision revision, TaskListener listener, Run<?, ?> build) throws IOException, InterruptedException {
+        if (build.getCauses().stream().anyMatch(c -> passiveCauses.stream().anyMatch(t -> t.isInstance(c)))) {
+            return source.getTrustedRevision(revision, listener);
+        } else {
+            return revision;
+        }
     }
 
     @Extension public static class DescriptorImpl extends FlowDefinitionDescriptor {

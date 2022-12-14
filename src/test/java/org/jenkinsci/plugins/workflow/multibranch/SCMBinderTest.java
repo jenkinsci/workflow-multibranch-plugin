@@ -27,6 +27,8 @@ package org.jenkinsci.plugins.workflow.multibranch;
 import com.cloudbees.hudson.plugins.folder.computed.DefaultOrphanedItemStrategy;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
+import hudson.model.Cause;
+import hudson.model.CauseAction;
 import hudson.model.Item;
 import hudson.model.Result;
 import hudson.model.TaskListener;
@@ -235,6 +237,7 @@ public class SCMBinderTest {
         assertEquals(1, mp.getItems().size());
     }
 
+    @Issue("JENKINS-46795")
     @Test public void untrustedRevisions() throws Exception {
         sampleGitRepo.init();
         String masterJenkinsfile = "node {checkout scm; echo readFile('file')}";
@@ -255,7 +258,6 @@ public class SCMBinderTest {
         String branch = "some-other-branch-from-Norway";
         sampleGitRepo.git("checkout", "-b", branch);
         sampleGitRepo.write("Jenkinsfile", "error 'ALL YOUR BUILD STEPS ARE BELONG TO US'");
-        sampleGitRepo.write("file", "subsequent content");
         sampleGitRepo.git("commit", "--all", "--message=big evil laugh");
         p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, branch);
         r.waitUntilNoActivity();
@@ -268,7 +270,13 @@ public class SCMBinderTest {
         r.assertLogContains("not trusting", b);
         SCMBinder.IGNORE_UNTRUSTED_EDITS = true;
         try {
-            b = r.buildAndAssertSuccess(p);
+            sampleGitRepo.write("file", "subsequent content");
+            sampleGitRepo.git("commit", "--all", "--message=edits");
+            p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, branch);
+            r.waitUntilNoActivity();
+            b = p.getLastBuild();
+            assertNotNull(b);
+            assertEquals(2, b.getNumber());
             r.assertLogContains("subsequent content", b);
             r.assertLogContains("not trusting", b);
         } finally {
@@ -276,9 +284,28 @@ public class SCMBinderTest {
         }
         sampleGitRepo.write("Jenkinsfile", masterJenkinsfile);
         sampleGitRepo.git("commit", "--all", "--message=meekly submitting");
-        b = r.buildAndAssertSuccess(p);
+        p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, branch);
+        r.waitUntilNoActivity();
+        b = p.getLastBuild();
+        assertNotNull(b);
+        assertEquals(3, b.getNumber());
         r.assertLogContains("subsequent content", b);
         r.assertLogContains("not trusting", b);
+        sampleGitRepo.write("Jenkinsfile", "node {checkout scm; echo readTrusted('file').toUpperCase()}");
+        sampleGitRepo.git("commit", "--all", "--message=changes to be approved");
+        p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, branch);
+        r.waitUntilNoActivity();
+        b = p.getLastBuild();
+        assertNotNull(b);
+        assertEquals(4, b.getNumber());
+        r.assertBuildStatus(Result.FAILURE, b);
+        r.assertLogContains(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis("Jenkinsfile"), b);
+        r.assertLogContains("not trusting", b);
+        b = p.scheduleBuild2(0, new CauseAction(new Cause.UserIdCause())).get();
+        assertEquals(5, b.getNumber());
+        r.assertBuildStatusSuccess(b);
+        r.assertLogContains("SUBSEQUENT CONTENT", b);
+        r.assertLogNotContains("not trusting", b);
     }
     public static class WarySource extends GitSCMSource {
         public WarySource(String id, String remote, String credentialsId, String includes, String excludes, boolean ignoreOnPushNotifications) {
