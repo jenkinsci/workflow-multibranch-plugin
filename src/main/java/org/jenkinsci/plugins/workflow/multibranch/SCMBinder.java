@@ -34,6 +34,7 @@ import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.ItemGroup;
 import hudson.model.Queue;
+import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.scm.SCM;
@@ -134,6 +135,7 @@ class SCMBinder extends FlowDefinition {
                                     listener.error("Could not compare lightweight checkout of trusted revision").println(Functions.printThrowable(x).trim());
                                 }
                                 if (tipScript != null && !script.equals(tipScript)) {
+                                    build.setResult(Result.NOT_BUILT);
                                     throw new AbortException(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis(scriptPath));
                                 }
                             }

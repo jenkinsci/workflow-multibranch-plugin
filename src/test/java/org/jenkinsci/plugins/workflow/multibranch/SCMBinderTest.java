@@ -265,7 +265,7 @@ public class SCMBinderTest {
         assertNotNull(b);
         assertEquals(1, b.getNumber());
         assertRevisionAction(b);
-        r.assertBuildStatus(Result.FAILURE, b);
+        r.assertBuildStatus(Result.NOT_BUILT, b);
         r.assertLogContains(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis("Jenkinsfile"), b);
         r.assertLogContains("not trusting", b);
         SCMBinder.IGNORE_UNTRUSTED_EDITS = true;
@@ -298,7 +298,7 @@ public class SCMBinderTest {
         b = p.getLastBuild();
         assertNotNull(b);
         assertEquals(4, b.getNumber());
-        r.assertBuildStatus(Result.FAILURE, b);
+        r.assertBuildStatus(Result.NOT_BUILT, b);
         r.assertLogContains(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis("Jenkinsfile"), b);
         r.assertLogContains("not trusting", b);
         b = p.scheduleBuild2(0, new CauseAction(new Cause.UserIdCause())).get();
