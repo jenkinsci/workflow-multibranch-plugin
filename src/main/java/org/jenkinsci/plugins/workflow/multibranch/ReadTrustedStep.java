@@ -177,7 +177,7 @@ public class ReadTrustedStep extends AbstractStepImpl {
                 }
                 build.addAction(new SCMRevisionAction(scmSource, tip));
             }
-            SCMRevision trusted = SCMBinder.getTrustedRevision(scmSource, tip, listener, build);
+            SCMRevision trusted = scmSource.getTrustedRevisionForBuild(tip, listener, build);
             boolean trustCheck = !tip.equals(trusted);
             String untrustedFile = null;
             String content;
