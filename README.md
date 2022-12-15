@@ -1,9 +1,5 @@
 # Pipeline: Multibranch
 
-[![Jenkins Plugin](https://img.shields.io/jenkins/plugin/v/workflow-multibranch)](https://plugins.jenkins.io/workflow-multibranch)
-[![Changelog](https://img.shields.io/github/v/tag/jenkinsci/workflow-multibranch-plugin?label=changelog)](https://github.com/jenkinsci/workflow-multibranch-plugin/blob/master/CHANGELOG.md)
-[![Jenkins Plugin Installs](https://img.shields.io/jenkins/plugin/i/workflow-multibranch?color=blue)](https://plugins.jenkins.io/workflow-multibranch)
-
 ## Introduction
 
 Enhances Pipeline plugin to handle branches better by automatically
@@ -24,4 +20,5 @@ To determine the branch being built - use the environment variable
 
 ## Version History
 
-See [the changelog](CHANGELOG.md).
+For version 2.23 and beyond, see the [GitHub releases](https://github.com/jenkinsci/workflow-multibranch-plugin/releases) list.
+For older versions, see the [archive](https://github.com/jenkinsci/workflow-multibranch-plugin/blob/2e067658d86895c4c22005c4022cca53f65f98c1/CHANGELOG.md).
