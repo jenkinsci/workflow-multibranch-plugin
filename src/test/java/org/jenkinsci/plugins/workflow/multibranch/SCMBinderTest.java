@@ -35,6 +35,7 @@ import hudson.model.TaskListener;
 import hudson.model.User;
 import hudson.plugins.git.util.BuildData;
 import hudson.scm.ChangeLogSet;
+import hudson.security.ACL;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
@@ -70,6 +71,7 @@ import org.junit.Rule;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 public class SCMBinderTest {
 
@@ -241,6 +243,11 @@ public class SCMBinderTest {
 
     @Issue("JENKINS-46795")
     @Test public void untrustedRevisions() throws Exception {
+        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().
+            grant(Jenkins.READ, Item.READ).everywhere().toAuthenticated().
+            grant(Item.BUILD).everywhere().to("alice").
+            grant(Item.BUILD, Item.CONFIGURE).everywhere().to("bob"));
         sampleGitRepo.init();
         String masterJenkinsfile = "node {checkout scm; echo readFile('file')}";
         sampleGitRepo.write("Jenkinsfile", masterJenkinsfile);
@@ -288,10 +295,21 @@ public class SCMBinderTest {
         r.assertBuildStatus(Result.NOT_BUILT, b);
         r.assertLogContains(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis("Jenkinsfile"), b);
         r.assertLogContains("not trusting", b);
-        b = p.scheduleBuild2(0, new CauseAction(new Cause.UserIdCause())).get();
+        try (var ctx = ACL.as(User.getById("alice", true))) {
+            b = p.scheduleBuild2(0, new CauseAction(new Cause.UserIdCause())).get();
+        }
         assertEquals(5, b.getNumber());
+        r.assertBuildStatus(Result.NOT_BUILT, b);
+        r.assertLogContains(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis("Jenkinsfile"), b);
+        r.assertLogContains("Not trusting build since user ‘alice’ lacks Run/Replay permission", b);
+        r.assertLogContains("not trusting", b);
+        try (var ctx = ACL.as(User.getById("bob", true))) {
+            b = p.scheduleBuild2(0, new CauseAction(new Cause.UserIdCause())).get();
+        }
+        assertEquals(6, b.getNumber());
         r.assertBuildStatusSuccess(b);
         r.assertLogContains("SUBSEQUENT CONTENT", b);
+        r.assertLogContains("Trusting build since it was started by user ‘bob’", b);
         r.assertLogNotContains("not trusting", b);
     }
     public static class WarySource extends GitSCMSource {
