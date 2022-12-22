@@ -57,12 +57,14 @@ import static org.hamcrest.Matchers.*;
 
 import jenkins.scm.impl.subversion.SubversionSampleRepoRule;
 import org.acegisecurity.Authentication;
+import static org.awaitility.Awaitility.await;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.jvnet.hudson.test.BuildWatcher;
@@ -75,6 +77,10 @@ public class SCMBinderTest {
     @Rule public JenkinsRule r = new JenkinsRule();
     @Rule public GitSampleRepoRule sampleGitRepo = new GitSampleRepoRule();
     @Rule public SubversionSampleRepoRule sampleSvnRepo = new SubversionSampleRepoRule();
+
+    @Before public void runImmediately() throws Exception {
+        r.jenkins.setQuietPeriod(0);
+    }
 
     @Test public void exactRevisionGit() throws Exception {
         sampleGitRepo.init();
@@ -184,9 +190,7 @@ public class SCMBinderTest {
         mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false)));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
         assertEquals(1, mp.getItems().size());
-        r.waitUntilNoActivity();
-        WorkflowRun b1 = p.getLastBuild();
-        assertEquals(1, b1.getNumber());
+        WorkflowRun b1 = await().until(p::getLastCompletedBuild, lb -> lb != null && lb.getNumber() == 1);
         sampleGitRepo.git("rm", "Jenkinsfile");
         sampleGitRepo.git("commit", "--all", "--message=remove");
         WorkflowRun b2 = r.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get());
@@ -211,9 +215,7 @@ public class SCMBinderTest {
         mp.setOrphanedItemStrategy(new DefaultOrphanedItemStrategy(false, "", ""));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "feature");
         assertEquals(2, mp.getItems().size());
-        r.waitUntilNoActivity();
-        WorkflowRun b1 = p.getLastBuild();
-        assertEquals(1, b1.getNumber());
+        WorkflowRun b1 = await().until(p::getLastCompletedBuild, lb -> lb != null && lb.getNumber() == 1);
         Authentication auth = User.getById("dev", true).impersonate();
         assertFalse(p.getACL().hasPermission(auth, Item.DELETE));
         assertTrue(p.isBuildable());
@@ -248,10 +250,7 @@ public class SCMBinderTest {
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
         mp.getSourcesList().add(new BranchSource(new WarySource(null, sampleGitRepo.toString(), "", "*", "", false)));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
-        r.waitUntilNoActivity();
-        WorkflowRun b = p.getLastBuild();
-        assertNotNull(b);
-        assertEquals(1, b.getNumber());
+        WorkflowRun b = await().until(p::getLastCompletedBuild, lb -> lb != null && lb.getNumber() == 1);
         assertRevisionAction(b);
         r.assertBuildStatusSuccess(b);
         r.assertLogContains("initial content", b);
@@ -260,10 +259,7 @@ public class SCMBinderTest {
         sampleGitRepo.write("Jenkinsfile", "error 'ALL YOUR BUILD STEPS ARE BELONG TO US'");
         sampleGitRepo.git("commit", "--all", "--message=big evil laugh");
         p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, branch);
-        r.waitUntilNoActivity();
-        b = p.getLastBuild();
-        assertNotNull(b);
-        assertEquals(1, b.getNumber());
+        b = await().until(p::getLastCompletedBuild, lb -> lb != null && lb.getNumber() == 1);
         assertRevisionAction(b);
         r.assertBuildStatus(Result.NOT_BUILT, b);
         r.assertLogContains(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis("Jenkinsfile"), b);
@@ -273,10 +269,7 @@ public class SCMBinderTest {
             sampleGitRepo.write("file", "subsequent content");
             sampleGitRepo.git("commit", "--all", "--message=edits");
             p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, branch);
-            r.waitUntilNoActivity();
-            b = p.getLastBuild();
-            assertNotNull(b);
-            assertEquals(2, b.getNumber());
+            b = await().until(p::getLastCompletedBuild, lb -> lb != null && lb.getNumber() == 2);
             r.assertLogContains("subsequent content", b);
             r.assertLogContains("not trusting", b);
         } finally {
@@ -285,19 +278,13 @@ public class SCMBinderTest {
         sampleGitRepo.write("Jenkinsfile", masterJenkinsfile);
         sampleGitRepo.git("commit", "--all", "--message=meekly submitting");
         p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, branch);
-        r.waitUntilNoActivity();
-        b = p.getLastBuild();
-        assertNotNull(b);
-        assertEquals(3, b.getNumber());
+        b = await().until(p::getLastCompletedBuild, lb -> lb != null && lb.getNumber() == 3);
         r.assertLogContains("subsequent content", b);
         r.assertLogContains("not trusting", b);
         sampleGitRepo.write("Jenkinsfile", "node {checkout scm; echo readTrusted('file').toUpperCase()}");
         sampleGitRepo.git("commit", "--all", "--message=changes to be approved");
         p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, branch);
-        r.waitUntilNoActivity();
-        b = p.getLastBuild();
-        assertNotNull(b);
-        assertEquals(4, b.getNumber());
+        b = await().until(p::getLastCompletedBuild, lb -> lb != null && lb.getNumber() == 4);
         r.assertBuildStatus(Result.NOT_BUILT, b);
         r.assertLogContains(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis("Jenkinsfile"), b);
         r.assertLogContains("not trusting", b);
