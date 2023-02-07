@@ -26,9 +26,12 @@ package org.jenkinsci.plugins.workflow.multibranch;
 
 import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.ExtensionList;
+import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Item;
 import hudson.model.Queue;
+import hudson.model.TopLevelItem;
 import hudson.model.listeners.ItemListener;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.ChangeLogParser;
@@ -57,6 +60,8 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.impl.SingleSCMSource;
 import static org.hamcrest.Matchers.*;
+
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import static org.junit.Assert.*;
@@ -265,6 +270,18 @@ public class WorkflowMultiBranchProjectTest {
         assertEquals(1, b2.getNumber());
         r.assertLogContains("ALTERNATIVE CONTENT", b2);
         r.assertLogContains("branch=feature2", b2);
+    }
+
+    @Test public void getProjectClassBySymbol(){
+        Descriptor descriptor = ExtensionList.lookup(Descriptor.class).stream().filter(d -> {
+            Symbol annotation = d.getClass().getAnnotation(Symbol.class);
+            if (annotation == null) {
+                return false;
+            }
+            return Arrays.asList(annotation.value()).contains("multibranch");
+        }).findFirst().orElse(null);
+
+        assertNotNull(descriptor);
     }
 
 }
