@@ -57,7 +57,6 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.impl.SingleSCMSource;
 import static org.hamcrest.Matchers.*;
-
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import static org.junit.Assert.*;
@@ -267,4 +266,5 @@ public class WorkflowMultiBranchProjectTest {
         r.assertLogContains("ALTERNATIVE CONTENT", b2);
         r.assertLogContains("branch=feature2", b2);
     }
+
 }
