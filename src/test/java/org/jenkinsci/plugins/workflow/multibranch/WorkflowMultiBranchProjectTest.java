@@ -26,8 +26,6 @@ package org.jenkinsci.plugins.workflow.multibranch;
 
 import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.ExtensionList;
-import hudson.model.Descriptor;
 import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Item;
 import hudson.model.Queue;
@@ -60,7 +58,6 @@ import jenkins.scm.api.SCMSource;
 import jenkins.scm.impl.SingleSCMSource;
 import static org.hamcrest.Matchers.*;
 
-import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import static org.junit.Assert.*;
