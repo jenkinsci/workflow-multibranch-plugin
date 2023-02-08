@@ -134,7 +134,7 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
                 strategy != null ? strategy.getPropertiesFor(head) : Collections.emptyList()));
     }
 
-    @Extension(ordinal = 1000) @Symbol({"multibranch"})
+    @Extension @Symbol({"multibranch"})
     public static class DescriptorImpl extends MultiBranchProjectDescriptor implements IconSpec {
 
         @NonNull

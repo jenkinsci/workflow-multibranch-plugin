@@ -270,17 +270,4 @@ public class WorkflowMultiBranchProjectTest {
         r.assertLogContains("ALTERNATIVE CONTENT", b2);
         r.assertLogContains("branch=feature2", b2);
     }
-
-    @Test public void getProjectClassBySymbol(){
-        Descriptor descriptor = ExtensionList.lookup(Descriptor.class).stream().filter(d -> {
-            Symbol annotation = d.getClass().getAnnotation(Symbol.class);
-            if (annotation == null) {
-                return false;
-            }
-            return Arrays.asList(annotation.value()).contains("multibranch");
-        }).findFirst().orElse(null);
-
-        assertNotNull(descriptor);
-    }
-
 }
