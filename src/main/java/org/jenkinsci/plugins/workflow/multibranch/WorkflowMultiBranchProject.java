@@ -54,6 +54,7 @@ import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.workflow.cps.Snippetizer;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -133,7 +134,8 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
                 strategy != null ? strategy.getPropertiesFor(head) : Collections.emptyList()));
     }
 
-    @Extension public static class DescriptorImpl extends MultiBranchProjectDescriptor implements IconSpec {
+    @Extension @Symbol({"multibranch"})
+    public static class DescriptorImpl extends MultiBranchProjectDescriptor implements IconSpec {
 
         @NonNull
         @Override public String getDisplayName() {
