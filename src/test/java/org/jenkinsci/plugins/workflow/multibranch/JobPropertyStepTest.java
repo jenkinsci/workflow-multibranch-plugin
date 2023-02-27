@@ -53,6 +53,7 @@ import jenkins.model.BuildDiscarderProperty;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitBranchSCMHead;
 import jenkins.plugins.git.GitSampleRepoRule;
+import jenkins.plugins.git.traits.BranchDiscoveryTrait;
 import jenkins.triggers.ReverseBuildTrigger;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
@@ -79,6 +80,7 @@ import static org.junit.Assert.*;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
@@ -229,6 +231,32 @@ public class JobPropertyStepTest {
         WorkflowRun b9 = r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new StringParameterValue("select", "bar", ""))));
         assertEquals(9, b9.getNumber());
         r.assertLogContains("value bar", b9);
+    }
+
+    @Ignore("TODO does not currently work; b2 says subsequently received #1")
+    @Issue("JENKINS-70680")
+    @Test public void changingParameterDefault() throws Exception {
+        sampleRepo.init();
+        sampleRepo.write("Jenkinsfile", "properties([parameters([string(name: 'x', defaultValue: '#1')])]); echo(/initially received $params.x/)");
+        sampleRepo.git("add", "Jenkinsfile");
+        sampleRepo.git("commit", "--message=1");
+        WorkflowMultiBranchProject mp = r.createProject(WorkflowMultiBranchProject.class, "mp");
+        GitSCMSource source = new GitSCMSource(sampleRepo.toString());
+        source.setTraits(List.of(new BranchDiscoveryTrait()));
+        mp.getSourcesList().add(new BranchSource(source));
+        WorkflowJob p = scheduleAndFindBranchProject(mp, "master");
+        assertEquals(1, mp.getItems().size());
+        r.waitUntilNoActivity();
+        WorkflowRun b1 = p.getLastBuild();
+        assertEquals(1, b1.getNumber());
+        r.assertLogContains("initially received #1", b1);
+        sampleRepo.write("Jenkinsfile", "properties([parameters([string(name: 'x', defaultValue: '#2')])]); echo(/subsequently received $params.x/)");
+        sampleRepo.git("commit", "--all", "--message=2");
+        scheduleAndFindBranchProject(mp, "master");
+        r.waitUntilNoActivity();
+        WorkflowRun b2 = p.getLastBuild();
+        assertEquals(2, b2.getNumber());
+        r.assertLogContains("subsequently received #2", b2);
     }
 
     @Issue({"JENKINS-27295", "https://www.jenkins.io/security/advisory/2016-05-11/#arbitrary-build-parameters-are-passed-to-build-scripts-as-environment-variables"})
