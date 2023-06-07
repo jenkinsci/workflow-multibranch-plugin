@@ -28,7 +28,7 @@ THE SOFTWARE.
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.63</version>
+        <version>4.66</version>
         <relativePath/>
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -63,7 +63,7 @@ THE SOFTWARE.
     </pluginRepositories>
     <properties>
         <changelist>999999-SNAPSHOT</changelist>
-        <jenkins.version>2.361.4</jenkins.version>
+        <jenkins.version>2.387.3</jenkins.version>
         <no-test-jar>false</no-test-jar>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     </properties>
@@ -71,8 +71,8 @@ THE SOFTWARE.
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.361.x</artifactId>
-                <version>1883.vcb_768a_7c3610</version>
+                <artifactId>bom-2.387.x</artifactId>
+                <version>2143.ve4c3c9ec790a</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -94,6 +94,15 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-cps</artifactId>
+            <!-- TODO: Remove version declaration when workflow-cps plugin 3691.v28b_14c465a_b_b_ or newer is in plugin BOM -->
+            <version>3691.v28b_14c465a_b_b_</version>
+            <!-- TODO: Remove exclusion when workflow-cps plugin 3691.v28b_14c465a_b_b_ or newer is in plugin BOM -->
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jenkins-ci.plugins</groupId>
+                    <artifactId>git</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -157,11 +166,22 @@ THE SOFTWARE.
             <artifactId>workflow-cps</artifactId>
             <classifier>tests</classifier>
             <scope>test</scope>
+            <!-- TODO: Remove version declaration when workflow-cps plugin 3691.v28b_14c465a_b_b_ or newer is in plugin BOM -->
+            <version>3691.v28b_14c465a_b_b_</version>
+            <!-- TODO: Remove exclusion when workflow-cps plugin 3691.v28b_14c465a_b_b_ or newer is in plugin BOM -->
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jenkins-ci.plugins</groupId>
+                    <artifactId>git</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
             <scope>test</scope>
+            <!-- TODO: Remove version declaration when git plugin 5.1.0 or newer is in plugin BOM -->
+            <version>5.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -183,6 +203,8 @@ THE SOFTWARE.
             <artifactId>git</artifactId>
             <classifier>tests</classifier>
             <scope>test</scope>
+            <!-- TODO: Remove version declaration when git plugin 5.1.0 or newer is in plugin BOM -->
+            <version>5.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
