@@ -63,7 +63,7 @@ THE SOFTWARE.
     </pluginRepositories>
     <properties>
         <changelist>999999-SNAPSHOT</changelist>
-        <jenkins.version>2.401.3</jenkins.version>
+        <jenkins.version>2.387.3</jenkins.version>
         <no-test-jar>false</no-test-jar>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     </properties>
