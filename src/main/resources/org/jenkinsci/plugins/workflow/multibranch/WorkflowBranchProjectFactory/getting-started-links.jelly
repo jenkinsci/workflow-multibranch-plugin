@@ -4,7 +4,7 @@
         <a href="https://www.jenkins.io/doc/book/pipeline/" class="content-block__link content-block__help-link">
             <span>Creating a Jenkins Pipeline</span>
             <span class="trailing-icon">
-                <l:svgIcon class="icon-sm" href="${imagesURL}/material-icons/svg-sprite-content-symbol.svg#ic_link_24px" />
+                <l:icon class="icon-sm" src="symbol-link-outline plugin-ionicons-api" />
             </span>
         </a>
     </li>
@@ -12,7 +12,7 @@
         <a href="https://www.jenkins.io/doc/book/pipeline/multibranch/" class="content-block__link content-block__help-link">
             <span>Creating Multibranch Projects</span>
             <span class="trailing-icon">
-                <l:svgIcon class="icon-sm" href="${imagesURL}/material-icons/svg-sprite-content-symbol.svg#ic_link_24px" />
+                <l:icon class="icon-sm" src="symbol-link-outline plugin-ionicons-api" />
             </span>
         </a>
     </li>
