@@ -41,7 +41,7 @@ import hudson.slaves.WorkspaceList;
 
 import java.io.File;
 import java.io.IOException;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import jenkins.branch.Branch;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMFileSystem;
