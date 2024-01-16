@@ -41,7 +41,7 @@ import hudson.slaves.WorkspaceList;
 
 import java.io.File;
 import java.io.IOException;
-import jakarta.inject.Inject;
+import java.util.Set;
 import jenkins.branch.Branch;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMFileSystem;
@@ -54,10 +54,11 @@ import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.steps.LoadStepExecution;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousNonBlockingStepExecution;
-import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
+import org.jenkinsci.plugins.workflow.steps.Step;
+import org.jenkinsci.plugins.workflow.steps.StepContext;
+import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
+import org.jenkinsci.plugins.workflow.steps.StepExecution;
+import org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution;
 import org.jenkinsci.plugins.workflow.steps.scm.GenericSCMStep;
 import org.jenkinsci.plugins.workflow.steps.scm.SCMStep;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -69,7 +70,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * May be used in combination with {@code evaluate} to delegate to more Pipeline Groovy, as a substitute for {@link SCMBinder},
  * at least until {@link LoadStepExecution} has been split into an abstract part that a {@code loadTrusted} step could extend.
  */
-public class ReadTrustedStep extends AbstractStepImpl {
+public class ReadTrustedStep extends Step {
 
     // Intentionally using the same key as CpsScmFlowDefinition.
     private static final HMACConfidentialKey CHECKOUT_DIR_KEY = new HMACConfidentialKey(CpsScmFlowDefinition.class, "filePathWithSuffix", 32);
@@ -85,13 +86,22 @@ public class ReadTrustedStep extends AbstractStepImpl {
         return path;
     }
 
-    public static class Execution extends AbstractSynchronousNonBlockingStepExecution<String> {
+    @Override public StepExecution start(StepContext context) throws Exception {
+        return new Execution(this, context);
+    }
 
-        @Inject private transient ReadTrustedStep step;
-        @StepContextParameter private transient Run<?,?> build;
-        @StepContextParameter private transient TaskListener listener;
+    public static class Execution extends SynchronousNonBlockingStepExecution<String> {
+
+        private transient final ReadTrustedStep step;
+
+        Execution(ReadTrustedStep step, StepContext context) {
+            super(context);
+            this.step = step;
+        }
 
         @Override protected String run() throws Exception {
+            Run<?,?> build = getContext().get(Run.class);
+            TaskListener listener = getContext().get(TaskListener.class);
             Job<?, ?> job = build.getParent();
             // Portions adapted from SCMBinder, SCMVar, and CpsScmFlowDefinition:
             SCM standaloneSCM = null;
@@ -253,11 +263,7 @@ public class ReadTrustedStep extends AbstractStepImpl {
 
     }
 
-    @Extension public static class DescriptorImpl extends AbstractStepDescriptorImpl {
-
-        public DescriptorImpl() {
-            super(Execution.class);
-        }
+    @Extension public static class DescriptorImpl extends StepDescriptor {
 
         @Override public String getFunctionName() {
             return "readTrusted";
@@ -266,6 +272,10 @@ public class ReadTrustedStep extends AbstractStepImpl {
         @NonNull
         @Override public String getDisplayName() {
             return "Read trusted file from SCM";
+        }
+
+        @Override public Set<? extends Class<?>> getRequiredContext() {
+            return Set.of(Run.class, TaskListener.class);
         }
 
     }

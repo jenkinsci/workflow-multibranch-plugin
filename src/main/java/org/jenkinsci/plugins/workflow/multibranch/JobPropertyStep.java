@@ -44,7 +44,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jakarta.inject.Inject;
 
 import hudson.model.TaskListener;
 import jenkins.branch.BuildRetentionBranchProperty;
@@ -56,11 +55,11 @@ import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
 import org.jenkinsci.plugins.workflow.graphanalysis.NodeStepTypePredicate;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractSynchronousStepExecution;
 import org.jenkinsci.plugins.workflow.steps.Step;
-import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
+import org.jenkinsci.plugins.workflow.steps.StepContext;
+import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
+import org.jenkinsci.plugins.workflow.steps.StepExecution;
+import org.jenkinsci.plugins.workflow.steps.SynchronousStepExecution;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -70,7 +69,7 @@ import org.kohsuke.stapler.StaplerRequest;
  * Resets the properties of the current job.
  */
 @SuppressWarnings({"unchecked", "rawtypes"}) // TODO JENKINS-26535: cannot bind List<JobProperty<?>>
-public class JobPropertyStep extends AbstractStepImpl {
+public class JobPropertyStep extends Step {
 
     private final List<JobProperty> properties;
 
@@ -88,14 +87,23 @@ public class JobPropertyStep extends AbstractStepImpl {
         return Descriptor.toMap((List) properties);
     }
 
-    public static class Execution extends AbstractSynchronousStepExecution<Void> {
+    @Override public StepExecution start(StepContext context) throws Exception {
+        return new Execution(this, context);
+    }
 
-        @Inject transient JobPropertyStep step;
-        @StepContextParameter transient Run<?,?> build;
-        @StepContextParameter transient TaskListener l;
+    public static class Execution extends SynchronousStepExecution<Void> {
+
+        private transient final JobPropertyStep step;
+
+        Execution(JobPropertyStep step, StepContext context) {
+            super(context);
+            this.step = step;
+        }
 
         @SuppressWarnings("unchecked") // untypable
         @Override protected Void run() throws Exception {
+            Run<?,?> build = getContext().get(Run.class);
+            TaskListener l = getContext().get(TaskListener.class);
             Job<?,?> job = build.getParent();
 
             JobPropertyTrackerAction previousAction = job.getAction(JobPropertyTrackerAction.class);
@@ -162,11 +170,7 @@ public class JobPropertyStep extends AbstractStepImpl {
 
     }
 
-    @Extension public static class DescriptorImpl extends AbstractStepDescriptorImpl {
-
-        public DescriptorImpl() {
-            super(Execution.class);
-        }
+    @Extension public static class DescriptorImpl extends StepDescriptor {
 
         @Override public String getFunctionName() {
             return "properties";
@@ -175,6 +179,10 @@ public class JobPropertyStep extends AbstractStepImpl {
         @NonNull
         @Override public String getDisplayName() {
             return "Set job properties";
+        }
+
+        @Override public Set<? extends Class<?>> getRequiredContext() {
+            return Set.of(Run.class, TaskListener.class);
         }
 
         @Override public Step newInstance(@NonNull StaplerRequest req, @NonNull JSONObject formData) throws FormException {
