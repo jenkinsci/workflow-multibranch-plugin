@@ -45,7 +45,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import hudson.model.TaskListener;
 import jenkins.branch.BuildRetentionBranchProperty;
 import jenkins.branch.RateLimitBranchProperty;
 import jenkins.model.Jenkins;
@@ -103,7 +102,6 @@ public class JobPropertyStep extends Step {
         @SuppressWarnings("unchecked") // untypable
         @Override protected Void run() throws Exception {
             Run<?,?> build = getContext().get(Run.class);
-            TaskListener l = getContext().get(TaskListener.class);
             Job<?,?> job = build.getParent();
 
             JobPropertyTrackerAction previousAction = job.getAction(JobPropertyTrackerAction.class);
@@ -182,7 +180,7 @@ public class JobPropertyStep extends Step {
         }
 
         @Override public Set<? extends Class<?>> getRequiredContext() {
-            return Set.of(Run.class, TaskListener.class);
+            return Set.of(Run.class);
         }
 
         @Override public Step newInstance(@NonNull StaplerRequest req, @NonNull JSONObject formData) throws FormException {
