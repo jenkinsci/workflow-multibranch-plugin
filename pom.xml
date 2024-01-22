@@ -76,6 +76,11 @@ THE SOFTWARE.
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
+            <dependency>
+                <groupId>org.jenkins-ci.plugins</groupId>
+                <artifactId>scm-api</artifactId>
+                <version>636.veb_e3d6f5b_820</version> <!-- TODO https://github.com/jenkinsci/scm-api-plugin/pull/180 -->
+            </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>
@@ -224,6 +229,12 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>4.2.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

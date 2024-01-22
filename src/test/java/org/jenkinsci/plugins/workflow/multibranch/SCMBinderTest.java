@@ -27,12 +27,15 @@ package org.jenkinsci.plugins.workflow.multibranch;
 import com.cloudbees.hudson.plugins.folder.computed.DefaultOrphanedItemStrategy;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
+import hudson.model.Cause;
+import hudson.model.CauseAction;
 import hudson.model.Item;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.User;
 import hudson.plugins.git.util.BuildData;
 import hudson.scm.ChangeLogSet;
+import hudson.security.ACL;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
@@ -55,17 +58,20 @@ import static org.hamcrest.Matchers.*;
 
 import jenkins.scm.impl.subversion.SubversionSampleRepoRule;
 import org.acegisecurity.Authentication;
+import static org.awaitility.Awaitility.await;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
 
 public class SCMBinderTest {
 
@@ -73,6 +79,10 @@ public class SCMBinderTest {
     @Rule public JenkinsRule r = new JenkinsRule();
     @Rule public GitSampleRepoRule sampleGitRepo = new GitSampleRepoRule();
     @Rule public SubversionSampleRepoRule sampleSvnRepo = new SubversionSampleRepoRule();
+
+    @Before public void runImmediately() throws Exception {
+        r.jenkins.setQuietPeriod(0);
+    }
 
     @Test public void exactRevisionGit() throws Exception {
         sampleGitRepo.init();
@@ -182,9 +192,7 @@ public class SCMBinderTest {
         mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false)));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
         assertEquals(1, mp.getItems().size());
-        r.waitUntilNoActivity();
-        WorkflowRun b1 = p.getLastBuild();
-        assertEquals(1, b1.getNumber());
+        WorkflowRun b1 = await().until(p::getLastCompletedBuild, lb -> lb != null && lb.getNumber() == 1);
         sampleGitRepo.git("rm", "Jenkinsfile");
         sampleGitRepo.git("commit", "--all", "--message=remove");
         WorkflowRun b2 = r.assertBuildStatus(Result.FAILURE, p.scheduleBuild2(0).get());
@@ -209,9 +217,7 @@ public class SCMBinderTest {
         mp.setOrphanedItemStrategy(new DefaultOrphanedItemStrategy(false, "", ""));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "feature");
         assertEquals(2, mp.getItems().size());
-        r.waitUntilNoActivity();
-        WorkflowRun b1 = p.getLastBuild();
-        assertEquals(1, b1.getNumber());
+        WorkflowRun b1 = await().until(p::getLastCompletedBuild, lb -> lb != null && lb.getNumber() == 1);
         Authentication auth = User.getById("dev", true).impersonate();
         assertFalse(p.getACL().hasPermission(auth, Item.DELETE));
         assertTrue(p.isBuildable());
@@ -235,37 +241,76 @@ public class SCMBinderTest {
         assertEquals(1, mp.getItems().size());
     }
 
+    @Issue("JENKINS-46795")
     @Test public void untrustedRevisions() throws Exception {
+        r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+        r.jenkins.setAuthorizationStrategy(new MockAuthorizationStrategy().
+            grant(Jenkins.READ, Item.READ).everywhere().toAuthenticated().
+            grant(Item.BUILD).everywhere().to("alice").
+            grant(Item.BUILD, Item.CONFIGURE).everywhere().to("bob"));
         sampleGitRepo.init();
-        sampleGitRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file')}");
+        String masterJenkinsfile = "node {checkout scm; echo readFile('file')}";
+        sampleGitRepo.write("Jenkinsfile", masterJenkinsfile);
         sampleGitRepo.write("file", "initial content");
         sampleGitRepo.git("add", "Jenkinsfile");
         sampleGitRepo.git("commit", "--all", "--message=flow");
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
         mp.getSourcesList().add(new BranchSource(new WarySource(null, sampleGitRepo.toString(), "", "*", "", false)));
         WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
-        r.waitUntilNoActivity();
-        WorkflowRun b = p.getLastBuild();
-        assertNotNull(b);
-        assertEquals(1, b.getNumber());
+        WorkflowRun b = await().until(p::getLastCompletedBuild, lb -> lb != null && lb.getNumber() == 1);
         assertRevisionAction(b);
         r.assertBuildStatusSuccess(b);
         r.assertLogContains("initial content", b);
         String branch = "some-other-branch-from-Norway";
         sampleGitRepo.git("checkout", "-b", branch);
         sampleGitRepo.write("Jenkinsfile", "error 'ALL YOUR BUILD STEPS ARE BELONG TO US'");
-        sampleGitRepo.write("file", "subsequent content");
         sampleGitRepo.git("commit", "--all", "--message=big evil laugh");
         p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, branch);
-        r.waitUntilNoActivity();
-        b = p.getLastBuild();
-        assertNotNull(b);
-        assertEquals(1, b.getNumber());
+        b = await().until(p::getLastCompletedBuild, lb -> lb != null && lb.getNumber() == 1);
         assertRevisionAction(b);
-        r.assertBuildStatusSuccess(b);
+        r.assertBuildStatus(Result.NOT_BUILT, b);
         r.assertLogContains(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis("Jenkinsfile"), b);
+        r.assertLogContains("not trusting", b);
+        SCMBinder.IGNORE_UNTRUSTED_EDITS = true;
+        try {
+            sampleGitRepo.write("file", "subsequent content");
+            sampleGitRepo.git("commit", "--all", "--message=edits");
+            p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, branch);
+            b = await().until(p::getLastCompletedBuild, lb -> lb != null && lb.getNumber() == 2);
+            r.assertLogContains("subsequent content", b);
+            r.assertLogContains("not trusting", b);
+        } finally {
+            SCMBinder.IGNORE_UNTRUSTED_EDITS = false;
+        }
+        sampleGitRepo.write("Jenkinsfile", masterJenkinsfile);
+        sampleGitRepo.git("commit", "--all", "--message=meekly submitting");
+        p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, branch);
+        b = await().until(p::getLastCompletedBuild, lb -> lb != null && lb.getNumber() == 3);
         r.assertLogContains("subsequent content", b);
         r.assertLogContains("not trusting", b);
+        sampleGitRepo.write("Jenkinsfile", "node {checkout scm; echo readTrusted('file').toUpperCase()}");
+        sampleGitRepo.git("commit", "--all", "--message=changes to be approved");
+        p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, branch);
+        b = await().until(p::getLastCompletedBuild, lb -> lb != null && lb.getNumber() == 4);
+        r.assertBuildStatus(Result.NOT_BUILT, b);
+        r.assertLogContains(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis("Jenkinsfile"), b);
+        r.assertLogContains("not trusting", b);
+        try (var ctx = ACL.as(User.getById("alice", true))) {
+            b = p.scheduleBuild2(0, new CauseAction(new Cause.UserIdCause())).get();
+        }
+        assertEquals(5, b.getNumber());
+        r.assertBuildStatus(Result.NOT_BUILT, b);
+        r.assertLogContains(Messages.ReadTrustedStep__has_been_modified_in_an_untrusted_revis("Jenkinsfile"), b);
+        r.assertLogContains("Not trusting build since user ‘alice’ lacks Run/Replay permission", b);
+        r.assertLogContains("not trusting", b);
+        try (var ctx = ACL.as(User.getById("bob", true))) {
+            b = p.scheduleBuild2(0, new CauseAction(new Cause.UserIdCause())).get();
+        }
+        assertEquals(6, b.getNumber());
+        r.assertBuildStatusSuccess(b);
+        r.assertLogContains("SUBSEQUENT CONTENT", b);
+        r.assertLogContains("Trusting build since it was started by user ‘bob’", b);
+        r.assertLogNotContains("not trusting", b);
     }
     public static class WarySource extends GitSCMSource {
         public WarySource(String id, String remote, String credentialsId, String includes, String excludes, boolean ignoreOnPushNotifications) {
