@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.workflow.multibranch;
 
 import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.model.AbstractItem;
 import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Item;
 import hudson.model.Queue;
@@ -53,13 +54,19 @@ import jenkins.branch.UntrustedBranchProperty;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitBranchSCMHead;
 import jenkins.plugins.git.GitSampleRepoRule;
+import jenkins.plugins.git.traits.BranchDiscoveryTrait;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.impl.SingleSCMSource;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -265,6 +272,36 @@ public class WorkflowMultiBranchProjectTest {
         assertEquals(1, b2.getNumber());
         r.assertLogContains("ALTERNATIVE CONTENT", b2);
         r.assertLogContains("branch=feature2", b2);
+    }
+
+    @Issue("JENKINS-72613")
+    @Test public void reloadMangledName() throws Exception {
+        r.jenkins.setQuietPeriod(0);
+        sampleRepo.init();
+        sampleRepo.write("Jenkinsfile", "echo 'on master'");
+        sampleRepo.git("add", "Jenkinsfile");
+        sampleRepo.git("commit", "--all", "--message=init");
+        for (var branch : List.of("ok-1", "danger_1")) {
+            sampleRepo.git("checkout", "-b", branch, "master");
+            sampleRepo.write("Jenkinsfile", "echo 'on " + branch + "'");
+            sampleRepo.git("add", "Jenkinsfile");
+            sampleRepo.git("commit", "--all", "--message=" + branch);
+        }
+        var mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+        var source = new GitSCMSource(sampleRepo.toString());
+        source.setTraits(List.of(new BranchDiscoveryTrait()));
+        mp.getSourcesList().add(new BranchSource(source));
+        var ok = scheduleAndFindBranchProject(mp, "ok-1");
+        var danger = findBranchProject(mp, "danger_1");
+        r.waitUntilNoActivity();
+        assertThat(ok.getRootDir().getName(), is("ok-1"));
+        assertThat(danger.getRootDir().getName(), is("danger-1.i2g9ue"));
+        ok.doReload();
+        assertThat(mp.getItems().stream().map(AbstractItem::getName).toArray(String[]::new),
+            arrayContainingInAnyOrder("master", "ok-1", "danger_1"));
+        danger.doReload();
+        assertThat(mp.getItems().stream().map(AbstractItem::getName).toArray(String[]::new),
+            arrayContainingInAnyOrder("master", "ok-1", "danger_1"));
     }
 
 }
