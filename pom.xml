@@ -63,7 +63,7 @@ THE SOFTWARE.
     </pluginRepositories>
     <properties>
         <changelist>999999-SNAPSHOT</changelist>
-        <jenkins.version>2.443-rc34587.821dd1a_8eed9</jenkins.version> <!-- TODO https://github.com/jenkinsci/jenkins/pull/8902 -->
+        <jenkins.version>2.444</jenkins.version>
         <no-test-jar>false</no-test-jar>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     </properties>
@@ -80,7 +80,7 @@ THE SOFTWARE.
             <dependency>
                 <groupId>org.jenkins-ci.plugins</groupId>
                 <artifactId>cloudbees-folder</artifactId>
-                <version>6.904.v1ecf56c3234f</version> <!-- TODO https://github.com/jenkinsci/cloudbees-folder-plugin/pull/367 -->
+                <version>6.919.va_e17e72383f5</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
