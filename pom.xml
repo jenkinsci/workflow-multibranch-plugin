@@ -76,12 +76,6 @@ THE SOFTWARE.
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
-            <!-- TODO until in BOM -->
-            <dependency>
-                <groupId>org.jenkins-ci.plugins</groupId>
-                <artifactId>cloudbees-folder</artifactId>
-                <version>6.919.va_e17e72383f5</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>
