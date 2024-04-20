@@ -153,7 +153,7 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
 
         @Override
         public String getIconClassName() {
-            return "icon-pipeline-multibranch-project";
+            return "symbol-git-branch-outline plugin-ionicons-api";
         }
 
         @Override public TopLevelItem newInstance(ItemGroup parent, String name) {
