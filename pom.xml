@@ -63,7 +63,7 @@ THE SOFTWARE.
     </pluginRepositories>
     <properties>
         <changelist>999999-SNAPSHOT</changelist>
-        <jenkins.version>2.444</jenkins.version>
+        <jenkins.version>2.452.2</jenkins.version>
         <no-test-jar>false</no-test-jar>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     </properties>
@@ -71,16 +71,10 @@ THE SOFTWARE.
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.440.x</artifactId>
-                <version>2746.vb_79a_1d3e7b_c8</version>
+                <artifactId>bom-2.452.x</artifactId>
+                <version>3010.vec758b_8e7da_3</version>
                 <scope>import</scope>
                 <type>pom</type>
-            </dependency>
-            <!-- TODO until in BOM -->
-            <dependency>
-                <groupId>org.jenkins-ci.plugins</groupId>
-                <artifactId>cloudbees-folder</artifactId>
-                <version>6.919.va_e17e72383f5</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
