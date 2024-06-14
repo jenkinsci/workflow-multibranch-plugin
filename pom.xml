@@ -33,7 +33,7 @@ THE SOFTWARE.
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
     <artifactId>workflow-multibranch</artifactId>
-    <version>${changelist}</version>
+    <version>783.${changelist}</version>
     <packaging>hpi</packaging>
     <name>Pipeline: Multibranch</name>
     <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
