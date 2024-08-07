@@ -25,6 +25,7 @@
 package org.jenkinsci.plugins.workflow.multibranch;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Functions;
 import hudson.MarkupText;
@@ -54,14 +55,18 @@ import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Checks out the desired version of the script referred to by scriptPath.
  */
-class SCMBinder extends FlowDefinition {
+@Restricted(NoExternalUse.class) // just tests
+public class SCMBinder extends FlowDefinition {
 
     /** Kill switch for JENKINS-33273 in case of problems. */
-    static /* not final */ boolean USE_HEAVYWEIGHT_CHECKOUT = Boolean.getBoolean(SCMBinder.class.getName() + ".USE_HEAVYWEIGHT_CHECKOUT"); // TODO 2.4+ use SystemProperties
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Just for scripting.")
+    public static boolean USE_HEAVYWEIGHT_CHECKOUT = Boolean.getBoolean(SCMBinder.class.getName() + ".USE_HEAVYWEIGHT_CHECKOUT"); // TODO 2.4+ use SystemProperties
     private String scriptPath = WorkflowBranchProjectFactory.SCRIPT;
 
     public Object readResolve() {
