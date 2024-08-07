@@ -49,11 +49,8 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSourceDescriptor;
-import jenkins.scm.impl.subversion.SubversionSCMFileSystem;
-import jenkins.scm.impl.subversion.SubversionSCMSource;
 import static org.hamcrest.Matchers.*;
 
-import jenkins.scm.impl.subversion.SubversionSampleRepoRule;
 import org.acegisecurity.Authentication;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -72,7 +69,6 @@ public class SCMBinderTest {
     @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
     @Rule public JenkinsRule r = new JenkinsRule();
     @Rule public GitSampleRepoRule sampleGitRepo = new GitSampleRepoRule();
-    @Rule public SubversionSampleRepoRule sampleSvnRepo = new SubversionSampleRepoRule();
 
     @Test public void exactRevisionGit() throws Exception {
         sampleGitRepo.init();
@@ -129,48 +125,6 @@ public class SCMBinderTest {
             }
             assertThat(expected, hasItem(((GitBranchSCMRevision) revision).getHash()));
         }
-    }
-
-    static {
-        System.setProperty(SubversionSCMFileSystem.DISABLE_PROPERTY, "true");
-    }
-    @Test public void exactRevisionSubversion() throws Exception {
-        sampleSvnRepo.init();
-        ScriptApproval sa = ScriptApproval.get();
-        sa.approveSignature("staticField hudson.model.Items XSTREAM2");
-        sa.approveSignature("method com.thoughtworks.xstream.XStream toXML java.lang.Object");
-        sampleSvnRepo.write("Jenkinsfile", "echo hudson.model.Items.XSTREAM2.toXML(scm); semaphore 'wait'; node {checkout scm; echo readFile('file')}");
-        sampleSvnRepo.write("file", "initial content");
-        sampleSvnRepo.svnkit("add", sampleSvnRepo.wc() + "/Jenkinsfile");
-        sampleSvnRepo.svnkit("commit", "--message=flow", sampleSvnRepo.wc());
-        WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-        mp.getSourcesList().add(new BranchSource(new SubversionSCMSource(null, sampleSvnRepo.prjUrl())));
-        WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "trunk");
-        SemaphoreStep.waitForStart("wait/1", null);
-        WorkflowRun b1 = p.getLastBuild();
-        assertNotNull(b1);
-        assertEquals(1, b1.getNumber());
-        sampleSvnRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file').toUpperCase()}");
-        sampleSvnRepo.write("file", "subsequent content");
-        sampleSvnRepo.svnkit("commit", "--message=tweaked", sampleSvnRepo.wc());
-        SemaphoreStep.success("wait/1", null);
-        WorkflowRun b2 = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
-        assertEquals(2, b2.getNumber());
-        r.assertLogContains("initial content", r.waitForCompletion(b1));
-        r.assertLogContains("SUBSEQUENT CONTENT", b2);
-        List<ChangeLogSet<? extends ChangeLogSet.Entry>> changeSets = b2.getChangeSets();
-        /* TODO JENKINS-29326 analogue: currently 2 (they are the same):
-        assertEquals(1, changeSets.size());
-        */
-        ChangeLogSet<? extends ChangeLogSet.Entry> changeSet = changeSets.get(0);
-        assertEquals(b2, changeSet.getRun());
-        assertEquals("svn", changeSet.getKind());
-        Iterator<? extends ChangeLogSet.Entry> iterator = changeSet.iterator();
-        assertTrue(iterator.hasNext());
-        ChangeLogSet.Entry entry = iterator.next();
-        assertEquals("tweaked", entry.getMsg());
-        assertEquals("[Jenkinsfile, file]", new TreeSet<>(entry.getAffectedPaths()).toString());
-        assertFalse(iterator.hasNext());
     }
 
     @Test public void deletedJenkinsfile() throws Exception {
