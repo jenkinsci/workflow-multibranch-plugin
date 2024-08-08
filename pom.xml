@@ -64,7 +64,7 @@ THE SOFTWARE.
     <properties>
         <changelist>999999-SNAPSHOT</changelist>
         <jenkins.baseline>2.462</jenkins.baseline>
-        <jenkins.version>${jenkins.baseline}</jenkins.version>
+        <jenkins.version>${jenkins.baseline}.1</jenkins.version>
         <no-test-jar>false</no-test-jar>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     </properties>
