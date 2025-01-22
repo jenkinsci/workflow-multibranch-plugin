@@ -55,7 +55,7 @@ import org.jenkinsci.plugins.workflow.steps.SynchronousStepExecution;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 /**
  * Resolves an {@link SCM} from a {@link SCMSource} using a priority list of target branch names.
@@ -185,7 +185,7 @@ public class ResolveScmStep extends Step {
         }
 
         @Override
-        public Step newInstance(@CheckForNull StaplerRequest req, @NonNull JSONObject formData)
+        public Step newInstance(@CheckForNull StaplerRequest2 req, @NonNull JSONObject formData)
                 throws FormException {
             assert req != null : "see contract for method, it's never null but has to claim it could be";
             // roll our own because we want the groovy api to be easier than the jelly form binding would have us
