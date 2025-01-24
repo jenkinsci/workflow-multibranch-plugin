@@ -62,7 +62,7 @@ import org.jenkinsci.plugins.workflow.steps.SynchronousStepExecution;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 /**
  * Resets the properties of the current job.
@@ -183,9 +183,9 @@ public class JobPropertyStep extends Step {
             return Set.of(Run.class);
         }
 
-        @Override public Step newInstance(@NonNull StaplerRequest req, @NonNull JSONObject formData) throws FormException {
+        @Override public Step newInstance(@NonNull StaplerRequest2 req, @NonNull JSONObject formData) throws FormException {
             if (req == null) { // should not happen
-                return super.newInstance(null, formData);
+                return super.newInstance((StaplerRequest2) null, formData);
             }
             // A modified version of RequestImpl.TypePair.convertJSON.
             // Works around the fact that Stapler does not call back into Descriptor.newInstance for nested objects (JENKINS-31458);
