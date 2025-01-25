@@ -81,7 +81,7 @@ THE SOFTWARE.
             <dependency>
                 <groupId>org.jenkins-ci.plugins.workflow</groupId>
                 <artifactId>workflow-cps</artifactId>
-                <version>4011.v91e9951fa_d5b_</version>
+                <version>4014.vcd7dc51d8b_30</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
