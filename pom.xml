@@ -77,12 +77,6 @@ THE SOFTWARE.
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
-            <!-- TODO until in BOM -->
-            <dependency>
-                <groupId>org.jenkins-ci.plugins.workflow</groupId>
-                <artifactId>workflow-cps</artifactId>
-                <version>4011.v91e9951fa_d5b_</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>
