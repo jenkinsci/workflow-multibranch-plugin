@@ -51,7 +51,7 @@ import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSourceDescriptor;
 import static org.hamcrest.Matchers.*;
 
-import org.acegisecurity.Authentication;
+import org.springframework.security.core.Authentication;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -166,8 +166,8 @@ public class SCMBinderTest {
         r.waitUntilNoActivity();
         WorkflowRun b1 = p.getLastBuild();
         assertEquals(1, b1.getNumber());
-        Authentication auth = User.getById("dev", true).impersonate();
-        assertFalse(p.getACL().hasPermission(auth, Item.DELETE));
+        Authentication auth = User.getById("dev", true).impersonate2();
+        assertFalse(p.getACL().hasPermission2(auth, Item.DELETE));
         assertTrue(p.isBuildable());
         sampleGitRepo.git("checkout", "master");
         sampleGitRepo.git("branch", "-D", "feature");
@@ -181,7 +181,7 @@ public class SCMBinderTest {
         mp.scheduleBuild2(0).getFuture().get();
         WorkflowMultiBranchProjectTest.showIndexing(mp);
         assertEquals(2, mp.getItems().size());
-        assertTrue(p.getACL().hasPermission(auth, Item.DELETE));
+        assertTrue(p.getACL().hasPermission2(auth, Item.DELETE));
         assertFalse(p.isBuildable());
         mp.setOrphanedItemStrategy(new DefaultOrphanedItemStrategy(true, "", "0"));
         mp.scheduleBuild2(0).getFuture().get();
