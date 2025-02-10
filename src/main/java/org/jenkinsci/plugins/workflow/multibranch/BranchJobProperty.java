@@ -33,7 +33,7 @@ import hudson.security.ACL;
 import hudson.security.Permission;
 import hudson.util.AlternativeUiTextProvider;
 import jenkins.branch.Branch;
-import org.acegisecurity.Authentication;
+import org.springframework.security.core.Authentication;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowJobProperty;
 import org.kohsuke.stapler.export.Exported;
@@ -64,10 +64,10 @@ public class BranchJobProperty extends WorkflowJobProperty {
     @NonNull
     @Override public ACL decorateACL(@NonNull final ACL acl) {
         return new ACL() {
-            @Override public boolean hasPermission(@NonNull Authentication a, @NonNull Permission permission) {
+            @Override public boolean hasPermission2(@NonNull Authentication a, @NonNull Permission permission) {
                 // This project is managed by its parent and may not be directly configured or deleted by users.
                 // Note that Item.EXTENDED_READ may still be granted, so you can still see Snippet Generator, etc.
-                if (ACL.SYSTEM.equals(a)) {
+                if (ACL.SYSTEM2.equals(a)) {
                     return true; // e.g., ComputedFolder.updateChildren
                 } else if (permission == Item.CONFIGURE) {
                     return false;
@@ -75,7 +75,7 @@ public class BranchJobProperty extends WorkflowJobProperty {
                     // allow early manual clean-up of dead branches
                     return false;
                 } else {
-                    return acl.hasPermission(a, permission);
+                    return acl.hasPermission2(a, permission);
                 }
             }
         };

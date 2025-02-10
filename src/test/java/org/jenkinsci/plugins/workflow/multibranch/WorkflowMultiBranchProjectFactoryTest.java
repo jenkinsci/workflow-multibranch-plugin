@@ -35,7 +35,7 @@ import jenkins.branch.MultiBranchProject;
 import jenkins.branch.OrganizationFolder;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.scm.api.SCMSource;
-import org.acegisecurity.Authentication;
+import org.springframework.security.core.Authentication;
 import static org.hamcrest.Matchers.*;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -81,18 +81,18 @@ public class WorkflowMultiBranchProjectFactoryTest {
         assertEquals(1, sources.size());
         assertEquals("GitSCMSource", sources.get(0).getClass().getSimpleName());
         // Verify permissions:
-        Authentication admin = User.getById("admin", true).impersonate();
+        Authentication admin = User.getById("admin", true).impersonate2();
         ACL acl = one.getACL();
-        assertTrue(acl.hasPermission(ACL.SYSTEM, Item.CONFIGURE));
-        assertTrue(acl.hasPermission(ACL.SYSTEM, Item.DELETE));
-        assertFalse(acl.hasPermission(admin, Item.CONFIGURE));
-        assertFalse(acl.hasPermission(admin, View.CONFIGURE));
-        assertFalse(acl.hasPermission(admin, View.CREATE));
-        assertFalse(acl.hasPermission(admin, View.DELETE));
-        assertFalse(acl.hasPermission(admin, Item.DELETE));
-        assertTrue(acl.hasPermission(admin, Item.EXTENDED_READ));
-        assertTrue(acl.hasPermission(admin, Item.READ));
-        assertTrue(acl.hasPermission(admin, View.READ));
+        assertTrue(acl.hasPermission2(ACL.SYSTEM2, Item.CONFIGURE));
+        assertTrue(acl.hasPermission2(ACL.SYSTEM2, Item.DELETE));
+        assertFalse(acl.hasPermission2(admin, Item.CONFIGURE));
+        assertFalse(acl.hasPermission2(admin, View.CONFIGURE));
+        assertFalse(acl.hasPermission2(admin, View.CREATE));
+        assertFalse(acl.hasPermission2(admin, View.DELETE));
+        assertFalse(acl.hasPermission2(admin, Item.DELETE));
+        assertTrue(acl.hasPermission2(admin, Item.EXTENDED_READ));
+        assertTrue(acl.hasPermission2(admin, Item.READ));
+        assertTrue(acl.hasPermission2(admin, View.READ));
         // Check that the master branch project works:
         r.waitUntilNoActivity();
         WorkflowJob p = WorkflowMultiBranchProjectTest.findBranchProject((WorkflowMultiBranchProject) one, "master");
