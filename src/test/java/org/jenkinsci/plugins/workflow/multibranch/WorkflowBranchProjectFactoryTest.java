@@ -37,21 +37,20 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.ClassRule;
 import org.junit.Rule;
-import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.JenkinsSessionRule;
 
 public class WorkflowBranchProjectFactoryTest {
 
     @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public RestartableJenkinsRule story = new RestartableJenkinsRule();
+    @Rule public JenkinsSessionRule story = new JenkinsSessionRule();
     @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
 
     @Issue("JENKINS-30744")
-    @Test public void slashyBranches() {
-        story.addStep(new Statement() {
-            @Override public void evaluate() throws Throwable {
+    @Test public void slashyBranches() throws Throwable {
+        story.then(j -> {
                 sampleRepo.init();
                 sampleRepo.git("checkout", "-b", "dev/main");
                 String script =
@@ -63,41 +62,38 @@ public class WorkflowBranchProjectFactoryTest {
                 sampleRepo.write("Jenkinsfile", script);
                 sampleRepo.git("add", "Jenkinsfile");
                 sampleRepo.git("commit", "--all", "--message=flow");
-                WorkflowMultiBranchProject mp = story.j.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+                WorkflowMultiBranchProject mp = j.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
                 GitSCMSource source = new GitSCMSource(sampleRepo.toString());
                 source.setTraits(Collections.singletonList(new BranchDiscoveryTrait()));
                 mp.getSourcesList().add(new BranchSource(source));
                 WorkflowJob p = scheduleAndFindBranchProject(mp, "dev%2Fmain");
                 assertEquals(1, mp.getItems().size());
-                story.j.waitUntilNoActivity();
+                j.waitUntilNoActivity();
                 WorkflowRun b1 = p.getLastBuild();
                 assertEquals(1, b1.getNumber());
-                story.j.assertLogContains("branch=dev/main", b1);
-                story.j.assertLogContains("workspace=dev_main", b1);
-                verifyProject(p);
+                j.assertLogContains("branch=dev/main", b1);
+                j.assertLogContains("workspace=dev_main", b1);
+                verifyProject(j, p);
                 sampleRepo.write("Jenkinsfile", script.replace("branch=", "Branch="));
-            }
         });
-        story.addStep(new Statement() {
-            @Override public void evaluate() throws Throwable {
-                WorkflowJob p = story.j.jenkins.getItemByFullName("p/dev%2Fmain", WorkflowJob.class);
+        story.then(j -> {
+                WorkflowJob p = j.jenkins.getItemByFullName("p/dev%2Fmain", WorkflowJob.class);
                 assertNotNull(p);
                 sampleRepo.git("commit", "--all", "--message=Flow");
-                sampleRepo.notifyCommit(story.j);
+                sampleRepo.notifyCommit(j);
                 WorkflowRun b2 = p.getLastBuild();
                 assertEquals(2, b2.getNumber());
-                story.j.assertLogContains("Branch=dev/main", b2);
-                story.j.assertLogContains("workspace=dev_main", b2);
-                verifyProject(p);
-            }
+                j.assertLogContains("Branch=dev/main", b2);
+                j.assertLogContains("workspace=dev_main", b2);
+                verifyProject(j, p);
         });
     }
-    private void verifyProject(WorkflowJob p) throws Exception {
+    private static void verifyProject(JenkinsRule j, WorkflowJob p) throws Exception {
         assertEquals("dev%2Fmain", p.getName());
         assertEquals("dev/main", p.getDisplayName());
         assertEquals("p/dev%2Fmain", p.getFullName());
         assertEquals("p » dev/main", p.getFullDisplayName());
-        story.j.createWebClient().getPage(p);
+        j.createWebClient().getPage(p);
         assertEquals(new File(new File(p.getParent().getRootDir(), "branches"), "dev-main.k31kdj"), p.getRootDir());
     }
 

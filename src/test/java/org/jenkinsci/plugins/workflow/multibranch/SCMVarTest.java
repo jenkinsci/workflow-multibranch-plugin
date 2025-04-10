@@ -49,51 +49,45 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.ClassRule;
 import org.junit.Rule;
-import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.jvnet.hudson.test.JenkinsSessionRule;
 
 public class SCMVarTest {
 
     @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public RestartableJenkinsRule story = new RestartableJenkinsRule();
+    @Rule public JenkinsSessionRule story = new JenkinsSessionRule();
     @Rule public GitSampleRepoRule sampleGitRepo = new GitSampleRepoRule();
 
-    @Test public void scmPickle() {
-        story.addStep(new Statement() {
-            @Override public void evaluate() throws Throwable {
+    @Test public void scmPickle() throws Throwable {
+        story.then(j -> {
                 sampleGitRepo.init();
                 sampleGitRepo.write("Jenkinsfile", "def _scm = scm; semaphore 'wait'; node {checkout _scm; echo readFile('file')}");
                 sampleGitRepo.write("file", "initial content");
                 sampleGitRepo.git("add", "Jenkinsfile");
                 sampleGitRepo.git("commit", "--all", "--message=flow");
-                WorkflowMultiBranchProject mp = story.j.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+                WorkflowMultiBranchProject mp = j.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
                 mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
                 WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
                 SemaphoreStep.waitForStart("wait/1", null);
                 WorkflowRun b1 = p.getLastBuild();
                 assertNotNull(b1);
-            }
         });
-        story.addStep(new Statement() {
-            @Override public void evaluate() throws Throwable {
+        story.then(j -> {
                 SemaphoreStep.success("wait/1", null);
-                WorkflowJob p = story.j.jenkins.getItemByFullName("p/master", WorkflowJob.class);
+                WorkflowJob p = j.jenkins.getItemByFullName("p/master", WorkflowJob.class);
                 assertNotNull(p);
                 WorkflowRun b1 = p.getLastBuild();
                 assertNotNull(b1);
                 assertEquals(1, b1.getNumber());
-                story.j.assertLogContains("initial content", story.j.waitForCompletion(b1));
+                j.assertLogContains("initial content", j.waitForCompletion(b1));
                 SCMBinderTest.assertRevisionAction(b1);
-            }
         });
     }
 
     @Issue("JENKINS-30222")
-    @Test public void globalVariable() {
-        story.addStep(new Statement() {
-            @Override public void evaluate() throws Throwable {
+    @Test public void globalVariable() throws Throwable {
+        story.then(j -> {
                 // Set up a standardJob definition:
                 File lib = new File(Jenkins.get().getRootDir(), "somelib");
                 LibraryConfiguration cfg = new LibraryConfiguration("somelib", new LocalRetriever(lib));
@@ -121,12 +115,11 @@ public class SCMVarTest {
                 sampleGitRepo.git("add", "resource");
                 sampleGitRepo.git("commit", "--all", "--message=flow");
                 // And run:
-                WorkflowMultiBranchProject mp = story.j.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
+                WorkflowMultiBranchProject mp = j.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
                 mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
                 WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
-                WorkflowRun b = story.j.assertBuildStatusSuccess(p.scheduleBuild2(0));
-                story.j.assertLogContains("loaded resource content", b);
-            }
+                WorkflowRun b = j.assertBuildStatusSuccess(p.scheduleBuild2(0));
+                j.assertLogContains("loaded resource content", b);
         });
     }
 
@@ -145,19 +138,17 @@ public class SCMVarTest {
     }
 
     @Issue("JENKINS-31386")
-    @Test public void standaloneProject() {
-        story.addStep(new Statement() {
-            @Override public void evaluate() throws Throwable {
+    @Test public void standaloneProject() throws Throwable {
+        story.then(j -> {
                 sampleGitRepo.init();
                 sampleGitRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file')}");
                 sampleGitRepo.write("file", "some content");
                 sampleGitRepo.git("add", "Jenkinsfile");
                 sampleGitRepo.git("commit", "--all", "--message=flow");
-                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "p");
+                WorkflowJob p = j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsScmFlowDefinition(new GitStep(sampleGitRepo.toString()).createSCM(), "Jenkinsfile"));
-                WorkflowRun b = story.j.assertBuildStatusSuccess(p.scheduleBuild2(0));
-                story.j.assertLogContains("some content", b);
-            }
+                WorkflowRun b = j.assertBuildStatusSuccess(p.scheduleBuild2(0));
+                j.assertLogContains("some content", b);
         });
     }
 
