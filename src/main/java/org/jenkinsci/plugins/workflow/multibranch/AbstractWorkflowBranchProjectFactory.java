@@ -64,20 +64,16 @@ public abstract class AbstractWorkflowBranchProjectFactory extends BranchProject
 
     @NonNull
     @Override public WorkflowJob setBranch(@NonNull WorkflowJob project, @NonNull Branch branch) {
-        try {
-            BulkChange bc = new BulkChange(project);
-            try {
-                project.setDefinition(createDefinition());
-                BranchJobProperty property = project.getProperty(BranchJobProperty.class);
-                if (property == null) {
-                    project.addProperty(new BranchJobProperty(branch));
-                } else { // TODO may add equality check if https://github.com/jenkinsci/branch-api-plugin/pull/36 or equivalent is implemented
-                    property.setBranch(branch);
-                    project.save();
-                }
-            } finally {
-                bc.commit();
+        try (BulkChange bc = new BulkChange(project)) {
+            project.setDefinition(createDefinition());
+            BranchJobProperty property = project.getProperty(BranchJobProperty.class);
+            if (property == null) {
+                project.addProperty(new BranchJobProperty(branch));
+            } else { // TODO may add equality check if https://github.com/jenkinsci/branch-api-plugin/pull/36 or equivalent is implemented
+                property.setBranch(branch);
+                project.save();
             }
+            bc.commit();
         } catch (IOException x) {
             LOGGER.log(Level.WARNING, null, x);
         }
