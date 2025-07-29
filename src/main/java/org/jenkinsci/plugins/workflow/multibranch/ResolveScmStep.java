@@ -46,7 +46,6 @@ import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
@@ -213,7 +212,7 @@ public class ResolveScmStep extends Step {
         }
 
         public FormValidation doCheckTarget(@QueryParameter String value) {
-            if (StringUtils.isNotBlank(value)) {
+            if (value != null && !value.isBlank()) {
                 return FormValidation.ok();
             }
             return FormValidation.error("You must supply a target branch name to resolve");
@@ -303,7 +302,7 @@ public class ResolveScmStep extends Step {
         public ObserverImpl(@NonNull List<String> heads) {
             heads.getClass(); // fail fast if null
             for (String head : heads) {
-                if (StringUtils.isNotBlank(head)) {
+                if (head != null && !head.isBlank()) {
                     revision.put(head, null);
                 }
             }

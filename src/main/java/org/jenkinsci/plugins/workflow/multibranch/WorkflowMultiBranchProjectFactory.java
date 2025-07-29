@@ -30,7 +30,6 @@ import jenkins.branch.MultiBranchProjectFactory;
 import jenkins.branch.MultiBranchProjectFactoryDescriptor;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
-import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import java.io.IOException;
@@ -50,7 +49,7 @@ public class WorkflowMultiBranchProjectFactory extends AbstractWorkflowMultiBran
 
     @DataBoundSetter
     public void setScriptPath(String scriptPath) {
-        if (StringUtils.isEmpty(scriptPath)) {
+        if (scriptPath == null || scriptPath.isEmpty()) {
             this.scriptPath = WorkflowBranchProjectFactory.SCRIPT;
         } else {
             this.scriptPath = scriptPath;
