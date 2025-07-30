@@ -31,7 +31,6 @@ import java.io.IOException;
 import jenkins.scm.api.SCMProbeStat;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -54,7 +53,7 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
 
     @DataBoundSetter
     public void setScriptPath(String scriptPath) {
-        if (StringUtils.isEmpty(scriptPath)) {
+        if (scriptPath == null || scriptPath.isEmpty()) {
             this.scriptPath = SCRIPT;
         } else {
             this.scriptPath = scriptPath;

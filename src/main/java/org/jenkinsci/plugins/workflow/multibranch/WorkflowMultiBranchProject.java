@@ -50,7 +50,6 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
-import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
@@ -114,7 +113,7 @@ public class WorkflowMultiBranchProject extends MultiBranchProject<WorkflowJob,W
 
     private BranchJobProperty reconstructBranchJobProperty(@NonNull WorkflowJob job, @NonNull SCMRevisionAction action) {
         String sourceId = action.getSourceId();
-        if (StringUtils.isEmpty(sourceId)) {
+        if (sourceId == null || sourceId.isEmpty()) {
             return null;
         }
         SCMHead head = action.getRevision().getHead();
