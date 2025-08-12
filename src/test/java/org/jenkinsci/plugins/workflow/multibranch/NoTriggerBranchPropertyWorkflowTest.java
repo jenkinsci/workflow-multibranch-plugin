@@ -34,26 +34,39 @@ import jenkins.branch.NoTriggerOrganizationFolderProperty;
 import jenkins.branch.OrganizationFolder;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
+import jenkins.plugins.git.junit.jupiter.WithGitSampleRepo;
 import jenkins.scm.impl.SingleSCMNavigator;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.Rule;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 /**
  * Integration test for {@link NoTriggerBranchProperty} and {@link NoTriggerOrganizationFolderProperty}.
  */
 @Issue("JENKINS-32396")
-public class NoTriggerBranchPropertyWorkflowTest {
+@WithJenkins
+@WithGitSampleRepo
+class NoTriggerBranchPropertyWorkflowTest {
 
-    @Rule public JenkinsRule r = new JenkinsRule();
-    @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
+    private JenkinsRule r;
+    private GitSampleRepoRule sampleRepo;
+
+    @BeforeEach
+    void setUp(JenkinsRule rule, GitSampleRepoRule repo) {
+        r = rule;
+        sampleRepo = repo;
+    }
 
     @Issue("JENKINS-30206")
-    @Test public void singleRepo() throws Exception {
+    @Test
+    void singleRepo() throws Exception {
         round1();
         WorkflowMultiBranchProject p = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
         BranchSource branchSource = new BranchSource(new GitSCMSource("source-id", sampleRepo.toString(), "", "*", "", false));
@@ -94,7 +107,8 @@ public class NoTriggerBranchPropertyWorkflowTest {
         assertEquals(4, newfeature.getNextBuildNumber());
     }
 
-    @Test public void organizationFolder() throws Exception {
+    @Test
+    void organizationFolder() throws Exception {
         round1();
         OrganizationFolder top = r.jenkins.createProject(OrganizationFolder.class, "top");
         top.getProperties().add(new NoTriggerOrganizationFolderProperty("(?!release.*).*"));

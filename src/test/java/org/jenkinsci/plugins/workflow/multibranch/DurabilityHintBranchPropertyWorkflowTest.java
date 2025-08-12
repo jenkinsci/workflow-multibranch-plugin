@@ -32,31 +32,42 @@ import jenkins.branch.NoTriggerBranchProperty;
 import jenkins.branch.NoTriggerOrganizationFolderProperty;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
+import jenkins.plugins.git.junit.jupiter.WithGitSampleRepo;
 import org.jenkinsci.plugins.workflow.flow.DurabilityHintProvider;
 import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
 import org.jenkinsci.plugins.workflow.flow.GlobalDefaultFlowDurabilityLevel;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.job.properties.DurabilityHintJobProperty;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Integration test for {@link NoTriggerBranchProperty} and {@link NoTriggerOrganizationFolderProperty}.
  */
 @Issue("JENKINS-32396")
-public class DurabilityHintBranchPropertyWorkflowTest {
+@WithJenkins
+@WithGitSampleRepo
+class DurabilityHintBranchPropertyWorkflowTest {
 
-    @Rule public JenkinsRule r = new JenkinsRule();
-    @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
+    private JenkinsRule r;
+    private GitSampleRepoRule sampleRepo;
+
+    @BeforeEach
+    void setUp(JenkinsRule rule, GitSampleRepoRule repo) {
+        r = rule;
+        sampleRepo = repo;
+    }
 
     @Test
-    public void configRoundtrip() throws Exception {
+    void configRoundtrip() throws Exception {
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
         BranchSource bs = new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false));
         mp.getSourcesList().add(bs);
@@ -70,11 +81,12 @@ public class DurabilityHintBranchPropertyWorkflowTest {
                 break;
             }
         }
-        Assert.assertNotNull(prop);
-        Assert.assertEquals(FlowDurabilityHint.SURVIVABLE_NONATOMIC, prop.getHint());
+        assertNotNull(prop);
+        assertEquals(FlowDurabilityHint.SURVIVABLE_NONATOMIC, prop.getHint());
     }
 
-    @Test public void durabilityHintByPropertyStep() throws Exception {
+    @Test
+    void durabilityHintByPropertyStep() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile",
                         "properties([durabilityHint('" + FlowDurabilityHint.SURVIVABLE_NONATOMIC.getName()+"')])\n"+
@@ -82,27 +94,25 @@ public class DurabilityHintBranchPropertyWorkflowTest {
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("commit", "--all", "--message=flow");
 
-
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
         mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false)));
         WorkflowJob p = scheduleAndFindBranchProject(mp, "master");
         r.waitUntilNoActivity();
 
         WorkflowRun b1 = p.getLastBuild();
-        Assert.assertEquals(Result.SUCCESS, b1.getResult());
+        assertEquals(Result.SUCCESS, b1.getResult());
         DurabilityHintJobProperty prop = p.getProperty(DurabilityHintJobProperty.class);
-        Assert.assertEquals(FlowDurabilityHint.SURVIVABLE_NONATOMIC, prop.getHint());
+        assertEquals(FlowDurabilityHint.SURVIVABLE_NONATOMIC, prop.getHint());
     }
 
     @Test
     @Issue("JENKINS-48826")
-    public void durabilityHintByBranchProperty() throws Exception {
+    void durabilityHintByBranchProperty() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile",
                         "echo 'whynot'");
         sampleRepo.git("add", "Jenkinsfile");
         sampleRepo.git("commit", "--all", "--message=flow");
-
 
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
         BranchSource bs = new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false));
@@ -111,15 +121,15 @@ public class DurabilityHintBranchPropertyWorkflowTest {
         WorkflowJob p = scheduleAndFindBranchProject(mp, "master");
         r.waitUntilNoActivity();
 
-        Assert.assertEquals(FlowDurabilityHint.SURVIVABLE_NONATOMIC, DurabilityHintProvider.suggestedFor(p));
+        assertEquals(FlowDurabilityHint.SURVIVABLE_NONATOMIC, DurabilityHintProvider.suggestedFor(p));
         WorkflowRun b1 = p.getLastBuild();
-        Assert.assertEquals(Result.SUCCESS, b1.getResult());
+        assertEquals(Result.SUCCESS, b1.getResult());
 
         // Ensure when we remove the property, branches see that on the next build
         bs.setStrategy(new DefaultBranchPropertyStrategy(new BranchProperty[]{}));
         p = scheduleAndFindBranchProject(mp, "master");
         r.waitUntilNoActivity();
 
-        Assert.assertEquals(GlobalDefaultFlowDurabilityLevel.getDefaultDurabilityHint(), DurabilityHintProvider.suggestedFor(mp.getItems().iterator().next()));
+        assertEquals(GlobalDefaultFlowDurabilityLevel.getDefaultDurabilityHint(), DurabilityHintProvider.suggestedFor(mp.getItems().iterator().next()));
     }
 }
