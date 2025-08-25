@@ -29,6 +29,7 @@ import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
@@ -39,28 +40,41 @@ import jenkins.model.Jenkins;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
+import jenkins.plugins.git.junit.jupiter.WithGitSampleRepo;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.replay.ReplayAction;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
-import org.jvnet.hudson.test.BuildWatcher;
+import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class ReplayActionTest {
+@WithJenkins
+@WithGitSampleRepo
+class ReplayActionTest {
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public JenkinsRule r = new JenkinsRule();
-    @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
-    @Rule public TemporaryFolder tmp = new TemporaryFolder();
+    @SuppressWarnings("unused")
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    @TempDir
+    private File tmp;
+    private JenkinsRule r;
+    private GitSampleRepoRule sampleRepo;
 
-    @Test public void scriptFromSCM() throws Exception {
+    @BeforeEach
+    void setUp(JenkinsRule rule, GitSampleRepoRule repo) {
+        r = rule;
+        sampleRepo = repo;
+    }
+
+    @Test
+    void scriptFromSCM() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "node {checkout scm; echo \"loaded ${readFile 'file'}\"}");
         sampleRepo.git("add", "Jenkinsfile");
@@ -81,7 +95,8 @@ public class ReplayActionTest {
         r.assertLogContains("this time loaded subsequent content", b);
     }
 
-    @Test public void multibranch() throws Exception {
+    @Test
+    void multibranch() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file')}");
         sampleRepo.write("file", "initial content");
@@ -105,8 +120,9 @@ public class ReplayActionTest {
         r.assertLogContains("INITIAL CONTENT", b2);
     }
 
-    @Test public void permissions() throws Exception {
-        File clones = tmp.newFolder();
+    @Test
+    void permissions() throws Exception {
+        File clones = newFolder(tmp, "junit");
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "");
         sampleRepo.git("add", "Jenkinsfile");
@@ -143,15 +159,25 @@ public class ReplayActionTest {
         p.setDefinition(new CpsFlowDefinition("", false));
         b1 = p.scheduleBuild2(0).get();
         assertTrue(canReplay(b1, "admin"));
-        assertFalse("not sandboxed, so only safe for admins", canReplay(b1, "dev1"));
+        assertFalse(canReplay(b1, "dev1"), "not sandboxed, so only safe for admins");
         assertFalse(canReplay(b1, "dev2"));
         assertFalse(canReplay(b1, "dev3"));
     }
+
     private static boolean canReplay(WorkflowRun b, String user) {
         final ReplayAction a = b.getAction(ReplayAction.class);
         try (ACLContext context = ACL.as(User.getById(user, true))) {
             return a.isEnabled();
         }
+    }
+
+    private static File newFolder(File root, String... subDirs) throws IOException {
+        String subFolder = String.join("/", subDirs);
+        File result = new File(root, subFolder);
+        if (!result.mkdirs()) {
+            throw new IOException("Couldn't create folders " + root);
+        }
+        return result;
     }
 
 }
