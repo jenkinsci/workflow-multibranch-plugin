@@ -75,7 +75,7 @@ import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @WithJenkins
 @WithGitSampleRepo
-class WorkflowMultiBranchProjectTest {
+public class WorkflowMultiBranchProjectTest {
 
     @SuppressWarnings("unused")
     private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
