@@ -56,7 +56,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 
 @WithJenkins
 @ExtendWith(WorkflowMultiBranchProjectFactoryTest.MultiGitSampleRepoExtension.class)
-class WorkflowMultiBranchProjectFactoryTest {
+public class WorkflowMultiBranchProjectFactoryTest {
 
     @SuppressWarnings("unused")
     private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
