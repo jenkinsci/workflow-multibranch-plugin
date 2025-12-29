@@ -30,35 +30,89 @@ import hudson.model.View;
 import hudson.security.ACL;
 import hudson.security.FullControlOnceLoggedInAuthorizationStrategy;
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import jenkins.branch.MultiBranchProject;
 import jenkins.branch.OrganizationFolder;
 import jenkins.plugins.git.GitSampleRepoRule;
+import jenkins.plugins.git.junit.jupiter.GitSampleRepoExtension;
 import jenkins.scm.api.SCMSource;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.*;
+import org.junit.jupiter.api.io.TempDir;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.springframework.security.core.Authentication;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import static org.junit.Assert.*;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.jvnet.hudson.test.BuildWatcher;
+import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
-public class WorkflowMultiBranchProjectFactoryTest {
+@WithJenkins
+@ExtendWith(WorkflowMultiBranchProjectFactoryTest.MultiGitSampleRepoExtension.class)
+class WorkflowMultiBranchProjectFactoryTest {
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public JenkinsRule r = new JenkinsRule();
-    @Rule public GitSampleRepoRule sampleRepo1 = new GitSampleRepoRule();
-    @Rule public GitSampleRepoRule sampleRepo2 = new GitSampleRepoRule();
-    @Rule public GitSampleRepoRule sampleRepo3 = new GitSampleRepoRule();
-    @Rule public TemporaryFolder tmp = new TemporaryFolder();
+    @SuppressWarnings("unused")
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    @TempDir
+    private File tmp;
+    private JenkinsRule r;
 
-    @Test public void smokes() throws Exception {
-        File clones = tmp.newFolder();
+    private GitSampleRepoRule sampleRepo1;
+    private GitSampleRepoRule sampleRepo2;
+    private GitSampleRepoRule sampleRepo3;
+
+    /**
+     * Enables creation of multiple repos per test class.
+     */
+    static class MultiGitSampleRepoExtension extends GitSampleRepoExtension {
+        private static final ExtensionContext.Namespace NAMESPACE = ExtensionContext.Namespace.create(MultiGitSampleRepoExtension.class);
+        private static final String KEY = "git-sample-repo-";
+        private static int counter = 0;
+
+        @Override
+        public void afterEach(ExtensionContext context) {
+            while (counter > 0) {
+                GitSampleRepoRule rule = context.getStore(NAMESPACE).remove(KEY + counter, GitSampleRepoRule.class);
+                if (rule != null) {
+                    rule.after();
+                }
+                counter--;
+            }
+        }
+
+        @Override
+        public GitSampleRepoRule resolveParameter(ParameterContext parameterContext, ExtensionContext context) {
+            counter++;
+            GitSampleRepoRule rule = context.getStore(NAMESPACE).getOrComputeIfAbsent(KEY + counter, key -> new GitSampleRepoRule(), GitSampleRepoRule.class);
+            if (rule != null) {
+                try {
+                    rule.before();
+                } catch (Throwable t) {
+                    throw new ParameterResolutionException(t.getMessage(), t);
+                }
+            }
+            return rule;
+        }
+    }
+
+    @BeforeEach
+    void setUp(JenkinsRule rule, GitSampleRepoRule repo1, GitSampleRepoRule repo2, GitSampleRepoRule repo3) {
+        r = rule;
+        sampleRepo1 = repo1;
+        sampleRepo2 = repo2;
+        sampleRepo3 = repo3;
+    }
+
+    @Test
+    void smokes() throws Exception {
+        File clones = newFolder(tmp, "junit");
         sampleRepo1.init();
         sampleRepo1.write(WorkflowBranchProjectFactory.SCRIPT, "echo 'ran one'");
         sampleRepo1.git("add", WorkflowBranchProjectFactory.SCRIPT);
@@ -125,10 +179,11 @@ public class WorkflowMultiBranchProjectFactoryTest {
     }
 
     @Issue("JENKINS-34561")
-    @Test public void configuredScriptName() throws Exception {
+    @Test
+    void configuredScriptName() throws Exception {
         String alternativeJenkinsFileName = "alternative_Jenkinsfile_name.groovy";
 
-        File clones = tmp.newFolder();
+        File clones = newFolder(tmp, "junit");
         sampleRepo1.init();
         sampleRepo1.write(WorkflowBranchProjectFactory.SCRIPT,
                 "echo 'echo from " + WorkflowBranchProjectFactory.SCRIPT + "'");
@@ -186,5 +241,14 @@ public class WorkflowMultiBranchProjectFactoryTest {
         b1 = p.getLastBuild();
         assertEquals(1, b1.getNumber());
         r.assertLogContains("echo from alternative_Jenkinsfile_name", b1);
+    }
+
+    private static File newFolder(File root, String... subDirs) throws IOException {
+        String subFolder = String.join("/", subDirs);
+        File result = new File(root, subFolder);
+        if (!result.mkdirs()) {
+            throw new IOException("Couldn't create folders " + root);
+        }
+        return result;
     }
 }

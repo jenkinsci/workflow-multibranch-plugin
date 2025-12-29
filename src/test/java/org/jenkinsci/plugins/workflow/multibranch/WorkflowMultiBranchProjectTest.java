@@ -54,6 +54,7 @@ import jenkins.branch.UntrustedBranchProperty;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitBranchSCMHead;
 import jenkins.plugins.git.GitSampleRepoRule;
+import jenkins.plugins.git.junit.jupiter.WithGitSampleRepo;
 import jenkins.plugins.git.traits.BranchDiscoveryTrait;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
@@ -62,26 +63,33 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
+import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
+@WithJenkins
+@WithGitSampleRepo
 public class WorkflowMultiBranchProjectTest {
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public JenkinsRule r = new JenkinsRule();
-    @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
+    @SuppressWarnings("unused")
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    private JenkinsRule r;
+    private GitSampleRepoRule sampleRepo;
 
-    @Test public void basicBranches() throws Exception {
+    @BeforeEach
+    void setUp(JenkinsRule rule, GitSampleRepoRule repo) {
+        r = rule;
+        sampleRepo = repo;
+    }
+
+    @Test
+    void basicBranches() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "echo \"branch=${env.BRANCH_NAME}\"; node {checkout scm; echo readFile('file')}");
         sampleRepo.write("file", "initial content");
@@ -140,7 +148,8 @@ public class WorkflowMultiBranchProjectTest {
     }
 
     @Issue({"JENKINS-32396", "JENKINS-32670"})
-    @Test public void visibleBranchProperties() throws Exception {
+    @Test
+    void visibleBranchProperties() throws Exception {
         WorkflowMultiBranchProject p = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
         Set<Class<? extends BranchProperty>> propertyTypes = new HashSet<>();
         for (BranchPropertyDescriptor d : DescriptorVisibilityFilter.apply(p, BranchPropertyDescriptor.all())) {
@@ -162,7 +171,8 @@ public class WorkflowMultiBranchProjectTest {
     }
 
     @SuppressWarnings("rawtypes")
-    @Test public void applicableSCMs() throws Exception {
+    @Test
+    void applicableSCMs() throws Exception {
         final WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
         List<Class> scmTypes = new ArrayList<>();
         List<SCMDescriptor<?>> scmDescriptors = SingleSCMSource.DescriptorImpl.getSCMDescriptors(mp);
@@ -179,21 +189,26 @@ public class WorkflowMultiBranchProjectTest {
         assertThat(html, not(containsString("OldSCM")));
         */
     }
+
     public static class OldSCM extends SCM {
-        @Override public ChangeLogParser createChangeLogParser() {return null;}
-        @TestExtension("applicableSCMs") public static class DescriptorImpl extends SCMDescriptor<OldSCM> {
+        @Override
+        public ChangeLogParser createChangeLogParser() {return null;}
+        @TestExtension("applicableSCMs")
+        public static class DescriptorImpl extends SCMDescriptor<OldSCM> {
             public DescriptorImpl() {
                 super(null);
             }
             @NonNull
-            @Override public String getDisplayName() {
+            @Override
+            public String getDisplayName() {
                 return "OldSCM";
             }
         }
     }
 
     @Issue("JENKINS-32179")
-    @Test public void conflictingBranches() throws Exception {
+    @Test
+    void conflictingBranches() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "");
         sampleRepo.git("add", "Jenkinsfile");
@@ -221,16 +236,20 @@ public class WorkflowMultiBranchProjectTest {
      //   mp.getIndexing().writeWholeLogTo(System.out);
 //        assertEquals("[p, p/master]", ExtensionList.lookup(Listener.class).get(0).names.toString());
     }
-    @TestExtension("conflictingBranches") public static class Listener extends ItemListener {
+
+    @TestExtension("conflictingBranches")
+    public static class Listener extends ItemListener {
         List<String> names = new ArrayList<>();
-        @Override public void onCreated(Item item) {
+        @Override
+        public void onCreated(Item item) {
             names.add(item.getFullName());
         }
     }
 
 
     @Issue("JENKINS-34561")
-    @Test public void configuredScriptNameBranches() throws Exception {
+    @Test
+    void configuredScriptNameBranches() throws Exception {
         sampleRepo.init();
 
         WorkflowMultiBranchProject mp = r.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
@@ -275,7 +294,8 @@ public class WorkflowMultiBranchProjectTest {
     }
 
     @Issue("JENKINS-72613")
-    @Test public void reloadMangledName() throws Exception {
+    @Test
+    void reloadMangledName() throws Exception {
         r.jenkins.setQuietPeriod(0);
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "echo 'on master'");

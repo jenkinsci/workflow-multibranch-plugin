@@ -29,25 +29,31 @@ import hudson.model.TopLevelItem;
 import jenkins.scm.impl.mock.MockSCMController;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class ResolveScmStepTest {
+@WithJenkins
+class ResolveScmStepTest {
 
-    @ClassRule
-    public static JenkinsRule j = new JenkinsRule();
+    private static JenkinsRule j;
 
-    @Before
-    public void cleanOutAllItems() throws Exception {
+    @BeforeAll
+    static void setUp(JenkinsRule rule) {
+        j = rule;
+    }
+
+    @BeforeEach
+    void setUp() throws Exception {
         for (TopLevelItem i : j.getInstance().getItems()) {
             i.delete();
         }
     }
 
     @Test
-    public void given_existingHeadName_when_invoked_then_existingHeadNameReturned() throws Exception {
+    void given_existingHeadName_when_invoked_then_existingHeadNameReturned() throws Exception {
         try (MockSCMController c = MockSCMController.create()) {
             c.createRepository("repo");
             c.createBranch("repo", "foo");
@@ -66,7 +72,7 @@ public class ResolveScmStepTest {
     }
 
     @Test
-    public void given_nonExistingHeadName_when_invokedIgnoringErrors_then_nullReturned() throws Exception {
+    void given_nonExistingHeadName_when_invokedIgnoringErrors_then_nullReturned() throws Exception {
         try (MockSCMController c = MockSCMController.create()) {
             c.createRepository("repo");
             c.createBranch("repo", "foo");
@@ -83,7 +89,7 @@ public class ResolveScmStepTest {
     }
 
     @Test
-    public void given_nonExistingHeadName_when_invoked_then_abortThrown() throws Exception {
+    void given_nonExistingHeadName_when_invoked_then_abortThrown() throws Exception {
         try (MockSCMController c = MockSCMController.create()) {
             c.createRepository("repo");
             c.createBranch("repo", "foo");
@@ -104,7 +110,7 @@ public class ResolveScmStepTest {
     }
 
     @Test
-    public void given_nonExistingHeadName_when_invokedWithDefault_then_defaultReturned() throws Exception {
+    void given_nonExistingHeadName_when_invokedWithDefault_then_defaultReturned() throws Exception {
         try (MockSCMController c = MockSCMController.create()) {
             c.createRepository("repo");
             c.createBranch("repo", "manchu");
