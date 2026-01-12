@@ -29,33 +29,52 @@ import hudson.model.Result;
 import jenkins.branch.BranchSource;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
+import jenkins.plugins.git.junit.jupiter.WithGitSampleRepo;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.jvnet.hudson.test.BuildWatcher;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.jvnet.hudson.test.FlagRule;
 
-import static org.junit.Assume.assumeFalse;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class ReadTrustedStepTest {
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public JenkinsRule r = new JenkinsRule();
-    @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
-    @Rule public FlagRule<Boolean> heavyweightCheckoutFlag = new FlagRule<>(() -> SCMBinder.USE_HEAVYWEIGHT_CHECKOUT, v -> { SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = v; });
+@WithJenkins
+@WithGitSampleRepo
+class ReadTrustedStepTest {
 
-    @Test public void smokes() throws Exception {
+    @SuppressWarnings("unused")
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    private boolean heavyweightCheckoutFlag;
+    private JenkinsRule r;
+    private GitSampleRepoRule sampleRepo;
+
+    @BeforeEach
+    void setUp(JenkinsRule rule, GitSampleRepoRule repo) {
+        r = rule;
+        sampleRepo = repo;
+        heavyweightCheckoutFlag = SCMBinder.USE_HEAVYWEIGHT_CHECKOUT;
+    }
+
+    @AfterEach
+    void tearDown() {
+        SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = heavyweightCheckoutFlag;
+    }
+
+    @Test
+    void smokes() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "echo \"said ${readTrusted 'message'}\"");
         sampleRepo.write("message", "how do you do");
@@ -98,7 +117,8 @@ public class ReadTrustedStepTest {
         r.assertLogContains("Obtained message from ", b);
     }
 
-    @Test public void exactRevision() throws Exception {
+    @Test
+    void exactRevision() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "node {checkout scm; semaphore 'wait1'; def alpha = readTrusted 'alpha'; semaphore 'wait2'; echo \"first got ${alpha} then ${readTrusted 'beta'} vs. disk ${readFile 'alpha'} then ${readFile 'beta'}\"}");
         sampleRepo.write("alpha", "1");
@@ -135,7 +155,8 @@ public class ReadTrustedStepTest {
         r.assertLogContains("now got 2 then 2 vs. disk 2 then 2", r.assertBuildStatusSuccess(r.waitForCompletion(b)));
     }
 
-    @Test public void evaluate() throws Exception {
+    @Test
+    void evaluate() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "evaluate readTrusted('lib.groovy')");
         sampleRepo.write("lib.groovy", "echo 'trustworthy library'");
@@ -167,7 +188,8 @@ public class ReadTrustedStepTest {
     }
 
     @Issue("JENKINS-31386")
-    @Test public void nonMultibranch() throws Exception {
+    @Test
+    void nonMultibranch() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "echo \"said ${readTrusted 'message'}\"");
         sampleRepo.write("message", "how do you do");
@@ -182,7 +204,8 @@ public class ReadTrustedStepTest {
     }
 
     @Issue("JENKINS-42817")
-    @Test public void nonMultibranchHeavyweight() throws Exception {
+    @Test
+    void nonMultibranchHeavyweight() throws Exception {
         SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
         try {
             sampleRepo.init();
@@ -203,7 +226,7 @@ public class ReadTrustedStepTest {
     }
 
     @Test
-    public void pathTraversalRejected() throws Exception {
+    void pathTraversalRejected() throws Exception {
         SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "node { checkout scm; echo \"${readTrusted '../../secrets/master.key'}\"}");
@@ -224,7 +247,7 @@ public class ReadTrustedStepTest {
 
     @Issue("SECURITY-2491")
     @Test
-    public void symlinksInReadTrustedCannotEscapeWorkspaceContext() throws Exception {
+    void symlinksInReadTrustedCannotEscapeWorkspaceContext() throws Exception {
         assumeFalse(Functions.isWindows()); // On Windows, the symlink is treated as a regular file, so there is no vulnerability, but the behavior is different.
         SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
         sampleRepo.init();
@@ -246,7 +269,7 @@ public class ReadTrustedStepTest {
 
     @Issue("SECURITY-2491")
     @Test
-    public void symlinksInUntrustedRevisionCannotEscapeWorkspace() throws Exception {
+    void symlinksInUntrustedRevisionCannotEscapeWorkspace() throws Exception {
         assumeFalse(Functions.isWindows()); // On Windows, the symlink is treated as a regular file, so there is no vulnerability, but the behavior is different.
         SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
         sampleRepo.init();
@@ -274,7 +297,7 @@ public class ReadTrustedStepTest {
 
     @Issue("SECURITY-2491")
     @Test
-    public void symlinksInNonMultibranchCannotEscapeWorkspaceContextViaReadTrusted() throws Exception {
+    void symlinksInNonMultibranchCannotEscapeWorkspaceContextViaReadTrusted() throws Exception {
         assumeFalse(Functions.isWindows()); // On Windows, the symlink is treated as a regular file, so there is no vulnerability, but the behavior is different.
         SCMBinder.USE_HEAVYWEIGHT_CHECKOUT = true;
         sampleRepo.init();

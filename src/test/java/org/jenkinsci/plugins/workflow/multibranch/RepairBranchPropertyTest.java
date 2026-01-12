@@ -37,28 +37,27 @@ import jenkins.scm.impl.mock.MockSCMController;
 import jenkins.scm.impl.mock.MockSCMDiscoverBranches;
 import jenkins.scm.impl.mock.MockSCMNavigator;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 import java.io.IOException;
 
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertNotNull;
-import static junit.framework.TestCase.assertNull;
-import static junit.framework.TestCase.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-public class RepairBranchPropertyTest {
+@WithJenkins
+class RepairBranchPropertyTest {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule j;
     private MockSCMController controller;
 
-    @Before
-    public void setUp() throws IOException {
+    @BeforeEach
+    void setUp(JenkinsRule rule) throws IOException {
+        j = rule;
         setup(MockSCMController.create());
     }
 
@@ -70,8 +69,9 @@ public class RepairBranchPropertyTest {
                 "echo 'hello'".getBytes());
     }
 
-    @Test @Issue("JENKINS-55116")
-    public void removedProperty() throws Exception {
+    @Test
+    @Issue("JENKINS-55116")
+    void removedProperty() throws Exception {
         OrganizationFolder org = j.createProject(OrganizationFolder.class, "org");
         org.getNavigators().add(new MockSCMNavigator(controller.getId(), new MockSCMDiscoverBranches()));
         org.save();
@@ -99,8 +99,9 @@ public class RepairBranchPropertyTest {
         assertTrue(repo.getPrimaryView().contains((TopLevelItem)master));
     }
 
-    @Test @Issue("JENKINS-55116")
-    public void removedPropertyLastBuildCorrupt() throws Exception {
+    @Test
+    @Issue("JENKINS-55116")
+    void removedPropertyLastBuildCorrupt() throws Exception {
         OrganizationFolder org = j.createProject(OrganizationFolder.class, "org");
         org.getNavigators().add(new MockSCMNavigator(controller.getId(), new MockSCMDiscoverBranches()));
         org.save();
@@ -136,8 +137,10 @@ public class RepairBranchPropertyTest {
         assertTrue(repo.getPrimaryView().contains((TopLevelItem)master));
     }
 
-    @Test @LocalData @Issue("JENKINS-55116")
-    public void removedPropertyAtStartup() throws Exception {
+    @Test
+    @LocalData
+    @Issue("JENKINS-55116")
+    void removedPropertyAtStartup() throws Exception {
         MockSCMController cont = MockSCMController.recreate("9ea2ef21-aa07-4973-a942-6c4c4c7851d1");
         setup(cont);
         OrganizationFolder org = j.jenkins.getItem("org", j.jenkins, OrganizationFolder.class);

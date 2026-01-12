@@ -28,8 +28,11 @@ import hudson.FilePath;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.List;
+
 import jenkins.branch.BranchProperty;
 import jenkins.branch.BranchSource;
 import jenkins.branch.DefaultBranchPropertyStrategy;
@@ -37,6 +40,7 @@ import jenkins.model.Jenkins;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
+import jenkins.plugins.git.junit.jupiter.WithGitSampleRepo;
 import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -45,29 +49,40 @@ import org.jenkinsci.plugins.workflow.libs.GlobalLibraries;
 import org.jenkinsci.plugins.workflow.libs.LibraryConfiguration;
 import org.jenkinsci.plugins.workflow.libs.LibraryRetriever;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.jvnet.hudson.test.BuildWatcher;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.JenkinsSessionRule;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 
-public class SCMVarTest {
+@WithGitSampleRepo
+class SCMVarTest {
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public JenkinsSessionRule story = new JenkinsSessionRule();
-    @Rule public GitSampleRepoRule sampleGitRepo = new GitSampleRepoRule();
+    @SuppressWarnings("unused")
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    @RegisterExtension
+    private final JenkinsSessionExtension story = new JenkinsSessionExtension();
+    private GitSampleRepoRule sampleRepo;
 
-    @Test public void scmPickle() throws Throwable {
+    @BeforeEach
+    void setUp(GitSampleRepoRule repo) {
+        sampleRepo = repo;
+    }
+
+    @Test
+    void scmPickle() throws Throwable {
         story.then(j -> {
-                sampleGitRepo.init();
-                sampleGitRepo.write("Jenkinsfile", "def _scm = scm; semaphore 'wait'; node {checkout _scm; echo readFile('file')}");
-                sampleGitRepo.write("file", "initial content");
-                sampleGitRepo.git("add", "Jenkinsfile");
-                sampleGitRepo.git("commit", "--all", "--message=flow");
+                sampleRepo.init();
+                sampleRepo.write("Jenkinsfile", "def _scm = scm; semaphore 'wait'; node {checkout _scm; echo readFile('file')}");
+                sampleRepo.write("file", "initial content");
+                sampleRepo.git("add", "Jenkinsfile");
+                sampleRepo.git("commit", "--all", "--message=flow");
                 WorkflowMultiBranchProject mp = j.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-                mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+                mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
                 WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
                 SemaphoreStep.waitForStart("wait/1", null);
                 WorkflowRun b1 = p.getLastBuild();
@@ -86,37 +101,40 @@ public class SCMVarTest {
     }
 
     @Issue("JENKINS-30222")
-    @Test public void globalVariable() throws Throwable {
+    @Test
+    void globalVariable() throws Throwable {
         story.then(j -> {
                 // Set up a standardJob definition:
                 File lib = new File(Jenkins.get().getRootDir(), "somelib");
                 LibraryConfiguration cfg = new LibraryConfiguration("somelib", new LocalRetriever(lib));
                 cfg.setImplicit(true);
                 cfg.setDefaultVersion("fixed");
-                GlobalLibraries.get().setLibraries(Arrays.asList(cfg));
+                GlobalLibraries.get().setLibraries(List.of(cfg));
                 File vars = new File(lib, "vars");
                 Files.createDirectories(vars.toPath());
                 FileUtils.writeStringToFile(new File(vars, "standardJob.groovy"),
-                    "def call(body) {\n" +
-                    "  def config = [:]\n" +
-                    "  body.resolveStrategy = Closure.DELEGATE_FIRST\n" +
-                    "  body.delegate = config\n" +
-                    "  body()\n" +
-                    "  node {\n" +
-                    "    checkout scm\n" +
-                    "    echo \"loaded ${readFile config.file}\"\n" +
-                    "  }\n" +
-                    "}\n");
+                        """
+                                def call(body) {
+                                  def config = [:]
+                                  body.resolveStrategy = Closure.DELEGATE_FIRST
+                                  body.delegate = config
+                                  body()
+                                  node {
+                                    checkout scm
+                                    echo "loaded ${readFile config.file}"
+                                  }
+                                }
+                                """, StandardCharsets.UTF_8);
                 // Then a project using it:
-                sampleGitRepo.init();
-                sampleGitRepo.write("Jenkinsfile", "standardJob {file = 'resource'}");
-                sampleGitRepo.write("resource", "resource content");
-                sampleGitRepo.git("add", "Jenkinsfile");
-                sampleGitRepo.git("add", "resource");
-                sampleGitRepo.git("commit", "--all", "--message=flow");
+                sampleRepo.init();
+                sampleRepo.write("Jenkinsfile", "standardJob {file = 'resource'}");
+                sampleRepo.write("resource", "resource content");
+                sampleRepo.git("add", "Jenkinsfile");
+                sampleRepo.git("add", "resource");
+                sampleRepo.git("commit", "--all", "--message=flow");
                 // And run:
                 WorkflowMultiBranchProject mp = j.jenkins.createProject(WorkflowMultiBranchProject.class, "p");
-                mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleGitRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
+                mp.getSourcesList().add(new BranchSource(new GitSCMSource(null, sampleRepo.toString(), "", "*", "", false), new DefaultBranchPropertyStrategy(new BranchProperty[0])));
                 WorkflowJob p = WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(mp, "master");
                 WorkflowRun b = j.assertBuildStatusSuccess(p.scheduleBuild2(0));
                 j.assertLogContains("loaded resource content", b);
@@ -129,24 +147,27 @@ public class SCMVarTest {
         LocalRetriever(File lib) {
             this.lib = lib;
         }
-        @Override public void retrieve(String name, String version, boolean changelog, FilePath target, Run<?, ?> run, TaskListener listener) throws Exception {
+        @Override
+        public void retrieve(String name, String version, boolean changelog, FilePath target, Run<?, ?> run, TaskListener listener) throws Exception {
             new FilePath(lib).copyRecursiveTo(target);
         }
-        @Override public void retrieve(String name, String version, FilePath target, Run<?, ?> run, TaskListener listener) throws Exception {
+        @Override
+        public void retrieve(String name, String version, FilePath target, Run<?, ?> run, TaskListener listener) throws Exception {
             retrieve(name, version, false, target, run, listener);
         }
     }
 
     @Issue("JENKINS-31386")
-    @Test public void standaloneProject() throws Throwable {
+    @Test
+    void standaloneProject() throws Throwable {
         story.then(j -> {
-                sampleGitRepo.init();
-                sampleGitRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file')}");
-                sampleGitRepo.write("file", "some content");
-                sampleGitRepo.git("add", "Jenkinsfile");
-                sampleGitRepo.git("commit", "--all", "--message=flow");
+                sampleRepo.init();
+                sampleRepo.write("Jenkinsfile", "node {checkout scm; echo readFile('file')}");
+                sampleRepo.write("file", "some content");
+                sampleRepo.git("add", "Jenkinsfile");
+                sampleRepo.git("commit", "--all", "--message=flow");
                 WorkflowJob p = j.jenkins.createProject(WorkflowJob.class, "p");
-                p.setDefinition(new CpsScmFlowDefinition(new GitStep(sampleGitRepo.toString()).createSCM(), "Jenkinsfile"));
+                p.setDefinition(new CpsScmFlowDefinition(new GitStep(sampleRepo.toString()).createSCM(), "Jenkinsfile"));
                 WorkflowRun b = j.assertBuildStatusSuccess(p.scheduleBuild2(0));
                 j.assertLogContains("some content", b);
         });

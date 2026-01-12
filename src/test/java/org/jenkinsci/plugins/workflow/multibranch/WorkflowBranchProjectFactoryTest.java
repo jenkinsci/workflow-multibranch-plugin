@@ -29,36 +29,49 @@ import java.util.Collections;
 import jenkins.branch.BranchSource;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
+import jenkins.plugins.git.junit.jupiter.WithGitSampleRepo;
 import jenkins.plugins.git.traits.BranchDiscoveryTrait;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.jvnet.hudson.test.BuildWatcher;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.JenkinsSessionRule;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 
-public class WorkflowBranchProjectFactoryTest {
+@WithGitSampleRepo
+class WorkflowBranchProjectFactoryTest {
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public JenkinsSessionRule story = new JenkinsSessionRule();
-    @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
+    @SuppressWarnings("unused")
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    @RegisterExtension
+    private final JenkinsSessionExtension story = new JenkinsSessionExtension();
+    private GitSampleRepoRule sampleRepo;
+
+    @BeforeEach
+    void setUp(GitSampleRepoRule repo) {
+        sampleRepo = repo;
+    }
 
     @Issue("JENKINS-30744")
-    @Test public void slashyBranches() throws Throwable {
+    @Test
+    void slashyBranches() throws Throwable {
         story.then(j -> {
                 sampleRepo.init();
                 sampleRepo.git("checkout", "-b", "dev/main");
                 String script =
-                    "echo \"branch=${env.BRANCH_NAME}\"\n" +
-                    "node {\n" +
-                    "  checkout scm\n" +
-                    "  echo \"workspace=${pwd().replaceFirst('.+dev', 'dev')}\"\n" +
-                    "}";
+                        """
+                                echo "branch=${env.BRANCH_NAME}"
+                                node {
+                                  checkout scm
+                                  echo "workspace=${pwd().replaceFirst('.+dev', 'dev')}"
+                                }""";
                 sampleRepo.write("Jenkinsfile", script);
                 sampleRepo.git("add", "Jenkinsfile");
                 sampleRepo.git("commit", "--all", "--message=flow");
@@ -88,6 +101,7 @@ public class WorkflowBranchProjectFactoryTest {
                 verifyProject(j, p);
         });
     }
+
     private static void verifyProject(JenkinsRule j, WorkflowJob p) throws Exception {
         assertEquals("dev%2Fmain", p.getName());
         assertEquals("dev/main", p.getDisplayName());
