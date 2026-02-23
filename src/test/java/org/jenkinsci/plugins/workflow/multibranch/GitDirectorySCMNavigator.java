@@ -33,6 +33,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jenkins.plugins.git.GitSCMSource;
@@ -40,10 +41,11 @@ import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorDescriptor;
 import jenkins.scm.api.SCMSourceObserver;
 import org.apache.commons.io.IOUtils;
-import static org.junit.Assert.assertFalse;
 
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * Sample provider which scans a directory for Git checkouts.
@@ -52,7 +54,8 @@ public class GitDirectorySCMNavigator extends SCMNavigator {
 
     private final String directory;
 
-    @DataBoundConstructor public GitDirectorySCMNavigator(String directory) {
+    @DataBoundConstructor
+    public GitDirectorySCMNavigator(String directory) {
         this.directory = directory;
     }
 
@@ -66,7 +69,8 @@ public class GitDirectorySCMNavigator extends SCMNavigator {
         return directory;
     }
 
-    @Override public void visitSources(SCMSourceObserver observer) throws IOException, InterruptedException {
+    @Override
+    public void visitSources(SCMSourceObserver observer) throws IOException, InterruptedException {
         TaskListener listener = observer.getListener();
         File[] kids = new File(directory).listFiles();
         if (kids == null) {
@@ -89,7 +93,7 @@ public class GitDirectorySCMNavigator extends SCMNavigator {
                 continue;
             }
             String origin = kid.getAbsolutePath(); // fallback
-            for (String line : IOUtils.readLines(new ByteArrayInputStream(baos.toByteArray()))) {
+            for (String line : IOUtils.readLines(new ByteArrayInputStream(baos.toByteArray()), StandardCharsets.UTF_8)) {
                 Matcher m = ORIGIN.matcher(line);
                 if (m.matches()) {
                     origin = m.group(1);
@@ -109,11 +113,13 @@ public class GitDirectorySCMNavigator extends SCMNavigator {
     public static class DescriptorImpl extends SCMNavigatorDescriptor {
 
         @NonNull
-        @Override public String getDisplayName() {
+        @Override
+        public String getDisplayName() {
             return "Directory of Git checkouts";
         }
 
-        @Override public SCMNavigator newInstance(String name) {
+        @Override
+        public SCMNavigator newInstance(String name) {
             return null;
         }
 

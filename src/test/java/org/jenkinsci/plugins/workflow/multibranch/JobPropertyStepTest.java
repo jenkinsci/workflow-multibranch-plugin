@@ -53,6 +53,7 @@ import jenkins.model.BuildDiscarderProperty;
 import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitBranchSCMHead;
 import jenkins.plugins.git.GitSampleRepoRule;
+import jenkins.plugins.git.junit.jupiter.WithGitSampleRepo;
 import jenkins.plugins.git.traits.BranchDiscoveryTrait;
 import jenkins.triggers.ReverseBuildTrigger;
 import jenkins.scm.api.SCMHead;
@@ -75,40 +76,49 @@ import org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty
 import org.jenkinsci.plugins.workflow.steps.StepConfigTester;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.NoStaplerConstructorException;
 
 import static org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject;
 
 @Issue("JENKINS-30519")
-public class JobPropertyStepTest {
+@WithJenkins
+@WithGitSampleRepo
+class JobPropertyStepTest {
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public JenkinsRule r = new JenkinsRule();
-    @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
+    @SuppressWarnings("unused")
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    private JenkinsRule r;
+    private GitSampleRepoRule sampleRepo;
+
+    @BeforeEach
+    void setUp(JenkinsRule rule, GitSampleRepoRule repo) {
+        r = rule;
+        sampleRepo = repo;
+    }
 
     /**
      * Needed to ensure that we get a fresh {@code MockTrigger#startsAndStops} with each test run. Has to be *after* rather than
      * *before* to avoid weird ordering issues with {@code @LocalData}.
      */
-    @After
-    public void resetStartsAndStops() {
+    @AfterEach
+    void tearDown() {
         MockTrigger.startsAndStops = new ArrayList<>();
     }
 
     @SuppressWarnings("rawtypes")
-    @Test public void configRoundTripParameters() throws Exception {
+    @Test
+    void configRoundTripParameters() throws Exception {
         List<JobProperty> properties = Collections.singletonList(new ParametersDefinitionProperty(new BooleanParameterDefinition("flag", true, null)));
         // TODO *ParameterDefinition.description ought to be defaulted to null:
         new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([parameters([booleanParam(defaultValue: true, name: 'flag')])])");
@@ -130,7 +140,7 @@ public class JobPropertyStepTest {
 
     @Issue("JENKINS-51290")
     @Test
-    public void testPreviousBuildFailedHard() throws Exception {
+    void testPreviousBuildFailedHard() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
 
         // First we simulate a build that has resulted in a null execution
@@ -140,7 +150,7 @@ public class JobPropertyStepTest {
         Field f = run.getClass().getDeclaredField("execution");
         f.setAccessible(true);
         f.set(run, null);
-        Assert.assertNull(run.getExecution());
+        assertNull(run.getExecution());
 
         // Verify build runs cleanly
         p.setDefinition(new CpsFlowDefinition("properties([buildDiscarder(logRotator(numToKeepStr: '1'))])", true));
@@ -148,7 +158,8 @@ public class JobPropertyStepTest {
     }
 
     @SuppressWarnings("rawtypes")
-    @Test public void configRoundTripBuildDiscarder() throws Exception {
+    @Test
+    void configRoundTripBuildDiscarder() throws Exception {
         List<JobProperty> properties = Collections.singletonList(new BuildDiscarderProperty(new LogRotator(1, 2, -1, 3)));
 
         // TODO structural form of LogRotator is awful; confusion between integer and string types, and failure to handle default values:
@@ -169,7 +180,8 @@ public class JobPropertyStepTest {
     }
 
     @Issue("JENKINS-35698")
-    @Test public void useParameter() throws Exception {
+    @Test
+    void useParameter() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile",
                 "properties([parameters([string(name: 'myparam', defaultValue: 'default value')])])\n" +
@@ -233,9 +245,10 @@ public class JobPropertyStepTest {
         r.assertLogContains("value bar", b9);
     }
 
-    @Ignore("TODO does not currently work; b2 says subsequently received #1")
+    @Disabled("TODO does not currently work; b2 says subsequently received #1")
     @Issue("JENKINS-70680")
-    @Test public void changingParameterDefault() throws Exception {
+    @Test
+    void changingParameterDefault() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "properties([parameters([string(name: 'x', defaultValue: '#1')])]); echo(/initially received $params.x/)");
         sampleRepo.git("add", "Jenkinsfile");
@@ -260,7 +273,8 @@ public class JobPropertyStepTest {
     }
 
     @Issue({"JENKINS-27295", "https://www.jenkins.io/security/advisory/2016-05-11/#arbitrary-build-parameters-are-passed-to-build-scripts-as-environment-variables"})
-    @Test public void triggerWithParameter() throws Exception {
+    @Test
+    void triggerWithParameter() throws Exception {
         WorkflowJob p = r.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition("properties([parameters([string(name: 'myparam')])]); echo(/got $params.myparam though the env var is $env.myparam/)", true));
         r.assertLogContains("got the value though the env var is null", r.assertBuildStatusSuccess(p.scheduleBuild2(0, new ParametersAction(new StringParameterValue("myparam", "the value")))));
@@ -268,14 +282,15 @@ public class JobPropertyStepTest {
 
     @Issue("JENKINS-26143")
     @Test
-    public void testChoiceParameterSnippetizer() throws Exception {
+    void testChoiceParameterSnippetizer() throws Exception {
         //new SnippetizerTester(r).assertGenerateSnippet();
         new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(Collections.singletonList(new ParametersDefinitionProperty(new ChoiceParameterDefinition("paramName", new String[]{"foo", "bar", "baz"}, "test")))),
                 "properties([parameters([choice(choices: ['foo', 'bar', 'baz'], description: 'test', name: 'paramName')])])");
     }
 
     @SuppressWarnings("deprecation") // RunList.size
-    @Test public void useBuildDiscarder() throws Exception {
+    @Test
+    void useBuildDiscarder() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "properties([buildDiscarder(logRotator(numToKeepStr: '1'))])");
         sampleRepo.git("add", "Jenkinsfile");
@@ -298,7 +313,8 @@ public class JobPropertyStepTest {
     }
 
     @Issue("JENKINS-44848")
-    @Test public void onlyRemoveJenkinsfileProperties() throws Exception {
+    @Test
+    void onlyRemoveJenkinsfileProperties() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         p.addProperty(new DisableConcurrentBuildsJobProperty());
 
@@ -339,7 +355,7 @@ public class JobPropertyStepTest {
     @Issue("JENKINS-44848")
     @LocalData
     @Test
-    public void trackerPropertyUpgrade() throws Exception {
+    void trackerPropertyUpgrade() throws Exception {
         WorkflowJob p = r.jenkins.getItemByFullName("trackerPropertyUpgrade", WorkflowJob.class);
         assertNotNull(p);
         WorkflowRun b1 = p.getLastBuild();
@@ -359,7 +375,8 @@ public class JobPropertyStepTest {
     }
 
     @Issue("JENKINS-34547")
-    @Test public void concurrentBuildProperty() throws Exception {
+    @Test
+    void concurrentBuildProperty() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         // Verify the base case behavior.
         p.setDefinition(new CpsFlowDefinition("semaphore 'hang'", true));
@@ -404,7 +421,8 @@ public class JobPropertyStepTest {
     }
 
     @Issue("JENKINS-34005")
-    @Test public void triggersProperty() throws Exception {
+    @Test
+    void triggersProperty() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         // Verify the base case behavior.
         p.setDefinition(new CpsFlowDefinition("echo 'foo'", true));
@@ -418,8 +436,10 @@ public class JobPropertyStepTest {
 
         // Now add a trigger.
         p.setDefinition(new CpsFlowDefinition(
-                "properties([pipelineTriggers([\n"
-              + "  cron('@daily'), [$class: 'MockTrigger']])])\n" + "echo 'foo'",
+                """
+                        properties([pipelineTriggers([
+                          cron('@daily'), [$class: 'MockTrigger']])])
+                        echo 'foo'""",
                 true));
 
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
@@ -457,7 +477,8 @@ public class JobPropertyStepTest {
     }
 
     @Issue("JENKINS-37731")
-    @Test public void scmTriggerProperty() throws Exception {
+    @Test
+    void scmTriggerProperty() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         // Verify the base case behavior.
         p.setDefinition(new CpsFlowDefinition("echo 'foo'", true));
@@ -473,14 +494,16 @@ public class JobPropertyStepTest {
         // Looking for core versions 2.21 and later for the proper pollScm symbol, rather than the broken scm symbol.
         if (SymbolLookup.getSymbolValue(SCMTrigger.class).contains("pollSCM")) {
             p.setDefinition(new CpsFlowDefinition(
-                    "properties([pipelineTriggers([\n"
-                            + "  pollSCM(scmpoll_spec: '@daily', ignorePostCommitHooks: true), [$class: 'MockTrigger']])])\n"
-                            + "echo 'foo'", true));
+                    """
+                            properties([pipelineTriggers([
+                              pollSCM(scmpoll_spec: '@daily', ignorePostCommitHooks: true), [$class: 'MockTrigger']])])
+                            echo 'foo'""", true));
         } else {
             p.setDefinition(new CpsFlowDefinition(
-                    "properties([pipelineTriggers([pollSCM(scmpoll_spec: '@daily', ignorePostCommitHooks: true),\n"
-                            + "    [$class: 'MockTrigger']])])\n"
-                            + "echo 'foo'", true));
+                    """
+                            properties([pipelineTriggers([pollSCM(scmpoll_spec: '@daily', ignorePostCommitHooks: true),
+                                [$class: 'MockTrigger']])])
+                            echo 'foo'""", true));
         }
 
         WorkflowRun b = r.assertBuildStatusSuccess(p.scheduleBuild2(0));
@@ -518,7 +541,8 @@ public class JobPropertyStepTest {
         assertEquals("[null, false, null]", MockTrigger.startsAndStops.toString());
     }
 
-    @Test public void scmAndEmptyTriggersProperty() throws Exception {
+    @Test
+    void scmAndEmptyTriggersProperty() throws Exception {
         WorkflowJob p = r.jenkins.createProject(WorkflowJob.class, "p");
         // Verify the base case behavior.
         p.setDefinition(new CpsFlowDefinition("echo 'foo'", true));
@@ -561,7 +585,7 @@ public class JobPropertyStepTest {
 
     @Issue("JENKINS-37477")
     @Test
-    public void generateHelpTrigger() throws Exception {
+    void generateHelpTrigger() throws Exception {
         DescribableModel<?> model = new DescribableModel<>(PipelineTriggersJobProperty.class);
 
         assertNotNull(model);
@@ -601,16 +625,17 @@ public class JobPropertyStepTest {
 
     @Issue("JENKINS-37477")
     @Test
-    public void configRoundTripTrigger() throws Exception {
+    void configRoundTripTrigger() throws Exception {
         List<JobProperty> properties = Collections.singletonList(new PipelineTriggersJobProperty(Collections.singletonList(new TimerTrigger("@daily"))));
-        String snippetJson = "{'propertiesMap': {\n" +
-                "    'stapler-class-bag': 'true',\n" +
-                "    'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'triggers': {\n" +
-                "      'stapler-class-bag': 'true',\n" +
-                "      'hudson-triggers-TimerTrigger': {'spec': '@daily'}\n" +
-                "    }}},\n" +
-                "  'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',\n" +
-                "  '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
+        String snippetJson = """
+                {'propertiesMap': {
+                    'stapler-class-bag': 'true',
+                    'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'triggers': {
+                      'stapler-class-bag': 'true',
+                      'hudson-triggers-TimerTrigger': {'spec': '@daily'}
+                    }}},
+                  'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',
+                  '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}""";
 
         new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([cron('@daily')])])", null);
         new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([cron('@daily')])])");
@@ -618,16 +643,17 @@ public class JobPropertyStepTest {
 
     @Issue("JENKINS-37721")
     @Test
-    public void configRoundTripSCMTrigger() throws Exception {
+    void configRoundTripSCMTrigger() throws Exception {
         List<JobProperty> properties = Collections.singletonList(new PipelineTriggersJobProperty(Collections.singletonList(new SCMTrigger("@daily"))));
-        String snippetJson = "{'propertiesMap': {\n" +
-                "    'stapler-class-bag': 'true',\n" +
-                "    'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'triggers': {\n" +
-                "      'stapler-class-bag': 'true',\n" +
-                "      'hudson-triggers-SCMTrigger': {'scmpoll_spec': '@daily', 'ignorePostCommitHooks': false }\n" +
-                "    }}},\n" +
-                "  'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',\n" +
-                "  '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
+        String snippetJson = """
+                {'propertiesMap': {
+                    'stapler-class-bag': 'true',
+                    'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'triggers': {
+                      'stapler-class-bag': 'true',
+                      'hudson-triggers-SCMTrigger': {'scmpoll_spec': '@daily', 'ignorePostCommitHooks': false }
+                    }}},
+                  'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',
+                  '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}""";
 
         new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([pollSCM('@daily')])])", null);
         new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([pollSCM('@daily')])])");
@@ -635,24 +661,25 @@ public class JobPropertyStepTest {
 
     @Issue("JENKINS-34464")
     @Test
-    public void configRoundTripReverseBuildTrigger() throws Exception {
+    void configRoundTripReverseBuildTrigger() throws Exception {
         List<JobProperty> properties = Collections.singletonList(new PipelineTriggersJobProperty(Collections.singletonList(new ReverseBuildTrigger("some-job", Result.UNSTABLE))));
-        String snippetJson = "{'propertiesMap': {\n" +
-                "    'stapler-class-bag': 'true',\n" +
-                "    'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'triggers': {\n" +
-                "      'stapler-class-bag': 'true',\n" +
-                "      'jenkins-triggers-ReverseBuildTrigger': { 'threshold': 'UNSTABLE', 'upstreamProjects': 'some-job'}\n" +
-                "    }}},\n" +
-                "  'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',\n" +
-                "  '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
+        String snippetJson = """
+                {'propertiesMap': {
+                    'stapler-class-bag': 'true',
+                    'org-jenkinsci-plugins-workflow-job-properties-PipelineTriggersJobProperty': {'triggers': {
+                      'stapler-class-bag': 'true',
+                      'jenkins-triggers-ReverseBuildTrigger': { 'threshold': 'UNSTABLE', 'upstreamProjects': 'some-job'}
+                    }}},
+                  'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',
+                  '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}""";
 
         new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([pipelineTriggers([upstream(threshold: 'UNSTABLE', upstreamProjects: 'some-job')])])", null);
         new SnippetizerTester(r).assertRoundTrip(new JobPropertyStep(properties), "properties([pipelineTriggers([upstream(threshold: 'UNSTABLE', upstreamProjects: 'some-job')])])");
     }
 
     @Issue("JENKINS-37005")
-    @Test 
-    public void noPropertiesWarnings() throws Exception {
+    @Test
+    void noPropertiesWarnings() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "echo \"branch=${env.BRANCH_NAME}\"\n"
                 + "properties([disableConcurrentBuilds()])");
@@ -682,7 +709,8 @@ public class JobPropertyStepTest {
     }
 
     @Issue("JENKINS-37219")
-    @Test public void disableTriggers() throws Exception {
+    @Test
+    void disableTriggers() throws Exception {
         sampleRepo.init();
         sampleRepo.write("Jenkinsfile", "properties([overrideIndexTriggers(false)])");
         sampleRepo.git("add", "Jenkinsfile");
@@ -727,12 +755,13 @@ public class JobPropertyStepTest {
 
     @Issue("JENKINS-37219")
     @Test
-    public void snippetGeneratorOverrideIndexing() throws Exception {
-        String snippetJson = "{'propertiesMap':\n" +
-                "{'stapler-class-bag': 'true', 'jenkins-branch-OverrideIndexTriggersJobProperty': \n" +
-                "{'specified': true, 'enableTriggers': true}},\n" +
-                "'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',\n" +
-                "'$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}";
+    void snippetGeneratorOverrideIndexing() throws Exception {
+        String snippetJson = """
+                {'propertiesMap':
+                {'stapler-class-bag': 'true', 'jenkins-branch-OverrideIndexTriggersJobProperty':
+                {'specified': true, 'enableTriggers': true}},
+                'stapler-class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep',
+                '$class': 'org.jenkinsci.plugins.workflow.multibranch.JobPropertyStep'}""";
 
         new SnippetizerTester(r).assertGenerateSnippet(snippetJson, "properties([overrideIndexTriggers(true)])", null);
     }
