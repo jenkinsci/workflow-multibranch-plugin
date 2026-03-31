@@ -49,6 +49,7 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSourceDescriptor;
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.*;
 
 import org.springframework.security.core.Authentication;
@@ -187,6 +188,7 @@ public class SCMBinderTest {
         mp.scheduleBuild2(0).getFuture().get();
         WorkflowMultiBranchProjectTest.showIndexing(mp);
         assertEquals(1, mp.getItems().size());
+        await().until(() -> r.jenkins.getWorkspaceFor(p).getParent().list().stream().filter(d -> d.getName().contains("feature")).toList(), empty());
     }
 
     @Test public void untrustedRevisions() throws Exception {
