@@ -47,6 +47,8 @@ public class BranchJobProperty extends WorkflowJobProperty {
 
     private @NonNull Branch branch;
 
+    private static final ThreadLocal<Boolean> DECORATE_REENTRY = ThreadLocal.withInitial(() -> Boolean.FALSE);
+
     BranchJobProperty(@NonNull Branch branch) {
         this.branch = branch;
     }
@@ -75,7 +77,20 @@ public class BranchJobProperty extends WorkflowJobProperty {
                     // allow early manual clean-up of dead branches
                     return false;
                 } else {
-                    return acl.hasPermission2(a, permission);
+                    // JENKINS-44809-class guard: if the delegate ACL re-enters this same decorator
+                    // (cyclic base ACL from the folder child-ACL composition), break the infinite
+                    // recursion by answering from the instance-wide terminal root ACL — same decision
+                    // the strategy intends, without looping.
+                    if (Boolean.TRUE.equals(DECORATE_REENTRY.get())) {
+                        return jenkins.model.Jenkins.get().getAuthorizationStrategy()
+                                .getRootACL().hasPermission2(a, permission);
+                    }
+                    DECORATE_REENTRY.set(Boolean.TRUE);
+                    try {
+                        return acl.hasPermission2(a, permission);
+                    } finally {
+                        DECORATE_REENTRY.set(Boolean.FALSE);
+                    }
                 }
             }
         };
