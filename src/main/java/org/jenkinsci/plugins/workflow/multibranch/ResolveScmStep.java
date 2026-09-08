@@ -30,19 +30,17 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.Extension;
 import hudson.model.Descriptor;
+import hudson.model.Item;
+import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import net.sf.json.JSONArray;
@@ -109,9 +107,9 @@ public class ResolveScmStep extends Step {
     }
 
     /**
-     * Gets the {@link SCMHead} names to try and resolve.
+     * Gets the target branch names to try and resolve.
      *
-     * @return the {@link SCMHead} names to try and resolve.
+     * @return the target branch names to try and resolve.
      */
     @NonNull
     public List<String> getTargets() {
@@ -168,7 +166,7 @@ public class ResolveScmStep extends Step {
          */
         @Override
         public Set<Class<?>> getRequiredContext() {
-            return Collections.singleton(TaskListener.class);
+            return Set.of(TaskListener.class, Run.class);
         }
 
         /**
@@ -275,7 +273,17 @@ public class ResolveScmStep extends Step {
             assert listener != null;
             PrintStream out = listener.getLogger();
             out.printf("Checking for first existing branch from %s...%n", targets);
-            SCMRevision fetch = source.fetch(new ObserverImpl(targets), listener).result();
+            var item = context.get(Run.class).getParent();
+            SCMRevision fetch = null;
+            for (String target : targets) {
+                if (target == null || target.isBlank()) {
+                    continue;
+                }
+                fetch = source.fetch(target, listener, item);
+                if (fetch != null) {
+                    break;
+                }
+            }
             if (fetch == null) {
                 if (ignoreErrors) {
                     out.println("Could not find any matching branch");
@@ -285,65 +293,6 @@ public class ResolveScmStep extends Step {
             }
             out.printf("Found %s at revision %s%n", fetch.getHead().getName(), fetch);
             return source.build(fetch.getHead(), fetch);
-        }
-
-    }
-
-    /**
-     * An observer that collects the {@link SCMRevision} of a named {@link SCMHead} from a list of priority
-     * candidates and stops observing when the preferred candidate is found.
-     */
-    private static class ObserverImpl extends SCMHeadObserver {
-        /**
-         * The heads we are looking for
-         */
-        private final Map<String, SCMRevision> revision = new LinkedHashMap<>();
-
-        /**
-         * Constructor.
-         *
-         * @param heads the {@link SCMHead#getName()} to get the {@link SCMRevision} of.
-         */
-        public ObserverImpl(@NonNull List<String> heads) {
-            heads.getClass(); // fail fast if null
-            for (String head : heads) {
-                if (head != null && !head.isBlank()) {
-                    revision.put(head, null);
-                }
-            }
-        }
-
-        /**
-         * Returns the result.
-         *
-         * @return the result.
-         */
-        @CheckForNull
-        public SCMRevision result() {
-            for (SCMRevision r : revision.values()) {
-                if (r != null) {
-                    return r;
-                }
-            }
-            return null;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void observe(@NonNull SCMHead head, @NonNull SCMRevision revision) {
-            if (this.revision.containsKey(head.getName())) {
-                this.revision.put(head.getName(), revision);
-            }
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public boolean isObserving() {
-            return revision.values().iterator().next() == null;
         }
 
     }
