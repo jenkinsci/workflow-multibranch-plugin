@@ -41,6 +41,14 @@ import org.kohsuke.stapler.DataBoundSetter;
 public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectFactory {
     static final String SCRIPT = "Jenkinsfile";
     private String scriptPath = SCRIPT;
+    /**
+     * When true, {@link #getSCMSourceCriteria(SCMSource)} returns a trivial
+     * "accept all heads" criteria instead of probing the SCM for the script
+     * path on every head discovery. Avoids one contents API call per source
+     * per event when many multibranch projects watch the same repo. Builds
+     * still fail at runtime if {@link #scriptPath} is missing on the ref.
+     */
+    private boolean skipScriptPathCheck;
 
     public Object readResolve() {
         if (this.scriptPath == null) {
@@ -64,11 +72,23 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
         return scriptPath;
     }
 
+    public boolean isSkipScriptPathCheck() {
+        return skipScriptPathCheck;
+    }
+
+    @DataBoundSetter
+    public void setSkipScriptPathCheck(boolean skipScriptPathCheck) {
+        this.skipScriptPathCheck = skipScriptPathCheck;
+    }
+
     @Override protected FlowDefinition createDefinition() {
         return new SCMBinder(scriptPath);
     }
 
     @Override protected SCMSourceCriteria getSCMSourceCriteria(SCMSource source) {
+         if (skipScriptPathCheck) {
+            return ACCEPT_ALL_HEADS;
+        }
         return new SCMSourceCriteria() {
             @Override public boolean isHead(@NonNull SCMSourceCriteria.Probe probe, @NonNull TaskListener listener) throws IOException {
                 SCMProbeStat stat = probe.stat(scriptPath);
@@ -101,6 +121,12 @@ public class WorkflowBranchProjectFactory extends AbstractWorkflowBranchProjectF
             }
         };
     }
+
+    private static final SCMSourceCriteria ACCEPT_ALL_HEADS = new SCMSourceCriteria() {
+        @Override public boolean isHead(@NonNull SCMSourceCriteria.Probe probe, @NonNull TaskListener listener) {
+            return true;
+        }
+    };
 
     @Extension public static class DescriptorImpl extends AbstractWorkflowBranchProjectFactoryDescriptor {
 
