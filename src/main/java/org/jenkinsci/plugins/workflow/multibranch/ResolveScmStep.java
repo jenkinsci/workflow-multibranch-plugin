@@ -31,18 +31,33 @@ import hudson.AbortException;
 import hudson.Extension;
 import hudson.model.Descriptor;
 import hudson.model.Item;
+import hudson.model.ItemGroup;
+import hudson.model.Job;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.scm.SCM;
+import hudson.search.Search;
+import hudson.search.SearchIndex;
+import hudson.security.ACL;
 import hudson.util.FormValidation;
+
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
+import jenkins.scm.api.SCMSourceOwner;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.workflow.steps.Step;
@@ -274,16 +289,8 @@ public class ResolveScmStep extends Step {
             PrintStream out = listener.getLogger();
             out.printf("Checking for first existing branch from %s...%n", targets);
             var item = context.get(Run.class).getParent();
-            SCMRevision fetch = null;
-            for (String target : targets) {
-                if (target == null || target.isBlank()) {
-                    continue;
-                }
-                fetch = source.fetch(target, listener, item);
-                if (fetch != null) {
-                    break;
-                }
-            }
+            source.setOwner(new ResolveSCMOwner(source, item));
+            SCMRevision fetch = source.fetch(new ObserverImpl(targets), listener).result();
             if (fetch == null) {
                 if (ignoreErrors) {
                     out.println("Could not find any matching branch");
@@ -293,6 +300,178 @@ public class ResolveScmStep extends Step {
             }
             out.printf("Found %s at revision %s%n", fetch.getHead().getName(), fetch);
             return source.build(fetch.getHead(), fetch);
+        }
+
+    }
+
+    private static class ResolveSCMOwner implements SCMSourceOwner {
+        @NonNull
+        private transient final SCMSource source;
+        @NonNull
+        private transient final Item context;
+
+        public ResolveSCMOwner(@NonNull SCMSource source, @NonNull Item context) {
+            this.source = source;
+            this.context = context;
+        }
+
+
+        @Override
+        public @org.jspecify.annotations.NonNull List<SCMSource> getSCMSources() {
+            return List.of(source);
+        }
+
+        @Override
+        public void onSCMSourceUpdated(@org.jspecify.annotations.NonNull SCMSource source) {
+
+        }
+
+        @Override
+        public ItemGroup<? extends Item> getParent() {
+            return context.getParent();
+        }
+
+        @Override
+        public Collection<? extends Job> getAllJobs() {
+            return context.getAllJobs();
+        }
+
+        @Override
+        public @org.jspecify.annotations.NonNull String getName() {
+            return context.getName();
+        }
+
+        @Override
+        public @org.jspecify.annotations.NonNull String getFullName() {
+            return context.getFullName();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return context.getDisplayName();
+        }
+
+        @Override
+        public String getUrl() {
+            return context.getUrl();
+        }
+
+        @Override
+        public String getShortUrl() {
+            return context.getShortUrl();
+        }
+
+        @Override
+        public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
+            context.onLoad(parent, name);
+        }
+
+        @Override
+        public void onCopiedFrom(Item src) {
+            context.onCopiedFrom(src);
+        }
+
+        @Override
+        public void save() throws IOException {
+            context.save();
+        }
+
+        @Override
+        public void delete() throws IOException, InterruptedException {
+            context.delete();
+        }
+
+        @Override
+        public File getRootDir() {
+            return context.getRootDir();
+        }
+
+        @Override
+        public Search getSearch() {
+            return context.getSearch();
+        }
+
+        @Override
+        public String getSearchName() {
+            return context.getSearchName();
+        }
+
+        @Override
+        public String getSearchUrl() {
+            return context.getSearchUrl();
+        }
+
+        @Override
+        public SearchIndex getSearchIndex() {
+            return context.getSearchIndex();
+        }
+
+        @Override
+        public @org.jspecify.annotations.NonNull ACL getACL() {
+            return context.getACL();
+        }
+
+        @Override
+        public String getFullDisplayName() {
+            return context.getFullDisplayName();
+        }
+    }
+
+    /**
+     * An observer that collects the {@link SCMRevision} of a named {@link SCMHead} from a list of priority
+     * candidates and stops observing when the preferred candidate is found.
+     */
+    private static class ObserverImpl extends SCMHeadObserver {
+        /**
+         * The heads we are looking for
+         */
+        private final Map<String, SCMRevision> revision = new LinkedHashMap<>();
+
+        /**
+         * Constructor.
+         *
+         * @param heads the {@link SCMHead#getName()} to get the {@link SCMRevision} of.
+         */
+        public ObserverImpl(@NonNull List<String> heads) {
+            heads.getClass(); // fail fast if null
+            for (String head : heads) {
+                if (head != null && !head.isBlank()) {
+                    revision.put(head, null);
+                }
+            }
+        }
+
+        /**
+         * Returns the result.
+         *
+         * @return the result.
+         */
+        @CheckForNull
+        public SCMRevision result() {
+            for (SCMRevision r : revision.values()) {
+                if (r != null) {
+                    return r;
+                }
+            }
+            return null;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void observe(@NonNull SCMHead head, @NonNull SCMRevision revision) {
+            if (this.revision.containsKey(head.getName())) {
+                this.revision.put(head.getName(), revision);
+            }
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean isObserving() {
+            return revision.values().iterator().next() == null;
         }
 
     }
