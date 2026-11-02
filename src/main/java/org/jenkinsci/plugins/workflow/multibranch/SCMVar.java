@@ -31,13 +31,11 @@ import hudson.Extension;
 import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Run;
-import hudson.model.TaskListener;
 import hudson.scm.SCM;
 import hudson.util.DescribableList;
 import java.io.Serializable;
 import jenkins.branch.Branch;
 import jenkins.model.Jenkins;
-import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
@@ -45,7 +43,6 @@ import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.CpsScript;
 import org.jenkinsci.plugins.workflow.cps.GlobalVariable;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
-import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.pickles.Pickle;
@@ -66,15 +63,14 @@ import org.jenkinsci.plugins.workflow.support.pickles.XStreamPickle;
     @NonNull
     @Override public SCM getValue(@NonNull CpsScript script) throws Exception {
         Run<?,?> build = script.$build();
-        // TODO some code overlap with SCMBinder.create, but not obvious how to factor out common parts
         if (!(build instanceof WorkflowRun)) {
             throw new AbortException("‘checkout scm’ is not available outside a Pipeline build");
         }
         Job<?,?> job = build.getParent();
         BranchJobProperty property = job.getProperty(BranchJobProperty.class);
         if (property == null) {
-            if (job instanceof WorkflowJob) {
-                FlowDefinition defn = ((WorkflowJob) job).getDefinition();
+            if (job instanceof WorkflowJob wj) {
+                FlowDefinition defn = wj.getDefinition();
                 if (defn instanceof CpsScmFlowDefinition) {
                     // JENKINS-31386: retrofit to work with standalone projects, minus the exact revision support.
                     return ((CpsScmFlowDefinition) defn).getScm();
@@ -86,28 +82,19 @@ import org.jenkinsci.plugins.workflow.support.pickles.XStreamPickle;
         }
         Branch branch = property.getBranch();
         ItemGroup<?> parent = job.getParent();
-        if (!(parent instanceof WorkflowMultiBranchProject)) {
+        if (!(parent instanceof WorkflowMultiBranchProject wmbp)) {
             throw new IllegalStateException("inappropriate context");
         }
-        SCMSource scmSource = ((WorkflowMultiBranchProject) parent).getSCMSource(branch.getSourceId());
+        SCMSource scmSource = wmbp.getSCMSource(branch.getSourceId());
         if (scmSource == null) {
             throw new IllegalStateException(branch.getSourceId() + " not found");
         }
         SCMRevision tip;
         SCMRevisionAction revisionAction = build.getAction(SCMRevisionAction.class);
-        if (revisionAction != null) {
-            tip = revisionAction.getRevision();
-        } else {
-            SCMHead head = branch.getHead();
-            FlowExecutionOwner owner = ((WorkflowRun) build).asFlowExecutionOwner();
-            TaskListener listener = owner.getListener();
-            tip = scmSource.fetch(head, listener);
-            if (tip == null) {
-                throw new AbortException("Could not determine exact tip revision of " + branch.getName());
-            }
-            revisionAction = new SCMRevisionAction(scmSource, tip);
-            build.addAction(revisionAction);
+        if (revisionAction == null) {
+            throw new AbortException("Could not determine exact tip revision of " + branch.getName());
         }
+        tip = revisionAction.getRevision();
         return scmSource.build(branch.getHead(), tip);
     }
 

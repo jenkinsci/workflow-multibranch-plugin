@@ -82,10 +82,9 @@ public class SCMBinder extends FlowDefinition {
 
     @Override public FlowExecution create(FlowExecutionOwner handle, TaskListener listener, List<? extends Action> actions) throws Exception {
         Queue.Executable exec = handle.getExecutable();
-        if (!(exec instanceof WorkflowRun)) {
+        if (!(exec instanceof WorkflowRun build)) {
             throw new IllegalStateException("inappropriate context");
         }
-        WorkflowRun build = (WorkflowRun) exec;
         WorkflowJob job = build.getParent();
         BranchJobProperty property = job.getProperty(BranchJobProperty.class);
         if (property == null) {
@@ -93,18 +92,18 @@ public class SCMBinder extends FlowDefinition {
         }
         Branch branch = property.getBranch();
         ItemGroup<?> parent = job.getParent();
-        if (!(parent instanceof WorkflowMultiBranchProject)) {
+        if (!(parent instanceof WorkflowMultiBranchProject wmbp)) {
             throw new IllegalStateException("inappropriate context");
         }
-        SCMSource scmSource = ((WorkflowMultiBranchProject) parent).getSCMSource(branch.getSourceId());
+        SCMSource scmSource = wmbp.getSCMSource(branch.getSourceId());
         if (scmSource == null) {
             throw new IllegalStateException(branch.getSourceId() + " not found");
         }
-        SCMHead head = branch.getHead();
-        SCMRevision tip = scmSource.fetch(head, listener);
+        var action = build.getAction(SCMRevisionAction.class);
         SCM scm;
-        if (tip != null) {
-            build.addAction(new SCMRevisionAction(scmSource, tip));
+        if (action != null) {
+            SCMRevision tip = action.getRevision();
+            SCMHead head = branch.getHead(); // = tip.head
             SCMRevision rev = scmSource.getTrustedRevision(tip, listener);
             try (SCMFileSystem fs = USE_HEAVYWEIGHT_CHECKOUT ? null : SCMFileSystem.of(scmSource, head, rev)) {
                 if (fs != null) { // JENKINS-33273

@@ -108,11 +108,11 @@ public class ReadTrustedStep extends Step {
             BranchJobProperty property = job.getProperty(BranchJobProperty.class);
             if (property == null) {
                 boolean ok = false;
-                if (job instanceof WorkflowJob) {
-                    FlowDefinition defn = ((WorkflowJob) job).getDefinition();
-                    if (defn instanceof CpsScmFlowDefinition) {
+                if (job instanceof WorkflowJob wj) {
+                    FlowDefinition defn = wj.getDefinition();
+                    if (defn instanceof CpsScmFlowDefinition cpsScmDefn) {
                         // JENKINS-31386: retrofit to work with standalone projects, without doing any trust checks.
-                        standaloneSCM = ((CpsScmFlowDefinition) defn).getScm();
+                        standaloneSCM = cpsScmDefn.getScm();
                         try (SCMFileSystem fs = SCMBinder.USE_HEAVYWEIGHT_CHECKOUT ? null : SCMFileSystem.of(job, standaloneSCM)) {
                             if (fs != null) { // JENKINS-33273
                                 try {
@@ -137,8 +137,8 @@ public class ReadTrustedStep extends Step {
             }
             Node node = Jenkins.get();
             FilePath baseWorkspace;
-            if (job instanceof TopLevelItem) {
-                baseWorkspace = node.getWorkspaceFor((TopLevelItem) job);
+            if (job instanceof TopLevelItem tli) {
+                baseWorkspace = node.getWorkspaceFor(tli);
                 if (baseWorkspace == null) {
                     throw new AbortException(node.getDisplayName() + " may be offline");
                 }
@@ -168,25 +168,19 @@ public class ReadTrustedStep extends Step {
             }
             Branch branch = property.getBranch();
             ItemGroup<?> parent = job.getParent();
-            if (!(parent instanceof WorkflowMultiBranchProject)) {
+            if (!(parent instanceof WorkflowMultiBranchProject wmbp)) {
                 throw new IllegalStateException("inappropriate context");
             }
-            SCMSource scmSource = ((WorkflowMultiBranchProject) parent).getSCMSource(branch.getSourceId());
+            SCMSource scmSource = wmbp.getSCMSource(branch.getSourceId());
             if (scmSource == null) {
                 throw new IllegalStateException(branch.getSourceId() + " not found");
             }
             SCMHead head = branch.getHead();
-            SCMRevision tip;
             SCMRevisionAction action = build.getAction(SCMRevisionAction.class);
-            if (action != null) {
-                tip = action.getRevision();
-            } else {
-                tip = scmSource.fetch(head, listener);
-                if (tip == null) {
-                    throw new AbortException("Could not determine exact tip revision of " + branch.getName());
-                }
-                build.addAction(new SCMRevisionAction(scmSource, tip));
+            if (action == null) {
+                throw new AbortException("Could not determine exact tip revision of " + branch.getName());
             }
+            SCMRevision tip = action.getRevision();
             SCMRevision trusted = scmSource.getTrustedRevision(tip, listener);
             boolean trustCheck = !tip.equals(trusted);
             String untrustedFile = null;
