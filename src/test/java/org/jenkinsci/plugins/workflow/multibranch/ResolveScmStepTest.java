@@ -139,4 +139,15 @@ public class ResolveScmStepTest {
         }
     }
 
+    @Test
+    public void outputDontHaveStackTraceIfBranchDontExists() throws Exception {
+        WorkflowJob job = j.jenkins.createProject(WorkflowJob.class, "workflow");
+        job.setDefinition(new CpsFlowDefinition("node {\n"
+                + "  def tests = resolveScm source: gitSource(credentialsId:'none'"
+                + ", remote: 'https://github.com/jenkinsci/workflow-multibranch-plugin.git', traits: [gitBranchDiscovery()]), "
+                + "targets:['bar', 'manchu', 'main', 'master'], ignoreErrors: false\n"
+                + "}", true));
+        j.buildAndAssertSuccess(job);
+        j.assertLogNotContains("hudson.plugins.git.GitException", job.getLastBuild());
+    }
 }
